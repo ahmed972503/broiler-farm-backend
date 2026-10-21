@@ -10,13 +10,14 @@
   "scripts": {
     "dev:api": "npm --workspace=@broiler/api run dev",
     "dev:mobile": "npm --workspace=@broiler/mobile run start",
+    "dev:web": "npm --workspace=@broiler/mobile run web",
     "build:shared": "npm --workspace=@broiler/shared run build",
     "build:api": "npm --workspace=@broiler/api run build",
     "build": "npm run build:shared && npm run build:api",
     "test:shared": "npm --workspace=@broiler/shared run test",
-    "test:api": "npm --workspace=@broiler/api run test",
     "test:mobile": "npm --workspace=@broiler/mobile run test",
-    "test": "npm run test:shared && npm run test:api",
+    "test:api": "npm --workspace=@broiler/api run test -- src/__tests__/rbac_middleware.test.ts src/__tests__/auth_middleware.test.ts src/__tests__/services.test.ts",
+    "test": "npm run test:shared && npm run test:mobile && npm run test:api",
     "type-check": "npm --workspace=@broiler/shared run type-check && npm --workspace=@broiler/api run type-check && npm --workspace=@broiler/mobile run type-check",
     "seed": "npm --workspace=@broiler/api run seed"
   },

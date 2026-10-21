@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # MongoDB Production Database
+  mongo:
+    image: mongo:7.0-jammy
+    container_name: broiler-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: broiler_farm_prod
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ./backups:/backups
+    networks:
+      - broiler-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express TypeScript REST & Offline Sync API
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: broiler-api
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongo:27017/broiler_farm_prod
+      JWT_SECRET: production-secret-key-replace-in-production-env-min-32-chars
+      JWT_REFRESH_SECRET: production-refresh-secret-replace-in-production-min-32-chars
+      CORS_ORIGIN: "*"
+      RATE_LIMIT_MAX: 500
+    ports:
+      - "5000:5000"
+    networks:
+      - broiler-network
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  broiler-network:
+    driver: bridge
