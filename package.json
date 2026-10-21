@@ -1,0 +1,27 @@
+{
+  "name": "broiler-farm-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade Broiler Farm Management System with offline-first mobile app and web admin dashboard",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace=@broiler/api run dev",
+    "dev:mobile": "npm --workspace=@broiler/mobile run start",
+    "build:shared": "npm --workspace=@broiler/shared run build",
+    "build:api": "npm --workspace=@broiler/api run build",
+    "build": "npm run build:shared && npm run build:api",
+    "test:shared": "npm --workspace=@broiler/shared run test",
+    "test:api": "npm --workspace=@broiler/api run test",
+    "test:mobile": "npm --workspace=@broiler/mobile run test",
+    "test": "npm run test:shared && npm run test:api",
+    "type-check": "npm --workspace=@broiler/shared run type-check && npm --workspace=@broiler/api run type-check && npm --workspace=@broiler/mobile run type-check",
+    "seed": "npm --workspace=@broiler/api run seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
