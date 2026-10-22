@@ -1,17 +1,22 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
-import { createApp } from '../app';
-import { Express } from 'express';
+import { MongoMemoryServer } from "mongodb-memory-server";
+import mongoose from "mongoose";
+import { createApp } from "../app";
+import { Express } from "express";
 
 let mongoServer: MongoMemoryServer;
 let appInstance: Express;
 
 export async function setupTestEnvironment(): Promise<{ app: Express }> {
-  process.env.NODE_ENV = 'test';
-  process.env.JWT_SECRET = 'test-secret-key-32chars-for-testing';
-  process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-32chars-for-testing';
+  process.env.NODE_ENV = "test";
+  process.env.JWT_SECRET = "test-secret-key-32chars-for-testing";
+  process.env.JWT_REFRESH_SECRET =
+    "test-refresh-secret-key-32chars-for-testing";
 
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({
+    binary: {
+      version: "4.4.29",
+    },
+  });
   const uri = mongoServer.getUri();
 
   await mongoose.connect(uri);

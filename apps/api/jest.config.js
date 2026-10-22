@@ -1,10 +1,16 @@
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  preset: "ts-jest",
+  testEnvironment: "node",
   testTimeout: 60000,
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  roots: ["<rootDir>/src"],
+  testMatch: ["**/__tests__/**/*.test.ts"],
   moduleNameMapper: {
-    '^@broiler/shared$': '<rootDir>/../../packages/shared/src/index.ts'
-  }
+    "^@broiler/shared$": "<rootDir>/../../packages/shared/src/index.ts",
+  },
+  collectCoverageFrom: [
+    "src/controllers/**/*.ts",
+    "src/services/**/*.ts",
+    "src/middleware/**/*.ts",
+    "src/routes/**/*.ts",
+  ],
 };

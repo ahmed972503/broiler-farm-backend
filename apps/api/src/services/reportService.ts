@@ -8,8 +8,8 @@ import {
   Staff,
   Attendance,
   StaffAdvance,
-  WeightRecord
-} from '../models';
+  WeightRecord,
+} from "../models";
 import {
   calculateBirdsRemaining,
   calculateMortalityPercent,
@@ -19,33 +19,54 @@ import {
   calculateLivabilityPercent,
   calculateEPEF,
   roundTo,
-  calculateStaffWage
-} from '@broiler/shared';
+  calculateStaffWage,
+} from "@broiler/shared";
 
 export class ReportService {
   /**
    * Generates comprehensive Batch Performance Report
    */
   static async getBatchReport(batchId: string) {
-    const batch = await Batch.findById(batchId).populate('shedId');
-    if (!batch) throw new Error('Batch not found');
+    const batch = await Batch.findById(batchId).populate("shedId");
+    if (!batch) throw new Error("Batch not found");
 
     const dailyRecords = await DailyRecord.find({ batchId }).sort({ date: 1 });
-    const weightRecords = await WeightRecord.find({ batchId }).sort({ ageInDays: 1 });
+    const weightRecords = await WeightRecord.find({ batchId }).sort({
+      ageInDays: 1,
+    });
     const sales = await Sale.find({ batchId }).sort({ date: 1 });
     const expenses = await Expense.find({ batchId }).sort({ date: 1 });
 
-    const totalMortality = dailyRecords.reduce((sum, r) => sum + r.mortalityCount, 0);
+    const totalMortality = dailyRecords.reduce(
+      (sum, r) => sum + r.mortalityCount,
+      0,
+    );
     const totalCulls = dailyRecords.reduce((sum, r) => sum + r.culls, 0);
     const totalFeedKg = dailyRecords.reduce((sum, r) => sum + r.feedUsedKg, 0);
     const totalBirdsSold = sales.reduce((sum, s) => sum + s.birdsSold, 0);
-    const totalLiveWeightSoldKg = sales.reduce((sum, s) => sum + s.totalLiveWeightKg, 0);
+    const totalLiveWeightSoldKg = sales.reduce(
+      (sum, s) => sum + s.totalLiveWeightKg,
+      0,
+    );
     const totalSalesRevenue = sales.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalBatchCost = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-    const birdsRemaining = calculateBirdsRemaining(batch.chicksPlaced, totalMortality, totalCulls, totalBirdsSold);
-    const mortalityRate = calculateMortalityPercent(batch.chicksPlaced, totalMortality, false);
-    const livability = calculateLivabilityPercent(batch.chicksPlaced, birdsRemaining, totalBirdsSold);
+    const birdsRemaining = calculateBirdsRemaining(
+      batch.chicksPlaced,
+      totalMortality,
+      totalCulls,
+      totalBirdsSold,
+    );
+    const mortalityRate = calculateMortalityPercent(
+      batch.chicksPlaced,
+      totalMortality,
+      false,
+    );
+    const livability = calculateLivabilityPercent(
+      batch.chicksPlaced,
+      birdsRemaining,
+      totalBirdsSold,
+    );
     const fcr = calculateFCR(totalFeedKg, totalLiveWeightSoldKg);
     const costPerKg = calculateCostPerKg(totalBatchCost, totalLiveWeightSoldKg);
     const netProfit = calculateBatchProfit(totalSalesRevenue, totalBatchCost);
@@ -54,7 +75,7 @@ export class ReportService {
       batch: {
         id: batch._id,
         batchNumber: batch.batchNumber,
-        shedName: (batch.shedId as any)?.name || 'Shed',
+        shedName: (batch.shedId as any)?.name || "Shed",
         shedNumber: (batch.shedId as any)?.shedNumber || 1,
         chicksPlaced: batch.chicksPlaced,
         placementDate: batch.placementDate,
@@ -63,7 +84,7 @@ export class ReportService {
         breed: batch.breed,
         chickRate: batch.chickRate,
         status: batch.status,
-        closedAt: batch.closedAt
+        closedAt: batch.closedAt,
       },
       metrics: {
         birdsRemaining,
@@ -73,18 +94,21 @@ export class ReportService {
         totalFeedKg: roundTo(totalFeedKg, 2),
         totalBirdsSold,
         totalLiveWeightSoldKg: roundTo(totalLiveWeightSoldKg, 2),
-        averageLiveWeightSoldKg: totalBirdsSold > 0 ? roundTo(totalLiveWeightSoldKg / totalBirdsSold, 3) : 0,
+        averageLiveWeightSoldKg:
+          totalBirdsSold > 0
+            ? roundTo(totalLiveWeightSoldKg / totalBirdsSold, 3)
+            : 0,
         fcr,
         totalBatchCost: roundTo(totalBatchCost, 2),
         costPerKg,
         totalSalesRevenue: roundTo(totalSalesRevenue, 2),
         netProfit,
-        livability
+        livability,
       },
       dailyRecords,
       weightRecords,
       sales,
-      expenses
+      expenses,
     };
   }
 
@@ -92,23 +116,35 @@ export class ReportService {
    * Comparative Report across all 5 sheds
    */
   static async getShedComparisonReport() {
-    const batches = await Batch.find({ status: 'active' }).populate('shedId');
+    const batches = await Batch.find({ status: "active" }).populate("shedId");
     const shedData = [];
 
     for (const batch of batches) {
       const records = await DailyRecord.find({ batchId: batch._id });
-      const weights = await WeightRecord.find({ batchId: batch._id }).sort({ ageInDays: -1 }).limit(1);
+      const weights = await WeightRecord.find({ batchId: batch._id })
+        .sort({ ageInDays: -1 })
+        .limit(1);
       const sales = await Sale.find({ batchId: batch._id });
 
       const mortality = records.reduce((sum, r) => sum + r.mortalityCount, 0);
       const culls = records.reduce((sum, r) => sum + r.culls, 0);
       const feedKg = records.reduce((sum, r) => sum + r.feedUsedKg, 0);
       const sold = sales.reduce((sum, s) => sum + s.birdsSold, 0);
-      const remaining = calculateBirdsRemaining(batch.chicksPlaced, mortality, culls, sold);
+      const remaining = calculateBirdsRemaining(
+        batch.chicksPlaced,
+        mortality,
+        culls,
+        sold,
+      );
 
       const placementDate = new Date(batch.placementDate);
       const today = new Date();
-      const ageInDays = Math.max(1, Math.ceil((today.getTime() - placementDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const ageInDays = Math.max(
+        1,
+        Math.ceil(
+          (today.getTime() - placementDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      );
 
       const latestAvgWeightGrams = weights[0]?.averageWeightGrams || 0;
       const estimatedLiveWeightKg = (remaining * latestAvgWeightGrams) / 1000;
@@ -122,10 +158,14 @@ export class ReportService {
         chicksPlaced: batch.chicksPlaced,
         birdsRemaining: remaining,
         cumulativeMortality: mortality,
-        mortalityPercent: calculateMortalityPercent(batch.chicksPlaced, mortality, false),
+        mortalityPercent: calculateMortalityPercent(
+          batch.chicksPlaced,
+          mortality,
+          false,
+        ),
         feedConsumedKg: roundTo(feedKg, 1),
         latestAvgWeightGrams,
-        estimatedFcr
+        estimatedFcr,
       });
     }
 
@@ -142,13 +182,21 @@ export class ReportService {
     }
 
     const purchases = await FeedPurchase.find(dateQuery).sort({ date: -1 });
-    const issues = await FeedIssue.find(dateQuery).populate('shedId').sort({ date: -1 });
+    const issues = await FeedIssue.find(dateQuery)
+      .populate("shedId")
+      .sort({ date: -1 });
     const consumedRecords = await DailyRecord.find(dateQuery);
 
     const totalPurchasedKg = purchases.reduce((sum, p) => sum + p.totalKg, 0);
-    const totalPurchasedAmount = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
+    const totalPurchasedAmount = purchases.reduce(
+      (sum, p) => sum + p.totalAmount,
+      0,
+    );
     const totalIssuedKg = issues.reduce((sum, i) => sum + i.totalKg, 0);
-    const totalConsumedKg = consumedRecords.reduce((sum, r) => sum + r.feedUsedKg, 0);
+    const totalConsumedKg = consumedRecords.reduce(
+      (sum, r) => sum + r.feedUsedKg,
+      0,
+    );
 
     return {
       totalPurchasedKg: roundTo(totalPurchasedKg, 1),
@@ -157,14 +205,18 @@ export class ReportService {
       totalConsumedKg: roundTo(totalConsumedKg, 1),
       reconciliationDifferenceKg: roundTo(totalIssuedKg - totalConsumedKg, 1),
       purchases,
-      issues
+      issues,
     };
   }
 
   /**
    * Expense Report categorized by Cost Center
    */
-  static async getExpenseReport(batchId?: string, startDate?: string, endDate?: string) {
+  static async getExpenseReport(
+    batchId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const query: any = {};
     if (batchId) query.batchId = batchId;
     if (startDate && endDate) query.date = { $gte: startDate, $lte: endDate };
@@ -182,7 +234,7 @@ export class ReportService {
     return {
       totalExpense: roundTo(totalExpense, 2),
       byCategory,
-      expenses
+      expenses,
     };
   }
 
@@ -192,14 +244,27 @@ export class ReportService {
   static async getSalesLedgerReport() {
     const sales = await Sale.find().sort({ date: -1 });
 
-    const buyerMap: Record<string, { totalBilled: number; totalPaid: number; balance: number; salesCount: number }> = {};
+    const buyerMap: Record<
+      string,
+      {
+        totalBilled: number;
+        totalPaid: number;
+        balance: number;
+        salesCount: number;
+      }
+    > = {};
 
     let grandTotalBilled = 0;
     let grandTotalPaid = 0;
 
     for (const sale of sales) {
       if (!buyerMap[sale.buyerName]) {
-        buyerMap[sale.buyerName] = { totalBilled: 0, totalPaid: 0, balance: 0, salesCount: 0 };
+        buyerMap[sale.buyerName] = {
+          totalBilled: 0,
+          totalPaid: 0,
+          balance: 0,
+          salesCount: 0,
+        };
       }
       buyerMap[sale.buyerName].totalBilled += sale.totalAmount;
       buyerMap[sale.buyerName].totalPaid += sale.amountPaid;
@@ -219,9 +284,9 @@ export class ReportService {
         totalBilled: roundTo(stats.totalBilled, 2),
         totalPaid: roundTo(stats.totalPaid, 2),
         balance: roundTo(stats.balance, 2),
-        salesCount: stats.salesCount
+        salesCount: stats.salesCount,
       })),
-      sales
+      sales,
     };
   }
 
@@ -230,27 +295,38 @@ export class ReportService {
    */
   static async getStaffWagesReport(monthStr: string) {
     // monthStr format: "YYYY-MM"
-    const staffList = await Staff.find({ status: 'active' });
+    const staffList = await Staff.find({ status: "active" });
     const reports = [];
 
     for (const staff of staffList) {
       const attendance = await Attendance.find({
         staffId: staff._id,
-        date: { $regex: `^${monthStr}` }
+        date: { $regex: `^${monthStr}` },
       });
 
-      const presentCount = attendance.filter(a => a.status === 'present').length;
-      const halfDayCount = attendance.filter(a => a.status === 'half_day').length;
-      const absentCount = attendance.filter(a => a.status === 'absent').length;
-      const leaveCount = attendance.filter(a => a.status === 'leave').length;
+      const presentCount = attendance.filter(
+        (a) => a.status === "present",
+      ).length;
+      const halfDayCount = attendance.filter(
+        (a) => a.status === "half_day",
+      ).length;
+      const absentCount = attendance.filter(
+        (a) => a.status === "absent",
+      ).length;
+      const leaveCount = attendance.filter((a) => a.status === "leave").length;
 
       const advances = await StaffAdvance.find({
         staffId: staff._id,
-        date: { $regex: `^${monthStr}` }
+        date: { $regex: `^${monthStr}` },
       });
       const totalAdvances = advances.reduce((sum, a) => sum + a.amount, 0);
 
-      const wageCalc = calculateStaffWage(staff.dailyWage, presentCount, halfDayCount, totalAdvances);
+      const wageCalc = calculateStaffWage(
+        staff.dailyWage,
+        presentCount,
+        halfDayCount,
+        totalAdvances,
+      );
 
       reports.push({
         staffId: staff._id,
@@ -263,7 +339,7 @@ export class ReportService {
         leaveDays: leaveCount,
         grossWage: wageCalc.grossWage,
         advancesDeducted: wageCalc.advanceDeductions,
-        netPayable: wageCalc.netPayable
+        netPayable: wageCalc.netPayable,
       });
     }
 
@@ -274,18 +350,19 @@ export class ReportService {
    * Formats array of objects to CSV string
    */
   static convertToCSV(data: any[]): string {
-    if (!data || data.length === 0) return '';
+    if (!data || data.length === 0) return "";
     const headers = Object.keys(data[0]);
-    const rows = data.map(row =>
+    const rows = data.map((row) =>
       headers
-        .map(header => {
+        .map((header) => {
           const val = row[header];
           if (val === null || val === undefined) return '""';
-          if (typeof val === 'object') return `"${JSON.stringify(val).replace(/"/g, '""')}"`;
+          if (typeof val === "object")
+            return `"${JSON.stringify(val).replace(/"/g, '""')}"`;
           return `"${String(val).replace(/"/g, '""')}"`;
         })
-        .join(',')
+        .join(","),
     );
-    return [headers.join(','), ...rows].join('\n');
+    return [headers.join(","), ...rows].join("\n");
   }
 }

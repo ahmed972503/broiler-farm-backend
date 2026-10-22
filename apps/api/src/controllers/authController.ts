@@ -1,42 +1,51 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { User, Shed } from '../models';
-import { config } from '../config';
-import { AuthRequest } from '../middleware/auth';
-import { logAuditEvent } from '../services/auditService';
+import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { User, Shed } from "../models";
+import { config } from "../config";
+import { AuthRequest } from "../middleware/auth";
+import { logAuditEvent } from "../services/auditService";
 
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
     try {
       const { username, password } = req.body;
-      const user = await User.findOne({ username: username.toLowerCase().trim() });
+      const user = await User.findOne({
+        username: username.toLowerCase().trim(),
+      });
       if (!user) {
-        res.status(401).json({ success: false, error: 'Invalid username or password' });
+        res
+          .status(401)
+          .json({ success: false, error: "Invalid username or password" });
         return;
       }
 
       if (!user.isActive) {
-        res.status(403).json({ success: false, error: 'Account is deactivated. Contact farm admin.' });
+        res.status(403).json({
+          success: false,
+          error: "Account is deactivated. Contact farm admin.",
+        });
         return;
       }
 
       const isMatch = await bcrypt.compare(password, user.passwordHash);
       if (!isMatch) {
-        res.status(401).json({ success: false, error: 'Invalid username or password' });
+        res
+          .status(401)
+          .json({ success: false, error: "Invalid username or password" });
         return;
       }
 
       const accessToken = jwt.sign(
         { userId: user._id, role: user.role, username: user.username },
         config.jwtSecret,
-        { expiresIn: config.jwtAccessExpiresIn as any }
+        { expiresIn: config.jwtAccessExpiresIn as any },
       );
 
       const refreshToken = jwt.sign(
         { userId: user._id },
         config.jwtRefreshSecret,
-        { expiresIn: config.jwtRefreshExpiresIn as any }
+        { expiresIn: config.jwtRefreshExpiresIn as any },
       );
 
       user.refreshToken = refreshToken;
@@ -51,7 +60,7 @@ export class AuthController {
             id: shed._id,
             name: shed.name,
             shedNumber: shed.shedNumber,
-            currentBatchId: shed.currentBatchId
+            currentBatchId: shed.currentBatchId,
           };
         }
       }
@@ -68,12 +77,14 @@ export class AuthController {
             phone: user.phone,
             role: user.role,
             assignedShedId: user.assignedShedId,
-            shed: shedInfo
-          }
-        }
+            shed: shedInfo,
+          },
+        },
       });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message || 'Login failed' });
+      res
+        .status(500)
+        .json({ success: false, error: err.message || "Login failed" });
     }
   }
 
@@ -81,15 +92,21 @@ export class AuthController {
     try {
       const { refreshToken } = req.body;
       if (!refreshToken) {
-        res.status(400).json({ success: false, error: 'Refresh token required' });
+        res
+          .status(400)
+          .json({ success: false, error: "Refresh token required" });
         return;
       }
 
-      const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as { userId: string };
+      const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as {
+        userId: string;
+      };
       const user = await User.findById(decoded.userId);
 
       if (!user || user.refreshToken !== refreshToken || !user.isActive) {
-        res.status(401).json({ success: false, error: 'Invalid or revoked refresh token' });
+        res
+          .status(401)
+          .json({ success: false, error: "Invalid or revoked refresh token" });
         return;
       }
 
@@ -97,13 +114,13 @@ export class AuthController {
       const newAccessToken = jwt.sign(
         { userId: user._id, role: user.role, username: user.username },
         config.jwtSecret,
-        { expiresIn: config.jwtAccessExpiresIn as any }
+        { expiresIn: config.jwtAccessExpiresIn as any },
       );
 
       const newRefreshToken = jwt.sign(
-        { userId: user._id },
+        { userId: user._id, nonce: Date.now() + Math.random() },
         config.jwtRefreshSecret,
-        { expiresIn: config.jwtRefreshExpiresIn as any }
+        { expiresIn: config.jwtRefreshExpiresIn as any },
       );
 
       user.refreshToken = newRefreshToken;
@@ -113,11 +130,11 @@ export class AuthController {
         success: true,
         data: {
           accessToken: newAccessToken,
-          refreshToken: newRefreshToken
-        }
+          refreshToken: newRefreshToken,
+        },
       });
     } catch (err: any) {
-      res.status(401).json({ success: false, error: 'Invalid refresh token' });
+      res.status(401).json({ success: false, error: "Invalid refresh token" });
     }
   }
 
@@ -127,16 +144,18 @@ export class AuthController {
         req.user.refreshToken = null;
         await req.user.save();
       }
-      res.json({ success: true, message: 'Logged out successfully' });
+      res.json({ success: true, message: "Logged out successfully" });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message || 'Logout failed' });
+      res
+        .status(500)
+        .json({ success: false, error: err.message || "Logout failed" });
     }
   }
 
   static async me(req: AuthRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({ success: false, error: 'Unauthenticated' });
+        res.status(401).json({ success: false, error: "Unauthenticated" });
         return;
       }
 
@@ -148,7 +167,7 @@ export class AuthController {
             id: shed._id,
             name: shed.name,
             shedNumber: shed.shedNumber,
-            currentBatchId: shed.currentBatchId
+            currentBatchId: shed.currentBatchId,
           };
         }
       }
@@ -162,8 +181,8 @@ export class AuthController {
           phone: req.user.phone,
           role: req.user.role,
           assignedShedId: req.user.assignedShedId,
-          shed: shedInfo
-        }
+          shed: shedInfo,
+        },
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -172,10 +191,15 @@ export class AuthController {
 
   static async createUser(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { username, password, name, phone, role, assignedShedId } = req.body;
-      const existing = await User.findOne({ username: username.toLowerCase().trim() });
+      const { username, password, name, phone, role, assignedShedId } =
+        req.body;
+      const existing = await User.findOne({
+        username: username.toLowerCase().trim(),
+      });
       if (existing) {
-        res.status(409).json({ success: false, error: 'Username already exists' });
+        res
+          .status(409)
+          .json({ success: false, error: "Username already exists" });
         return;
       }
 
@@ -187,19 +211,25 @@ export class AuthController {
         phone,
         role,
         assignedShedId: assignedShedId || null,
-        isActive: true
+        isActive: true,
       });
 
       if (assignedShedId) {
-        await Shed.findByIdAndUpdate(assignedShedId, { assignedWorkerId: newUser._id });
+        await Shed.findByIdAndUpdate(assignedShedId, {
+          assignedWorkerId: newUser._id,
+        });
       }
 
       await logAuditEvent({
-        entityType: 'User',
+        entityType: "User",
         entityId: newUser._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: { username: newUser.username, role: newUser.role, name: newUser.name }
+        newState: {
+          username: newUser.username,
+          role: newUser.role,
+          name: newUser.name,
+        },
       });
 
       res.status(201).json({
@@ -210,11 +240,14 @@ export class AuthController {
           name: newUser.name,
           phone: newUser.phone,
           role: newUser.role,
-          assignedShedId: newUser.assignedShedId
-        }
+          assignedShedId: newUser.assignedShedId,
+        },
       });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message || 'Failed to create user' });
+      res.status(500).json({
+        success: false,
+        error: err.message || "Failed to create user",
+      });
     }
   }
 
@@ -223,7 +256,7 @@ export class AuthController {
       const { userId, newPassword } = req.body;
       const targetUser = await User.findById(userId);
       if (!targetUser) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        res.status(404).json({ success: false, error: "User not found" });
         return;
       }
 
@@ -232,14 +265,17 @@ export class AuthController {
       await targetUser.save();
 
       await logAuditEvent({
-        entityType: 'User',
+        entityType: "User",
         entityId: targetUser._id.toString(),
-        action: 'UPDATE',
+        action: "UPDATE",
         performedBy: req.user!._id,
-        newState: { message: 'Password reset by admin' }
+        newState: { message: "Password reset by admin" },
       });
 
-      res.json({ success: true, message: `Password for ${targetUser.username} successfully updated` });
+      res.json({
+        success: true,
+        message: `Password for ${targetUser.username} successfully updated`,
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -247,7 +283,9 @@ export class AuthController {
 
   static async listUsers(_req: AuthRequest, res: Response): Promise<void> {
     try {
-      const users = await User.find().select('-passwordHash -refreshToken').populate('assignedShedId', 'name shedNumber');
+      const users = await User.find()
+        .select("-passwordHash -refreshToken")
+        .populate("assignedShedId", "name shedNumber");
       res.json({ success: true, data: users });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

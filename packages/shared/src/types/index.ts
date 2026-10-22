@@ -2,7 +2,7 @@
  * Core Domain Types for Broiler Farm Management System
  */
 
-export type UserRole = 'admin' | 'worker';
+export type UserRole = "admin" | "worker";
 
 export interface User {
   id: string;
@@ -12,11 +12,12 @@ export interface User {
   role: UserRole;
   assignedShedId?: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export type ShedStatus = 'empty' | 'active' | 'cleaning';
+export type ShedStatus = "empty" | "active" | "cleaning";
 
 export interface Shed {
   id: string;
@@ -32,7 +33,7 @@ export interface Shed {
   updatedAt?: string;
 }
 
-export type BatchStatus = 'active' | 'closed';
+export type BatchStatus = "active" | "closed";
 
 export interface BatchCloseSummary {
   closedAt: string;
@@ -79,8 +80,8 @@ export interface Batch {
   updatedAt?: string;
 }
 
-export type LitterCondition = 'dry' | 'normal' | 'wet';
-export type FeedType = 'starter' | 'grower' | 'finisher';
+export type LitterCondition = "dry" | "normal" | "wet";
+export type FeedType = "starter" | "grower" | "finisher";
 
 export interface DailyRecord {
   id: string;
@@ -128,13 +129,9 @@ export interface WeightRecord {
 }
 
 export type VaccineRoute =
-  | 'drinking_water'
-  | 'eye_drop'
-  | 'spray'
-  | 'injection_sc'
-  | 'injection_im';
+  "drinking_water" | "eye_drop" | "spray" | "injection_sc" | "injection_im";
 
-export type TaskStatus = 'pending' | 'completed' | 'skipped';
+export type TaskStatus = "pending" | "completed" | "skipped";
 
 export interface VaccinationScheduleItem {
   ageInDays: number;
@@ -189,7 +186,7 @@ export interface MedicineRecord {
   updatedAt?: string;
 }
 
-export type PaymentStatus = 'paid' | 'partial' | 'pending';
+export type PaymentStatus = "paid" | "partial" | "pending";
 
 export interface FeedPurchase {
   id: string;
@@ -236,7 +233,7 @@ export interface FeedStockItem {
   lastUpdated: string;
 }
 
-export type InventoryCategory = 'medicine' | 'equipment' | 'consumable';
+export type InventoryCategory = "medicine" | "equipment" | "consumable";
 
 export interface InventoryItem {
   id: string;
@@ -253,17 +250,17 @@ export interface InventoryItem {
 }
 
 export type ExpenseCategory =
-  | 'chicks'
-  | 'feed'
-  | 'medicine'
-  | 'electricity'
-  | 'labour'
-  | 'fuel_generator'
-  | 'transport'
-  | 'maintenance'
-  | 'misc';
+  | "chicks"
+  | "feed"
+  | "medicine"
+  | "electricity"
+  | "labour"
+  | "fuel_generator"
+  | "transport"
+  | "maintenance"
+  | "misc";
 
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'check' | 'other';
+export type PaymentMethod = "cash" | "bank_transfer" | "check" | "other";
 
 export interface Expense {
   id: string;
@@ -317,8 +314,8 @@ export interface BuyerPayment {
   updatedAt?: string;
 }
 
-export type StaffRole = 'worker' | 'admin' | 'other';
-export type AttendanceStatus = 'present' | 'absent' | 'half_day' | 'leave';
+export type StaffRole = "worker" | "admin" | "other";
+export type AttendanceStatus = "present" | "absent" | "half_day" | "leave";
 
 export interface Staff {
   id: string;
@@ -327,7 +324,7 @@ export interface Staff {
   role: StaffRole;
   assignedShedId?: string | null;
   dailyWage: number;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   joiningDate: string; // YYYY-MM-DD
   notes?: string;
   createdAt?: string;
@@ -356,22 +353,22 @@ export interface StaffAdvance {
   date: string; // YYYY-MM-DD
   amount: number;
   reason?: string;
-  status: 'pending' | 'deducted';
+  status: "pending" | "deducted";
   createdAt?: string;
   updatedAt?: string;
 }
 
 export type AlertType =
-  | 'mortality_spike'
-  | 'missed_daily_entry'
-  | 'vaccine_due'
-  | 'vaccine_overdue'
-  | 'low_feed_stock'
-  | 'medicine_near_expiry'
-  | 'abnormal_temp'
-  | 'pending_payment';
+  | "mortality_spike"
+  | "missed_daily_entry"
+  | "vaccine_due"
+  | "vaccine_overdue"
+  | "low_feed_stock"
+  | "medicine_near_expiry"
+  | "abnormal_temp"
+  | "pending_payment";
 
-export type AlertSeverity = 'info' | 'warning' | 'critical';
+export type AlertSeverity = "info" | "warning" | "critical";
 
 export interface Alert {
   id: string;
@@ -406,11 +403,11 @@ export interface FarmSettings {
   totalSheds: number;
   defaultFeedBagWeightKg: number;
   currency: string;
-  defaultLanguage: 'en' | 'ur';
+  defaultLanguage: "en" | "ur";
   alertThresholds: AlertThresholds;
 }
 
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'SYNC' | 'UNLOCK';
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "SYNC" | "UNLOCK";
 
 export interface AuditLogEntry {
   id: string;
@@ -423,15 +420,15 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
-export type SyncAction = 'CREATE' | 'UPDATE' | 'DELETE';
+export type SyncAction = "CREATE" | "UPDATE" | "DELETE";
 export type SyncEntity =
-  | 'DAILY_RECORD'
-  | 'WEIGHT_RECORD'
-  | 'VACCINATION_TASK'
-  | 'MEDICINE_RECORD'
-  | 'FEED_ISSUE'
-  | 'EXPENSE'
-  | 'ATTENDANCE';
+  | "DAILY_RECORD"
+  | "WEIGHT_RECORD"
+  | "VACCINATION_TASK"
+  | "MEDICINE_RECORD"
+  | "FEED_ISSUE"
+  | "EXPENSE"
+  | "ATTENDANCE";
 
 export interface SyncItem {
   clientMutationId: string;
@@ -450,7 +447,7 @@ export interface SyncPacket {
 export interface SyncItemResult {
   clientMutationId: string;
   serverId?: string;
-  status: 'synced' | 'conflict' | 'error';
+  status: "synced" | "conflict" | "error" | "duplicate";
   message?: string;
 }
 

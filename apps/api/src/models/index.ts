@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 import {
   UserRole,
   ShedStatus,
@@ -15,8 +15,8 @@ import {
   AttendanceStatus,
   AlertType,
   AlertSeverity,
-  AuditAction
-} from '@broiler/shared';
+  AuditAction,
+} from "@broiler/shared";
 
 // 1. User
 export interface IUser extends Document {
@@ -28,22 +28,35 @@ export interface IUser extends Document {
   assignedShedId?: mongoose.Types.ObjectId | null;
   refreshToken?: string | null;
   isActive: boolean;
+  mustChangePassword?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const UserSchema = new Schema<IUser>(
   {
-    username: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    role: { type: String, enum: ['admin', 'worker'], default: 'worker', required: true },
-    assignedShedId: { type: Schema.Types.ObjectId, ref: 'Shed', default: null },
+    role: {
+      type: String,
+      enum: ["admin", "worker"],
+      default: "worker",
+      required: true,
+    },
+    assignedShedId: { type: Schema.Types.ObjectId, ref: "Shed", default: null },
     refreshToken: { type: String, default: null },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    mustChangePassword: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 2. Shed
@@ -64,12 +77,24 @@ const ShedSchema = new Schema<IShed>(
     name: { type: String, required: true, trim: true },
     shedNumber: { type: Number, required: true, unique: true, min: 1, max: 20 },
     capacity: { type: Number, required: true, min: 1 },
-    status: { type: String, enum: ['empty', 'active', 'cleaning'], default: 'empty' },
-    assignedWorkerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-    currentBatchId: { type: Schema.Types.ObjectId, ref: 'Batch', default: null },
-    notes: { type: String, default: '' }
+    status: {
+      type: String,
+      enum: ["empty", "active", "cleaning"],
+      default: "empty",
+    },
+    assignedWorkerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    currentBatchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
+    },
+    notes: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 3. Batch
@@ -93,19 +118,29 @@ export interface IBatch extends Document {
 const BatchSchema = new Schema<IBatch>(
   {
     batchNumber: { type: String, required: true, unique: true, trim: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     chicksPlaced: { type: Number, required: true, min: 1 },
     placementDate: { type: String, required: true },
     expectedCloseDate: { type: String, required: true },
     supplier: { type: String, required: true },
-    breed: { type: String, default: 'Cobb 500' },
+    breed: { type: String, default: "Cobb 500" },
     chickRate: { type: Number, required: true, min: 0 },
     initialCost: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ['active', 'closed'], default: 'active', index: true },
+    status: {
+      type: String,
+      enum: ["active", "closed"],
+      default: "active",
+      index: true,
+    },
     closedAt: { type: String },
-    closeSummary: { type: Schema.Types.Mixed, default: null }
+    closeSummary: { type: Schema.Types.Mixed, default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 4. DailyRecord
@@ -137,29 +172,47 @@ export interface IDailyRecord extends Document {
 
 const DailyRecordSchema = new Schema<IDailyRecord>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     date: { type: String, required: true }, // YYYY-MM-DD
     ageInDays: { type: Number, required: true, min: 0 },
     mortalityCount: { type: Number, required: true, min: 0, default: 0 },
-    mortalityCause: { type: String, default: '' },
+    mortalityCause: { type: String, default: "" },
     culls: { type: Number, required: true, min: 0, default: 0 },
     feedUsedBags: { type: Number, required: true, min: 0, default: 0 },
     feedUsedKg: { type: Number, required: true, min: 0, default: 0 },
-    feedType: { type: String, enum: ['starter', 'grower', 'finisher'], required: true },
+    feedType: {
+      type: String,
+      enum: ["starter", "grower", "finisher"],
+      required: true,
+    },
     waterLiters: { type: Number, required: true, min: 0, default: 0 },
     minTemp: { type: Number, required: true },
     maxTemp: { type: Number, required: true },
-    litterCondition: { type: String, enum: ['dry', 'normal', 'wet'], default: 'normal' },
-    notes: { type: String, default: '' },
-    photoUrl: { type: String, default: '' },
+    litterCondition: {
+      type: String,
+      enum: ["dry", "normal", "wet"],
+      default: "normal",
+    },
+    notes: { type: String, default: "" },
+    photoUrl: { type: String, default: "" },
     isLocked: { type: Boolean, default: false },
     lockedAt: { type: Date },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    clientUpdatedAt: { type: String }
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 DailyRecordSchema.index({ batchId: 1, date: 1 }, { unique: true });
 
@@ -182,19 +235,29 @@ export interface IWeightRecord extends Document {
 
 const WeightRecordSchema = new Schema<IWeightRecord>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     date: { type: String, required: true },
     ageInDays: { type: Number, required: true, min: 0 },
     sampleSize: { type: Number, required: true, min: 1 },
     averageWeightGrams: { type: Number, required: true, min: 1 },
     targetWeightGrams: { type: Number, required: true },
     deviationGrams: { type: Number, required: true },
-    notes: { type: String, default: '' },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    clientUpdatedAt: { type: String }
+    notes: { type: String, default: "" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 6. VaccinationTemplate & Tasks
@@ -214,19 +277,19 @@ export interface IVaccinationTemplate extends Document {
 const VaccinationTemplateSchema = new Schema<IVaccinationTemplate>(
   {
     name: { type: String, required: true },
-    description: { type: String, default: '' },
+    description: { type: String, default: "" },
     isDefault: { type: Boolean, default: false },
     schedule: [
       {
         ageInDays: { type: Number, required: true },
         vaccineName: { type: String, required: true },
         route: { type: String, required: true },
-        notes: { type: String, default: '' },
-        isMandatory: { type: Boolean, default: true }
-      }
-    ]
+        notes: { type: String, default: "" },
+        isMandatory: { type: Boolean, default: true },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export interface IVaccinationTask extends Document {
@@ -247,19 +310,34 @@ export interface IVaccinationTask extends Document {
 
 const VaccinationTaskSchema = new Schema<IVaccinationTask>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     ageInDays: { type: Number, required: true },
     dueDate: { type: String, required: true, index: true },
     vaccineName: { type: String, required: true },
     route: { type: String, required: true },
-    status: { type: String, enum: ['pending', 'completed', 'skipped'], default: 'pending', index: true },
+    status: {
+      type: String,
+      enum: ["pending", "completed", "skipped"],
+      default: "pending",
+      index: true,
+    },
     completedAt: { type: String },
-    completedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    notes: { type: String, default: '' },
-    clientUpdatedAt: { type: String }
+    completedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    notes: { type: String, default: "" },
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 7. MedicineRecord
@@ -281,19 +359,29 @@ export interface IMedicineRecord extends Document {
 
 const MedicineRecordSchema = new Schema<IMedicineRecord>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     date: { type: String, required: true },
     medicineName: { type: String, required: true },
     dosage: { type: String, required: true },
-    route: { type: String, default: 'drinking_water' },
+    route: { type: String, default: "drinking_water" },
     reason: { type: String, required: true },
     withdrawalPeriodDays: { type: Number, default: 0 },
     withdrawalEndDate: { type: String, required: true },
     administeredBy: { type: String, required: true },
-    clientUpdatedAt: { type: String }
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 8. Feed Models
@@ -319,19 +407,27 @@ const FeedPurchaseSchema = new Schema<IFeedPurchase>(
   {
     supplier: { type: String, required: true },
     date: { type: String, required: true, index: true },
-    invoiceNo: { type: String, default: '' },
-    feedType: { type: String, enum: ['starter', 'grower', 'finisher'], required: true },
+    invoiceNo: { type: String, default: "" },
+    feedType: {
+      type: String,
+      enum: ["starter", "grower", "finisher"],
+      required: true,
+    },
     bags: { type: Number, required: true, min: 1 },
     bagWeightKg: { type: Number, required: true, default: 50 },
     totalKg: { type: Number, required: true },
     ratePerBag: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
-    paymentStatus: { type: String, enum: ['paid', 'partial', 'pending'], default: 'pending' },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "partial", "pending"],
+      default: "pending",
+    },
     amountPaid: { type: Number, default: 0 },
     balanceAmount: { type: Number, default: 0 },
-    notes: { type: String, default: '' }
+    notes: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export interface IFeedIssue extends Document {
@@ -353,18 +449,32 @@ export interface IFeedIssue extends Document {
 const FeedIssueSchema = new Schema<IFeedIssue>(
   {
     date: { type: String, required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    feedType: { type: String, enum: ['starter', 'grower', 'finisher'], required: true },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    feedType: {
+      type: String,
+      enum: ["starter", "grower", "finisher"],
+      required: true,
+    },
     bags: { type: Number, required: true, min: 0.1 },
     bagWeightKg: { type: Number, required: true, default: 50 },
     totalKg: { type: Number, required: true },
-    issuedTo: { type: String, default: '' },
-    issuedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    notes: { type: String, default: '' },
-    clientUpdatedAt: { type: String }
+    issuedTo: { type: String, default: "" },
+    issuedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    notes: { type: String, default: "" },
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export interface IFeedStock extends Document {
@@ -378,14 +488,19 @@ export interface IFeedStock extends Document {
 
 const FeedStockSchema = new Schema<IFeedStock>(
   {
-    feedType: { type: String, enum: ['starter', 'grower', 'finisher'], required: true, unique: true },
+    feedType: {
+      type: String,
+      enum: ["starter", "grower", "finisher"],
+      required: true,
+      unique: true,
+    },
     currentBags: { type: Number, default: 0 },
     currentKg: { type: Number, default: 0 },
     reorderThresholdBags: { type: Number, default: 20 },
     bagWeightKg: { type: Number, default: 50 },
-    lastUpdated: { type: Date, default: Date.now }
+    lastUpdated: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 9. InventoryItem
@@ -404,16 +519,20 @@ export interface IInventoryItem extends Document {
 
 const InventoryItemSchema = new Schema<IInventoryItem>(
   {
-    category: { type: String, enum: ['medicine', 'equipment', 'consumable'], required: true },
+    category: {
+      type: String,
+      enum: ["medicine", "equipment", "consumable"],
+      required: true,
+    },
     name: { type: String, required: true },
     quantity: { type: Number, required: true, default: 0 },
     unit: { type: String, required: true },
     expiryDate: { type: String, default: null },
     reorderLevel: { type: Number, default: 5 },
-    location: { type: String, default: '' },
-    notes: { type: String, default: '' }
+    location: { type: String, default: "" },
+    notes: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 10. Expense
@@ -433,32 +552,41 @@ export interface IExpense extends Document {
 
 const ExpenseSchema = new Schema<IExpense>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', default: null, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      default: null,
+      index: true,
+    },
     category: {
       type: String,
       enum: [
-        'chicks',
-        'feed',
-        'medicine',
-        'electricity',
-        'labour',
-        'fuel_generator',
-        'transport',
-        'maintenance',
-        'misc'
+        "chicks",
+        "feed",
+        "medicine",
+        "electricity",
+        "labour",
+        "fuel_generator",
+        "transport",
+        "maintenance",
+        "misc",
       ],
       required: true,
-      index: true
+      index: true,
     },
     amount: { type: Number, required: true, min: 0 },
     date: { type: String, required: true, index: true },
     description: { type: String, required: true },
-    receiptNo: { type: String, default: '' },
-    paymentMethod: { type: String, enum: ['cash', 'bank_transfer', 'check', 'other'], default: 'cash' },
-    paidTo: { type: String, default: '' },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+    receiptNo: { type: String, default: "" },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "bank_transfer", "check", "other"],
+      default: "cash",
+    },
+    paidTo: { type: String, default: "" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 11. Sale & BuyerPayment
@@ -485,10 +613,20 @@ export interface ISale extends Document {
 
 const SaleSchema = new Schema<ISale>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed', required: true, index: true },
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
     buyerName: { type: String, required: true, index: true },
-    buyerPhone: { type: String, default: '' },
+    buyerPhone: { type: String, default: "" },
     date: { type: String, required: true, index: true },
     birdsSold: { type: Number, required: true, min: 1 },
     totalLiveWeightKg: { type: Number, required: true, min: 0.1 },
@@ -497,12 +635,16 @@ const SaleSchema = new Schema<ISale>(
     totalAmount: { type: Number, required: true },
     amountPaid: { type: Number, default: 0 },
     balanceAmount: { type: Number, default: 0 },
-    paymentStatus: { type: String, enum: ['paid', 'partial', 'pending'], default: 'pending' },
-    vehicleNo: { type: String, default: '' },
-    notes: { type: String, default: '' },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "partial", "pending"],
+      default: "pending",
+    },
+    vehicleNo: { type: String, default: "" },
+    notes: { type: String, default: "" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export interface IBuyerPayment extends Document {
@@ -522,16 +664,20 @@ export interface IBuyerPayment extends Document {
 const BuyerPaymentSchema = new Schema<IBuyerPayment>(
   {
     buyerName: { type: String, required: true, index: true },
-    buyerPhone: { type: String, default: '' },
-    saleId: { type: Schema.Types.ObjectId, ref: 'Sale' },
+    buyerPhone: { type: String, default: "" },
+    saleId: { type: Schema.Types.ObjectId, ref: "Sale" },
     date: { type: String, required: true },
     amount: { type: Number, required: true, min: 0 },
-    paymentMethod: { type: String, enum: ['cash', 'bank_transfer', 'check', 'other'], default: 'cash' },
-    receiptNo: { type: String, default: '' },
-    notes: { type: String, default: '' },
-    receivedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "bank_transfer", "check", "other"],
+      default: "cash",
+    },
+    receiptNo: { type: String, default: "" },
+    notes: { type: String, default: "" },
+    receivedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 12. Staff, Attendance & Advances
@@ -541,7 +687,7 @@ export interface IStaff extends Document {
   role: StaffRole;
   assignedShedId?: mongoose.Types.ObjectId | null;
   dailyWage: number;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   joiningDate: string;
   notes?: string;
   createdAt: Date;
@@ -552,14 +698,18 @@ const StaffSchema = new Schema<IStaff>(
   {
     name: { type: String, required: true },
     phone: { type: String, required: true },
-    role: { type: String, enum: ['worker', 'admin', 'other'], default: 'worker' },
-    assignedShedId: { type: Schema.Types.ObjectId, ref: 'Shed', default: null },
+    role: {
+      type: String,
+      enum: ["worker", "admin", "other"],
+      default: "worker",
+    },
+    assignedShedId: { type: Schema.Types.ObjectId, ref: "Shed", default: null },
     dailyWage: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
     joiningDate: { type: String, required: true },
-    notes: { type: String, default: '' }
+    notes: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export interface IAttendance extends Document {
@@ -577,16 +727,25 @@ export interface IAttendance extends Document {
 
 const AttendanceSchema = new Schema<IAttendance>(
   {
-    staffId: { type: Schema.Types.ObjectId, ref: 'Staff', required: true, index: true },
+    staffId: {
+      type: Schema.Types.ObjectId,
+      ref: "Staff",
+      required: true,
+      index: true,
+    },
     date: { type: String, required: true },
-    status: { type: String, enum: ['present', 'absent', 'half_day', 'leave'], required: true },
+    status: {
+      type: String,
+      enum: ["present", "absent", "half_day", "leave"],
+      required: true,
+    },
     dailyWageAmount: { type: Number, default: 0 },
     advanceDeduction: { type: Number, default: 0 },
-    notes: { type: String, default: '' },
-    recordedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    clientUpdatedAt: { type: String }
+    notes: { type: String, default: "" },
+    recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    clientUpdatedAt: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 AttendanceSchema.index({ staffId: 1, date: 1 }, { unique: true });
 
@@ -595,20 +754,25 @@ export interface IStaffAdvance extends Document {
   date: string;
   amount: number;
   reason?: string;
-  status: 'pending' | 'deducted';
+  status: "pending" | "deducted";
   createdAt: Date;
   updatedAt: Date;
 }
 
 const StaffAdvanceSchema = new Schema<IStaffAdvance>(
   {
-    staffId: { type: Schema.Types.ObjectId, ref: 'Staff', required: true, index: true },
+    staffId: {
+      type: Schema.Types.ObjectId,
+      ref: "Staff",
+      required: true,
+      index: true,
+    },
     date: { type: String, required: true },
     amount: { type: Number, required: true, min: 1 },
-    reason: { type: String, default: '' },
-    status: { type: String, enum: ['pending', 'deducted'], default: 'pending' }
+    reason: { type: String, default: "" },
+    status: { type: String, enum: ["pending", "deducted"], default: "pending" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 13. Alert
@@ -626,35 +790,37 @@ export interface IAlert extends Document {
   createdAt: Date;
 }
 
-const AlertSchema = new Schema<IAlert>(
-  {
-    type: {
-      type: String,
-      enum: [
-        'mortality_spike',
-        'missed_daily_entry',
-        'vaccine_due',
-        'vaccine_overdue',
-        'low_feed_stock',
-        'medicine_near_expiry',
-        'abnormal_temp',
-        'pending_payment'
-      ],
-      required: true,
-      index: true
-    },
-    severity: { type: String, enum: ['info', 'warning', 'critical'], default: 'info' },
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    shedId: { type: Schema.Types.ObjectId, ref: 'Shed' },
-    shedNumber: { type: Number },
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
-    isResolved: { type: Boolean, default: false, index: true },
-    resolvedAt: { type: Date },
-    resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    createdAt: { type: Date, default: Date.now, index: true }
-  }
-);
+const AlertSchema = new Schema<IAlert>({
+  type: {
+    type: String,
+    enum: [
+      "mortality_spike",
+      "missed_daily_entry",
+      "vaccine_due",
+      "vaccine_overdue",
+      "low_feed_stock",
+      "medicine_near_expiry",
+      "abnormal_temp",
+      "pending_payment",
+    ],
+    required: true,
+    index: true,
+  },
+  severity: {
+    type: String,
+    enum: ["info", "warning", "critical"],
+    default: "info",
+  },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  shedId: { type: Schema.Types.ObjectId, ref: "Shed" },
+  shedNumber: { type: Number },
+  batchId: { type: Schema.Types.ObjectId, ref: "Batch" },
+  isResolved: { type: Boolean, default: false, index: true },
+  resolvedAt: { type: Date },
+  resolvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  createdAt: { type: Date, default: Date.now, index: true },
+});
 
 // 14. AuditLog
 export interface IAuditLog extends Document {
@@ -667,17 +833,19 @@ export interface IAuditLog extends Document {
   timestamp: Date;
 }
 
-const AuditLogSchema = new Schema<IAuditLog>(
-  {
-    entityType: { type: String, required: true, index: true },
-    entityId: { type: String, required: true, index: true },
-    action: { type: String, enum: ['CREATE', 'UPDATE', 'DELETE', 'SYNC', 'UNLOCK'], required: true },
-    performedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    previousState: { type: Schema.Types.Mixed, default: null },
-    newState: { type: Schema.Types.Mixed, default: null },
-    timestamp: { type: Date, default: Date.now }
-  }
-);
+const AuditLogSchema = new Schema<IAuditLog>({
+  entityType: { type: String, required: true, index: true },
+  entityId: { type: String, required: true, index: true },
+  action: {
+    type: String,
+    enum: ["CREATE", "UPDATE", "DELETE", "SYNC", "UNLOCK"],
+    required: true,
+  },
+  performedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  previousState: { type: Schema.Types.Mixed, default: null },
+  newState: { type: Schema.Types.Mixed, default: null },
+  timestamp: { type: Date, default: Date.now },
+});
 
 // 15. FarmSettings
 export interface IFarmSettings extends Document {
@@ -688,7 +856,7 @@ export interface IFarmSettings extends Document {
   totalSheds: number;
   defaultFeedBagWeightKg: number;
   currency: string;
-  defaultLanguage: 'en' | 'ur';
+  defaultLanguage: "en" | "ur";
   alertThresholds: {
     mortalitySpikePercentDaily: number;
     mortalitySpikePercent3Day: number;
@@ -702,14 +870,14 @@ export interface IFarmSettings extends Document {
 
 const FarmSettingsSchema = new Schema<IFarmSettings>(
   {
-    farmName: { type: String, default: 'Al-Barakah Broiler Farm' },
-    location: { type: String, default: 'Okara, Punjab, Pakistan' },
-    ownerName: { type: String, default: 'Farm Owner' },
-    phone: { type: String, default: '0300-1234567' },
+    farmName: { type: String, default: "Al-Barakah Broiler Farm" },
+    location: { type: String, default: "Okara, Punjab, Pakistan" },
+    ownerName: { type: String, default: "Farm Owner" },
+    phone: { type: String, default: "0300-1234567" },
     totalSheds: { type: Number, default: 5 },
     defaultFeedBagWeightKg: { type: Number, default: 50.0 },
-    currency: { type: String, default: 'PKR' },
-    defaultLanguage: { type: String, enum: ['en', 'ur'], default: 'ur' },
+    currency: { type: String, default: "PKR" },
+    defaultLanguage: { type: String, enum: ["en", "ur"], default: "ur" },
     alertThresholds: {
       mortalitySpikePercentDaily: { type: Number, default: 0.8 },
       mortalitySpikePercent3Day: { type: Number, default: 2.0 },
@@ -717,30 +885,69 @@ const FarmSettingsSchema = new Schema<IFarmSettings>(
       tempMinCelsius: { type: Number, default: 20.0 },
       tempMaxCelsius: { type: Number, default: 34.0 },
       medicineExpiryWarningDays: { type: Number, default: 30 },
-      paymentOverdueDays: { type: Number, default: 14 }
-    }
+      paymentOverdueDays: { type: Number, default: 14 },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const User = mongoose.model<IUser>('User', UserSchema);
-export const Shed = mongoose.model<IShed>('Shed', ShedSchema);
-export const Batch = mongoose.model<IBatch>('Batch', BatchSchema);
-export const DailyRecord = mongoose.model<IDailyRecord>('DailyRecord', DailyRecordSchema);
-export const WeightRecord = mongoose.model<IWeightRecord>('WeightRecord', WeightRecordSchema);
-export const VaccinationTemplate = mongoose.model<IVaccinationTemplate>('VaccinationTemplate', VaccinationTemplateSchema);
-export const VaccinationTask = mongoose.model<IVaccinationTask>('VaccinationTask', VaccinationTaskSchema);
-export const MedicineRecord = mongoose.model<IMedicineRecord>('MedicineRecord', MedicineRecordSchema);
-export const FeedPurchase = mongoose.model<IFeedPurchase>('FeedPurchase', FeedPurchaseSchema);
-export const FeedIssue = mongoose.model<IFeedIssue>('FeedIssue', FeedIssueSchema);
-export const FeedStock = mongoose.model<IFeedStock>('FeedStock', FeedStockSchema);
-export const InventoryItem = mongoose.model<IInventoryItem>('InventoryItem', InventoryItemSchema);
-export const Expense = mongoose.model<IExpense>('Expense', ExpenseSchema);
-export const Sale = mongoose.model<ISale>('Sale', SaleSchema);
-export const BuyerPayment = mongoose.model<IBuyerPayment>('BuyerPayment', BuyerPaymentSchema);
-export const Staff = mongoose.model<IStaff>('Staff', StaffSchema);
-export const Attendance = mongoose.model<IAttendance>('Attendance', AttendanceSchema);
-export const StaffAdvance = mongoose.model<IStaffAdvance>('StaffAdvance', StaffAdvanceSchema);
-export const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
-export const AuditLog = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
-export const FarmSettings = mongoose.model<IFarmSettings>('FarmSettings', FarmSettingsSchema);
+export const User = mongoose.model<IUser>("User", UserSchema);
+export const Shed = mongoose.model<IShed>("Shed", ShedSchema);
+export const Batch = mongoose.model<IBatch>("Batch", BatchSchema);
+export const DailyRecord = mongoose.model<IDailyRecord>(
+  "DailyRecord",
+  DailyRecordSchema,
+);
+export const WeightRecord = mongoose.model<IWeightRecord>(
+  "WeightRecord",
+  WeightRecordSchema,
+);
+export const VaccinationTemplate = mongoose.model<IVaccinationTemplate>(
+  "VaccinationTemplate",
+  VaccinationTemplateSchema,
+);
+export const VaccinationTask = mongoose.model<IVaccinationTask>(
+  "VaccinationTask",
+  VaccinationTaskSchema,
+);
+export const MedicineRecord = mongoose.model<IMedicineRecord>(
+  "MedicineRecord",
+  MedicineRecordSchema,
+);
+export const FeedPurchase = mongoose.model<IFeedPurchase>(
+  "FeedPurchase",
+  FeedPurchaseSchema,
+);
+export const FeedIssue = mongoose.model<IFeedIssue>(
+  "FeedIssue",
+  FeedIssueSchema,
+);
+export const FeedStock = mongoose.model<IFeedStock>(
+  "FeedStock",
+  FeedStockSchema,
+);
+export const InventoryItem = mongoose.model<IInventoryItem>(
+  "InventoryItem",
+  InventoryItemSchema,
+);
+export const Expense = mongoose.model<IExpense>("Expense", ExpenseSchema);
+export const Sale = mongoose.model<ISale>("Sale", SaleSchema);
+export const BuyerPayment = mongoose.model<IBuyerPayment>(
+  "BuyerPayment",
+  BuyerPaymentSchema,
+);
+export const Staff = mongoose.model<IStaff>("Staff", StaffSchema);
+export const Attendance = mongoose.model<IAttendance>(
+  "Attendance",
+  AttendanceSchema,
+);
+export const StaffAdvance = mongoose.model<IStaffAdvance>(
+  "StaffAdvance",
+  StaffAdvanceSchema,
+);
+export const Alert = mongoose.model<IAlert>("Alert", AlertSchema);
+export const AuditLog = mongoose.model<IAuditLog>("AuditLog", AuditLogSchema);
+export const FarmSettings = mongoose.model<IFarmSettings>(
+  "FarmSettings",
+  FarmSettingsSchema,
+);

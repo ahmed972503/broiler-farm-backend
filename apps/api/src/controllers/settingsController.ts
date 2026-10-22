@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { FarmSettings } from '../models';
-import { AuthRequest } from '../middleware/auth';
-import { logAuditEvent } from '../services/auditService';
+import { Response } from "express";
+import { FarmSettings } from "../models";
+import { AuthRequest } from "../middleware/auth";
+import { logAuditEvent } from "../services/auditService";
 
 export class SettingsController {
   static async getSettings(_req: AuthRequest, res: Response): Promise<void> {
@@ -27,12 +27,12 @@ export class SettingsController {
         await settings.save();
 
         await logAuditEvent({
-          entityType: 'FarmSettings',
+          entityType: "FarmSettings",
           entityId: settings._id.toString(),
-          action: 'UPDATE',
+          action: "UPDATE",
           performedBy: req.user!._id,
           previousState,
-          newState: settings.toObject()
+          newState: settings.toObject(),
         });
       }
 

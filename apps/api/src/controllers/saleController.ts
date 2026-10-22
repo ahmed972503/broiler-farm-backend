@@ -1,9 +1,9 @@
-import { Response } from 'express';
-import { Sale, BuyerPayment, Batch } from '../models';
-import { AuthRequest } from '../middleware/auth';
-import { roundTo } from '@broiler/shared';
-import { logAuditEvent } from '../services/auditService';
-import { AlertService } from '../services/alertService';
+import { Response } from "express";
+import { Sale, BuyerPayment, Batch } from "../models";
+import { AuthRequest } from "../middleware/auth";
+import { roundTo } from "@broiler/shared";
+import { logAuditEvent } from "../services/auditService";
+import { AlertService } from "../services/alertService";
 
 export class SaleController {
   static async getSales(req: AuthRequest, res: Response): Promise<void> {
@@ -14,9 +14,9 @@ export class SaleController {
       if (req.query.buyerName) query.buyerName = req.query.buyerName;
 
       const sales = await Sale.find(query)
-        .populate('batchId', 'batchNumber')
-        .populate('shedId', 'name shedNumber')
-        .populate('createdBy', 'name username')
+        .populate("batchId", "batchNumber")
+        .populate("shedId", "name shedNumber")
+        .populate("createdBy", "name username")
         .sort({ date: -1 });
 
       res.json({ success: true, data: sales });
@@ -38,12 +38,12 @@ export class SaleController {
         ratePerKg,
         amountPaid = 0,
         vehicleNo,
-        notes
+        notes,
       } = req.body;
 
       const batch = await Batch.findById(batchId);
       if (!batch) {
-        res.status(404).json({ success: false, error: 'Batch not found' });
+        res.status(404).json({ success: false, error: "Batch not found" });
         return;
       }
 
@@ -51,11 +51,11 @@ export class SaleController {
       const totalAmount = roundTo(totalLiveWeightKg * ratePerKg, 2);
       const balanceAmount = roundTo(Math.max(0, totalAmount - amountPaid), 2);
 
-      let paymentStatus: 'paid' | 'partial' | 'pending' = 'pending';
+      let paymentStatus: "paid" | "partial" | "pending" = "pending";
       if (balanceAmount === 0) {
-        paymentStatus = 'paid';
+        paymentStatus = "paid";
       } else if (amountPaid > 0) {
-        paymentStatus = 'partial';
+        paymentStatus = "partial";
       }
 
       const sale = await Sale.create({
@@ -74,7 +74,7 @@ export class SaleController {
         paymentStatus,
         vehicleNo,
         notes,
-        createdBy: req.user!._id
+        createdBy: req.user!._id,
       });
 
       // If initial payment was made, log a BuyerPayment
@@ -85,21 +85,25 @@ export class SaleController {
           saleId: sale._id,
           date,
           amount: amountPaid,
-          paymentMethod: 'cash',
-          notes: 'Down payment on bird lifting',
-          receivedBy: req.user!._id
+          paymentMethod: "cash",
+          notes: "Down payment on bird lifting",
+          receivedBy: req.user!._id,
         });
       }
 
       await logAuditEvent({
-        entityType: 'Sale',
+        entityType: "Sale",
         entityId: sale._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: sale.toObject()
+        newState: sale.toObject(),
       });
 
-      AlertService.runAlertSweep().catch(e => console.error(e));
+      AlertService.runAlertSweep().catch((e) => {
+        if (process.env.NODE_ENV !== "test") {
+          console.error("Alert sweep error", e);
+        }
+      });
 
       res.status(201).json({ success: true, data: sale });
     } catch (err: any) {
@@ -107,9 +111,21 @@ export class SaleController {
     }
   }
 
-  static async recordBuyerPayment(req: AuthRequest, res: Response): Promise<void> {
+  static async recordBuyerPayment(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
     try {
-      const { buyerName, buyerPhone, saleId, date, amount, paymentMethod = 'cash', receiptNo, notes } = req.body;
+      const {
+        buyerName,
+        buyerPhone,
+        saleId,
+        date,
+        amount,
+        paymentMethod = "cash",
+        receiptNo,
+        notes,
+      } = req.body;
 
       const payment = await BuyerPayment.create({
         buyerName: buyerName.trim(),
@@ -120,7 +136,7 @@ export class SaleController {
         paymentMethod,
         receiptNo,
         notes,
-        receivedBy: req.user!._id
+        receivedBy: req.user!._id,
       });
 
       // If saleId provided, update that sale's balance
@@ -128,21 +144,24 @@ export class SaleController {
         const sale = await Sale.findById(saleId);
         if (sale) {
           sale.amountPaid = roundTo(sale.amountPaid + amount, 2);
-          sale.balanceAmount = roundTo(Math.max(0, sale.totalAmount - sale.amountPaid), 2);
-          sale.paymentStatus = sale.balanceAmount === 0 ? 'paid' : 'partial';
+          sale.balanceAmount = roundTo(
+            Math.max(0, sale.totalAmount - sale.amountPaid),
+            2,
+          );
+          sale.paymentStatus = sale.balanceAmount === 0 ? "paid" : "partial";
           await sale.save();
         }
       }
 
       await logAuditEvent({
-        entityType: 'BuyerPayment',
+        entityType: "BuyerPayment",
         entityId: payment._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: payment.toObject()
+        newState: payment.toObject(),
       });
 
-      AlertService.runAlertSweep().catch(e => console.error(e));
+      AlertService.runAlertSweep().catch((e) => console.error(e));
 
       res.status(201).json({ success: true, data: payment });
     } catch (err: any) {
@@ -153,8 +172,12 @@ export class SaleController {
   static async getBuyerLedger(req: AuthRequest, res: Response): Promise<void> {
     try {
       const buyerName = req.params.buyerName;
-      const sales = await Sale.find({ buyerName: new RegExp(`^${buyerName}$`, 'i') }).sort({ date: -1 });
-      const payments = await BuyerPayment.find({ buyerName: new RegExp(`^${buyerName}$`, 'i') }).sort({ date: -1 });
+      const sales = await Sale.find({
+        buyerName: new RegExp(`^${buyerName}$`, "i"),
+      }).sort({ date: -1 });
+      const payments = await BuyerPayment.find({
+        buyerName: new RegExp(`^${buyerName}$`, "i"),
+      }).sort({ date: -1 });
 
       const totalBilled = sales.reduce((sum, s) => sum + s.totalAmount, 0);
       const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -168,8 +191,8 @@ export class SaleController {
           totalPaid: roundTo(totalPaid, 2),
           balance,
           sales,
-          payments
-        }
+          payments,
+        },
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

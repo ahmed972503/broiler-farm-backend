@@ -1,16 +1,16 @@
-import { authenticate, AuthRequest } from '../middleware/auth';
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
-import { User } from '../models';
+import { authenticate, AuthRequest } from "../middleware/auth";
+import { Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { config } from "../config";
+import { User } from "../models";
 
-jest.mock('../models', () => ({
+jest.mock("../models", () => ({
   User: {
     findById: jest.fn(),
   },
 }));
 
-describe('Auth Middleware Unit Tests', () => {
+describe("Auth Middleware Unit Tests", () => {
   let mockReq: Partial<AuthRequest>;
   let mockRes: Partial<Response>;
   let nextFn: NextFunction;
@@ -24,30 +24,32 @@ describe('Auth Middleware Unit Tests', () => {
     jest.clearAllMocks();
   });
 
-  it('rejects requests with missing authorization header', async () => {
+  it("rejects requests with missing authorization header", async () => {
     mockReq = { headers: {} };
     await authenticate(mockReq as AuthRequest, mockRes as Response, nextFn);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Authorization token missing or malformed' })
+      expect.objectContaining({
+        error: "Authorization token missing or malformed",
+      }),
     );
     expect(nextFn).not.toHaveBeenCalled();
   });
 
-  it('rejects requests with non-Bearer authorization header', async () => {
-    mockReq = { headers: { authorization: 'Basic 123456' } };
+  it("rejects requests with non-Bearer authorization header", async () => {
+    mockReq = { headers: { authorization: "Basic 123456" } };
     await authenticate(mockReq as AuthRequest, mockRes as Response, nextFn);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(nextFn).not.toHaveBeenCalled();
   });
 
-  it('handles expired tokens with code TOKEN_EXPIRED', async () => {
+  it("handles expired tokens with code TOKEN_EXPIRED", async () => {
     const expiredToken = jwt.sign(
-      { userId: 'u1', role: 'admin' },
+      { userId: "u1", role: "admin" },
       config.jwtSecret,
-      { expiresIn: '-1s' }
+      { expiresIn: "-1s" },
     );
 
     mockReq = { headers: { authorization: `Bearer ${expiredToken}` } };
@@ -55,15 +57,15 @@ describe('Auth Middleware Unit Tests', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'TOKEN_EXPIRED' })
+      expect.objectContaining({ code: "TOKEN_EXPIRED" }),
     );
     expect(nextFn).not.toHaveBeenCalled();
   });
 
-  it('handles invalid signature with 401', async () => {
+  it("handles invalid signature with 401", async () => {
     const invalidToken = jwt.sign(
-      { userId: 'u1', role: 'admin' },
-      'wrong-secret-key-that-does-not-match'
+      { userId: "u1", role: "admin" },
+      "wrong-secret-key-that-does-not-match",
     );
 
     mockReq = { headers: { authorization: `Bearer ${invalidToken}` } };
@@ -71,24 +73,24 @@ describe('Auth Middleware Unit Tests', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Invalid authentication token' })
+      expect.objectContaining({ error: "Invalid authentication token" }),
     );
     expect(nextFn).not.toHaveBeenCalled();
   });
 
-  it('authenticates active users and attaches user to req', async () => {
+  it("authenticates active users and attaches user to req", async () => {
     const validToken = jwt.sign(
-      { userId: 'user-valid', role: 'worker' },
+      { userId: "user-valid", role: "worker" },
       config.jwtSecret,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" },
     );
 
     const mockUser = {
-      _id: 'user-valid',
-      username: 'worker1',
-      role: 'worker',
+      _id: "user-valid",
+      username: "worker1",
+      role: "worker",
       isActive: true,
-      assignedShedId: 'shed-1',
+      assignedShedId: "shed-1",
     };
 
     (User.findById as jest.Mock).mockResolvedValue(mockUser);
@@ -101,15 +103,15 @@ describe('Auth Middleware Unit Tests', () => {
     expect(mockRes.status).not.toHaveBeenCalled();
   });
 
-  it('rejects deactivated or deleted users with 401', async () => {
+  it("rejects deactivated or deleted users with 401", async () => {
     const validToken = jwt.sign(
-      { userId: 'user-inactive', role: 'worker' },
+      { userId: "user-inactive", role: "worker" },
       config.jwtSecret,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" },
     );
 
     (User.findById as jest.Mock).mockResolvedValue({
-      _id: 'user-inactive',
+      _id: "user-inactive",
       isActive: false,
     });
 
@@ -118,7 +120,7 @@ describe('Auth Middleware Unit Tests', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
     expect(mockRes.json).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'User is inactive or not found' })
+      expect.objectContaining({ error: "User is inactive or not found" }),
     );
     expect(nextFn).not.toHaveBeenCalled();
   });

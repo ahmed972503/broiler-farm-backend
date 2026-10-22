@@ -1,4 +1,7 @@
-import { TARGET_WEIGHTS_BY_DAY, DEFAULT_FEED_BAG_WEIGHT_KG } from '../constants';
+import {
+  TARGET_WEIGHTS_BY_DAY,
+  DEFAULT_FEED_BAG_WEIGHT_KG,
+} from "../constants";
 
 /**
  * Utility to round numbers cleanly to specified decimal places
@@ -17,7 +20,7 @@ export function calculateBirdsRemaining(
   placed: number,
   cumulativeMortality: number = 0,
   culls: number = 0,
-  birdsSold: number = 0
+  birdsSold: number = 0,
 ): number {
   const safePlaced = Math.max(0, Math.floor(placed || 0));
   const safeMortality = Math.max(0, Math.floor(cumulativeMortality || 0));
@@ -35,7 +38,7 @@ export function calculateBirdsRemaining(
 export function calculateMortalityPercent(
   placed: number,
   cumulativeMortalityOrRemaining: number,
-  isRemainingBirdCount: boolean = true
+  isRemainingBirdCount: boolean = true,
 ): number {
   if (!placed || placed <= 0) return 0;
 
@@ -55,9 +58,14 @@ export function calculateMortalityPercent(
  */
 export function calculateDailyMortalityPercent(
   dayMortality: number,
-  birdsStartOfDay: number
+  birdsStartOfDay: number,
 ): number {
-  if (!birdsStartOfDay || birdsStartOfDay <= 0 || !dayMortality || dayMortality <= 0) {
+  if (
+    !birdsStartOfDay ||
+    birdsStartOfDay <= 0 ||
+    !dayMortality ||
+    dayMortality <= 0
+  ) {
     return 0;
   }
   const percent = (dayMortality / birdsStartOfDay) * 100;
@@ -69,9 +77,14 @@ export function calculateDailyMortalityPercent(
  */
 export function calculateFCR(
   totalFeedConsumedKg: number,
-  totalLiveWeightKg: number
+  totalLiveWeightKg: number,
 ): number {
-  if (!totalFeedConsumedKg || totalFeedConsumedKg <= 0 || !totalLiveWeightKg || totalLiveWeightKg <= 0) {
+  if (
+    !totalFeedConsumedKg ||
+    totalFeedConsumedKg <= 0 ||
+    !totalLiveWeightKg ||
+    totalLiveWeightKg <= 0
+  ) {
     return 0;
   }
   const fcr = totalFeedConsumedKg / totalLiveWeightKg;
@@ -83,9 +96,14 @@ export function calculateFCR(
  */
 export function calculateCostPerKg(
   totalBatchCost: number,
-  totalLiveWeightSoldKg: number
+  totalLiveWeightSoldKg: number,
 ): number {
-  if (!totalBatchCost || totalBatchCost <= 0 || !totalLiveWeightSoldKg || totalLiveWeightSoldKg <= 0) {
+  if (
+    !totalBatchCost ||
+    totalBatchCost <= 0 ||
+    !totalLiveWeightSoldKg ||
+    totalLiveWeightSoldKg <= 0
+  ) {
     return 0;
   }
   const costPerKg = totalBatchCost / totalLiveWeightSoldKg;
@@ -97,7 +115,7 @@ export function calculateCostPerKg(
  */
 export function calculateBatchProfit(
   totalSalesRevenue: number,
-  totalBatchCost: number
+  totalBatchCost: number,
 ): number {
   const rev = Number(totalSalesRevenue) || 0;
   const cost = Number(totalBatchCost) || 0;
@@ -111,7 +129,7 @@ export function calculateBatchProfit(
 export function calculateAverageDailyGain(
   currentWeightGrams: number,
   initialWeightGrams: number = 42,
-  ageInDays: number
+  ageInDays: number,
 ): number {
   if (!ageInDays || ageInDays <= 0 || currentWeightGrams <= 0) {
     return 0;
@@ -126,7 +144,7 @@ export function calculateAverageDailyGain(
 export function calculateLivabilityPercent(
   placed: number,
   birdsRemaining: number,
-  birdsSold: number = 0
+  birdsSold: number = 0,
 ): number {
   if (!placed || placed <= 0) return 0;
   const surviving = Math.max(0, (birdsRemaining || 0) + (birdsSold || 0));
@@ -142,9 +160,16 @@ export function calculateEPEF(
   livabilityPercent: number,
   averageLiveWeightKg: number,
   ageInDays: number,
-  fcr: number
+  fcr: number,
 ): number {
-  if (!ageInDays || ageInDays <= 0 || !fcr || fcr <= 0 || averageLiveWeightKg <= 0 || livabilityPercent <= 0) {
+  if (
+    !ageInDays ||
+    ageInDays <= 0 ||
+    !fcr ||
+    fcr <= 0 ||
+    averageLiveWeightKg <= 0 ||
+    livabilityPercent <= 0
+  ) {
     return 0;
   }
   const numerator = livabilityPercent * averageLiveWeightKg;
@@ -158,10 +183,13 @@ export function calculateEPEF(
  */
 export function bagsToKg(
   bags: number,
-  bagWeightKg: number = DEFAULT_FEED_BAG_WEIGHT_KG
+  bagWeightKg: number = DEFAULT_FEED_BAG_WEIGHT_KG,
 ): number {
   const safeBags = Math.max(0, Number(bags) || 0);
-  const safeWeight = Math.max(0.1, Number(bagWeightKg) || DEFAULT_FEED_BAG_WEIGHT_KG);
+  const safeWeight = Math.max(
+    0.1,
+    Number(bagWeightKg) || DEFAULT_FEED_BAG_WEIGHT_KG,
+  );
   return roundTo(safeBags * safeWeight, 2);
 }
 
@@ -170,10 +198,13 @@ export function bagsToKg(
  */
 export function kgToBags(
   kg: number,
-  bagWeightKg: number = DEFAULT_FEED_BAG_WEIGHT_KG
+  bagWeightKg: number = DEFAULT_FEED_BAG_WEIGHT_KG,
 ): number {
   const safeKg = Math.max(0, Number(kg) || 0);
-  const safeWeight = Math.max(0.1, Number(bagWeightKg) || DEFAULT_FEED_BAG_WEIGHT_KG);
+  const safeWeight = Math.max(
+    0.1,
+    Number(bagWeightKg) || DEFAULT_FEED_BAG_WEIGHT_KG,
+  );
   return roundTo(safeKg / safeWeight, 2);
 }
 
@@ -182,9 +213,14 @@ export function kgToBags(
  */
 export function calculateEstimatedLiveWeightKg(
   birdsCount: number,
-  averageWeightGrams: number
+  averageWeightGrams: number,
 ): number {
-  if (!birdsCount || birdsCount <= 0 || !averageWeightGrams || averageWeightGrams <= 0) {
+  if (
+    !birdsCount ||
+    birdsCount <= 0 ||
+    !averageWeightGrams ||
+    averageWeightGrams <= 0
+  ) {
     return 0;
   }
   return roundTo((birdsCount * averageWeightGrams) / 1000, 2);
@@ -195,30 +231,32 @@ export function calculateEstimatedLiveWeightKg(
  */
 export function compareWithTargetWeight(
   ageInDays: number,
-  actualWeightGrams: number
+  actualWeightGrams: number,
 ): {
   targetGrams: number;
   deviationGrams: number;
   deviationPercent: number;
-  performanceStatus: 'above_target' | 'on_target' | 'below_target';
+  performanceStatus: "above_target" | "on_target" | "below_target";
 } {
   const clampedAge = Math.min(42, Math.max(0, Math.floor(ageInDays || 0)));
   const targetGrams = TARGET_WEIGHTS_BY_DAY[clampedAge] || 42;
   const deviationGrams = roundTo(actualWeightGrams - targetGrams, 1);
-  const deviationPercent = targetGrams > 0 ? roundTo((deviationGrams / targetGrams) * 100, 1) : 0;
+  const deviationPercent =
+    targetGrams > 0 ? roundTo((deviationGrams / targetGrams) * 100, 1) : 0;
 
-  let performanceStatus: 'above_target' | 'on_target' | 'below_target' = 'on_target';
+  let performanceStatus: "above_target" | "on_target" | "below_target" =
+    "on_target";
   if (deviationPercent > 5.0) {
-    performanceStatus = 'above_target';
+    performanceStatus = "above_target";
   } else if (deviationPercent < -5.0) {
-    performanceStatus = 'below_target';
+    performanceStatus = "below_target";
   }
 
   return {
     targetGrams,
     deviationGrams,
     deviationPercent,
-    performanceStatus
+    performanceStatus,
   };
 }
 
@@ -227,7 +265,7 @@ export function compareWithTargetWeight(
  */
 export function calculateBuyerBalance(
   totalSaleAmount: number,
-  totalPaymentsReceived: number
+  totalPaymentsReceived: number,
 ): {
   totalSaleAmount: number;
   totalPaymentsReceived: number;
@@ -239,7 +277,7 @@ export function calculateBuyerBalance(
   return {
     totalSaleAmount: billed,
     totalPaymentsReceived: paid,
-    balanceAmount: balance
+    balanceAmount: balance,
   };
 }
 
@@ -250,7 +288,7 @@ export function calculateStaffWage(
   dailyWage: number,
   presentDays: number,
   halfDays: number = 0,
-  advanceDeduction: number = 0
+  advanceDeduction: number = 0,
 ): {
   grossWage: number;
   advanceDeductions: number;
@@ -268,6 +306,6 @@ export function calculateStaffWage(
   return {
     grossWage,
     advanceDeductions: safeAdvance,
-    netPayable
+    netPayable,
   };
 }

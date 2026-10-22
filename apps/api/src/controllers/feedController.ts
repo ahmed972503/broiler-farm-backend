@@ -1,16 +1,16 @@
-import { Response } from 'express';
+import { Response } from "express";
 import {
   FeedStock,
   FeedPurchase,
   FeedIssue,
   Expense,
   DailyRecord,
-  Batch
-} from '../models';
-import { AuthRequest } from '../middleware/auth';
-import { bagsToKg, roundTo } from '@broiler/shared';
-import { logAuditEvent } from '../services/auditService';
-import { AlertService } from '../services/alertService';
+  Batch,
+} from "../models";
+import { AuthRequest } from "../middleware/auth";
+import { bagsToKg, roundTo } from "@broiler/shared";
+import { logAuditEvent } from "../services/auditService";
+import { AlertService } from "../services/alertService";
 
 export class FeedController {
   static async getStock(_req: AuthRequest, res: Response): Promise<void> {
@@ -24,7 +24,18 @@ export class FeedController {
 
   static async createPurchase(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { supplier, date, invoiceNo, feedType, bags, bagWeightKg = 50, ratePerBag, paymentStatus = 'pending', amountPaid = 0, notes } = req.body;
+      const {
+        supplier,
+        date,
+        invoiceNo,
+        feedType,
+        bags,
+        bagWeightKg = 50,
+        ratePerBag,
+        paymentStatus = "pending",
+        amountPaid = 0,
+        notes,
+      } = req.body;
       const totalKg = bagsToKg(bags, bagWeightKg);
       const totalAmount = roundTo(bags * ratePerBag, 2);
       const balanceAmount = roundTo(Math.max(0, totalAmount - amountPaid), 2);
@@ -42,7 +53,7 @@ export class FeedController {
         paymentStatus,
         amountPaid,
         balanceAmount,
-        notes
+        notes,
       });
 
       // Update FeedStock
@@ -50,32 +61,34 @@ export class FeedController {
         { feedType },
         {
           $inc: { currentBags: bags, currentKg: totalKg },
-          $set: { bagWeightKg, lastUpdated: new Date() }
+          $set: { bagWeightKg, lastUpdated: new Date() },
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       // Record Feed Purchase Expense
       await Expense.create({
-        category: 'feed',
+        category: "feed",
         amount: totalAmount,
         date,
         description: `Feed purchase: ${bags} bags (${feedType}) from ${supplier}`,
-        paymentMethod: paymentStatus === 'paid' ? 'cash' : 'bank_transfer',
+        paymentMethod: paymentStatus === "paid" ? "cash" : "bank_transfer",
         paidTo: supplier,
         receiptNo: invoiceNo,
-        createdBy: req.user!._id
+        createdBy: req.user!._id,
       });
 
       await logAuditEvent({
-        entityType: 'FeedPurchase',
+        entityType: "FeedPurchase",
         entityId: purchase._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: purchase.toObject()
+        newState: purchase.toObject(),
       });
 
-      AlertService.runAlertSweep().catch(e => console.error('Alert sweep error', e));
+      AlertService.runAlertSweep().catch((e) =>
+        console.error("Alert sweep error", e),
+      );
 
       res.status(201).json({ success: true, data: purchase });
     } catch (err: any) {
@@ -85,11 +98,23 @@ export class FeedController {
 
   static async createIssue(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { date, shedId, batchId, feedType, bags, bagWeightKg = 50, issuedTo, notes } = req.body;
+      const {
+        date,
+        shedId,
+        batchId,
+        feedType,
+        bags,
+        bagWeightKg = 50,
+        issuedTo,
+        notes,
+      } = req.body;
 
       const batch = await Batch.findById(batchId);
-      if (!batch || batch.status === 'closed') {
-        res.status(400).json({ success: false, error: 'Active batch is required for feed issuance' });
+      if (!batch || batch.status === "closed") {
+        res.status(400).json({
+          success: false,
+          error: "Active batch is required for feed issuance",
+        });
         return;
       }
 
@@ -105,7 +130,7 @@ export class FeedController {
         totalKg,
         issuedTo,
         issuedBy: req.user!._id,
-        notes
+        notes,
       });
 
       // Deduct from stock
@@ -113,19 +138,21 @@ export class FeedController {
         { feedType },
         {
           $inc: { currentBags: -bags, currentKg: -totalKg },
-          $set: { lastUpdated: new Date() }
-        }
+          $set: { lastUpdated: new Date() },
+        },
       );
 
       await logAuditEvent({
-        entityType: 'FeedIssue',
+        entityType: "FeedIssue",
         entityId: issue._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: issue.toObject()
+        newState: issue.toObject(),
       });
 
-      AlertService.runAlertSweep().catch(e => console.error('Alert sweep error', e));
+      AlertService.runAlertSweep().catch((e) =>
+        console.error("Alert sweep error", e),
+      );
 
       res.status(201).json({ success: true, data: issue });
     } catch (err: any) {
@@ -133,7 +160,10 @@ export class FeedController {
     }
   }
 
-  static async getReconciliation(req: AuthRequest, res: Response): Promise<void> {
+  static async getReconciliation(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
     try {
       const batchId = req.query.batchId as string;
       const query: any = {};
@@ -145,8 +175,14 @@ export class FeedController {
       const totalIssuedBags = issues.reduce((sum, i) => sum + i.bags, 0);
       const totalIssuedKg = issues.reduce((sum, i) => sum + i.totalKg, 0);
 
-      const totalConsumedBags = dailyRecords.reduce((sum, r) => sum + r.feedUsedBags, 0);
-      const totalConsumedKg = dailyRecords.reduce((sum, r) => sum + r.feedUsedKg, 0);
+      const totalConsumedBags = dailyRecords.reduce(
+        (sum, r) => sum + r.feedUsedBags,
+        0,
+      );
+      const totalConsumedKg = dailyRecords.reduce(
+        (sum, r) => sum + r.feedUsedKg,
+        0,
+      );
 
       const discrepancyBags = roundTo(totalIssuedBags - totalConsumedBags, 1);
       const discrepancyKg = roundTo(totalIssuedKg - totalConsumedKg, 1);
@@ -160,8 +196,11 @@ export class FeedController {
           totalConsumedKg: roundTo(totalConsumedKg, 1),
           discrepancyBags,
           discrepancyKg,
-          status: Math.abs(discrepancyBags) <= 2 ? 'balanced' : 'discrepancy_detected'
-        }
+          status:
+            Math.abs(discrepancyBags) <= 2
+              ? "balanced"
+              : "discrepancy_detected",
+        },
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

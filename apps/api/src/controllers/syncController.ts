@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import { SyncService } from '../services/syncService';
-import { SyncResponse } from '@broiler/shared';
+import { Response } from "express";
+import { AuthRequest } from "../middleware/auth";
+import { SyncService } from "../services/syncService";
+import { SyncResponse } from "@broiler/shared";
 
 export class SyncController {
   static async sync(req: AuthRequest, res: Response): Promise<void> {
@@ -15,12 +15,14 @@ export class SyncController {
         success: true,
         processedCount: results.length,
         results,
-        serverTimestamp: new Date().toISOString()
+        serverTimestamp: new Date().toISOString(),
       };
 
       res.json(response);
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message || 'Sync failed' });
+      res
+        .status(500)
+        .json({ success: false, error: err.message || "Sync failed" });
     }
   }
 }

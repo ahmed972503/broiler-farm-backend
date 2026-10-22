@@ -1,7 +1,7 @@
-import { Response } from 'express';
-import { Expense } from '../models';
-import { AuthRequest } from '../middleware/auth';
-import { logAuditEvent } from '../services/auditService';
+import { Response } from "express";
+import { Expense } from "../models";
+import { AuthRequest } from "../middleware/auth";
+import { logAuditEvent } from "../services/auditService";
 
 export class ExpenseController {
   static async getExpenses(req: AuthRequest, res: Response): Promise<void> {
@@ -14,8 +14,8 @@ export class ExpenseController {
       }
 
       const expenses = await Expense.find(query)
-        .populate('batchId', 'batchNumber')
-        .populate('createdBy', 'name username')
+        .populate("batchId", "batchNumber")
+        .populate("createdBy", "name username")
         .sort({ date: -1 });
 
       const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -30,15 +30,15 @@ export class ExpenseController {
     try {
       const expense = await Expense.create({
         ...req.body,
-        createdBy: req.user!._id
+        createdBy: req.user!._id,
       });
 
       await logAuditEvent({
-        entityType: 'Expense',
+        entityType: "Expense",
         entityId: expense._id.toString(),
-        action: 'CREATE',
+        action: "CREATE",
         performedBy: req.user!._id,
-        newState: expense.toObject()
+        newState: expense.toObject(),
       });
 
       res.status(201).json({ success: true, data: expense });
@@ -51,17 +51,17 @@ export class ExpenseController {
     try {
       const expense = await Expense.findByIdAndDelete(req.params.id);
       if (!expense) {
-        res.status(404).json({ success: false, error: 'Expense not found' });
+        res.status(404).json({ success: false, error: "Expense not found" });
         return;
       }
       await logAuditEvent({
-        entityType: 'Expense',
+        entityType: "Expense",
         entityId: expense._id.toString(),
-        action: 'DELETE',
+        action: "DELETE",
         performedBy: req.user!._id,
-        previousState: expense.toObject()
+        previousState: expense.toObject(),
       });
-      res.json({ success: true, message: 'Expense deleted' });
+      res.json({ success: true, message: "Expense deleted" });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

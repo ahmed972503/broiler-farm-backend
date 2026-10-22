@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
-import { AuditLog } from '../models';
-import { AuditAction } from '@broiler/shared';
+import mongoose from "mongoose";
+import { AuditLog } from "../models";
+import { AuditAction } from "@broiler/shared";
 
 export async function logAuditEvent(params: {
   entityType: string;
@@ -18,9 +18,9 @@ export async function logAuditEvent(params: {
       performedBy: new mongoose.Types.ObjectId(params.performedBy.toString()),
       previousState: params.previousState || null,
       newState: params.newState || null,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } catch (err) {
-    console.error('[AuditLog Error]: Failed to create audit log', err);
+    console.error("[AuditLog Error]: Failed to create audit log", err);
   }
 }

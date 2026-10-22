@@ -1,14 +1,14 @@
-import { Response } from 'express';
-import { Alert } from '../models';
-import { AuthRequest } from '../middleware/auth';
-import { AlertService } from '../services/alertService';
+import { Response } from "express";
+import { Alert } from "../models";
+import { AuthRequest } from "../middleware/auth";
+import { AlertService } from "../services/alertService";
 
 export class AlertController {
   static async getAlerts(req: AuthRequest, res: Response): Promise<void> {
     try {
       const query: any = {};
       if (req.query.isResolved !== undefined) {
-        query.isResolved = req.query.isResolved === 'true';
+        query.isResolved = req.query.isResolved === "true";
       }
       if (req.query.severity) {
         query.severity = req.query.severity;
@@ -28,7 +28,7 @@ export class AlertController {
     try {
       const alert = await Alert.findById(req.params.id);
       if (!alert) {
-        res.status(404).json({ success: false, error: 'Alert not found' });
+        res.status(404).json({ success: false, error: "Alert not found" });
         return;
       }
 
@@ -37,7 +37,7 @@ export class AlertController {
       alert.resolvedBy = req.user!._id;
       await alert.save();
 
-      res.json({ success: true, message: 'Alert resolved', data: alert });
+      res.json({ success: true, message: "Alert resolved", data: alert });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -47,7 +47,11 @@ export class AlertController {
     try {
       await AlertService.runAlertSweep();
       const activeAlerts = await Alert.find({ isResolved: false });
-      res.json({ success: true, message: 'Alert audit sweep completed', count: activeAlerts.length });
+      res.json({
+        success: true,
+        message: "Alert audit sweep completed",
+        count: activeAlerts.length,
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
