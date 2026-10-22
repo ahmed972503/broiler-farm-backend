@@ -1,6 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
-import { useTheme } from '../../theme';
+import React from "react";
+import {
+  View,
+  StyleSheet,
+  ViewStyle,
+  StyleProp,
+  TouchableOpacity,
+} from "react-native";
+import { useTheme } from "../../theme";
 
 export interface CardProps {
   children: React.ReactNode;
@@ -9,7 +15,12 @@ export interface CardProps {
   onPress?: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style, elevated = false, onPress }) => {
+export const Card: React.FC<CardProps> = ({
+  children,
+  style,
+  elevated = false,
+  onPress,
+}) => {
   const { colors, spacing, borderRadius } = useTheme();
 
   const cardStyle = [
@@ -18,10 +29,10 @@ export const Card: React.FC<CardProps> = ({ children, style, elevated = false, o
       backgroundColor: elevated ? colors.cardElevated : colors.card,
       borderColor: colors.border,
       borderRadius: borderRadius.lg,
-      padding: spacing.base
+      padding: spacing.base,
     },
     elevated && styles.shadow,
-    style
+    style,
   ];
 
   if (onPress) {
@@ -39,13 +50,13 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     marginVertical: 6,
-    width: '100%'
+    width: "100%",
   },
   shadow: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 3
-  }
+    elevation: 3,
+  },
 });

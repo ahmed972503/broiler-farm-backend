@@ -1,9 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTheme } from '../../../src/theme';
-import { Card, Badge, Button, Input, StatCard } from '../../../src/components/ui';
-import { apiFetch } from '../../../src/api/client';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  Alert,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useTheme } from "../../../src/theme";
+import {
+  Card,
+  Badge,
+  Button,
+  Input,
+  StatCard,
+} from "../../../src/components/ui";
+import { apiFetch } from "../../../src/api/client";
 
 export default function BatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,10 +29,12 @@ export default function BatchDetailScreen() {
 
   // Close batch modal state
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [closeDate, setCloseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [finalMortalityAdj, setFinalMortalityAdj] = useState('0');
-  const [finalCullsAdj, setFinalCullsAdj] = useState('0');
-  const [closeNotes, setCloseNotes] = useState('Flock lifted and completed');
+  const [closeDate, setCloseDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [finalMortalityAdj, setFinalMortalityAdj] = useState("0");
+  const [finalCullsAdj, setFinalCullsAdj] = useState("0");
+  const [closeNotes, setCloseNotes] = useState("Flock lifted and completed");
   const [closing, setClosing] = useState(false);
 
   const loadBatch = async () => {
@@ -44,24 +59,27 @@ export default function BatchDetailScreen() {
     setClosing(true);
     try {
       const res = await apiFetch(`/api/batches/${id}/close`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({
           closedAt: closeDate,
           finalMortalityAdjustment: parseInt(finalMortalityAdj, 10) || 0,
           finalCullsAdjustment: parseInt(finalCullsAdj, 10) || 0,
-          notes: closeNotes
-        })
+          notes: closeNotes,
+        }),
       });
 
       if (res.success && res.data) {
-        Alert.alert('Batch Closed!', 'Final FCR, production costs, and net profit calculated.');
+        Alert.alert(
+          "Batch Closed!",
+          "Final FCR, production costs, and net profit calculated.",
+        );
         setBatch(res.data);
         setShowCloseModal(false);
       } else {
-        Alert.alert('Error', res.error || 'Failed to close batch');
+        Alert.alert("Error", res.error || "Failed to close batch");
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      Alert.alert("Error", err.message);
     } finally {
       setClosing(false);
     }
@@ -72,28 +90,63 @@ export default function BatchDetailScreen() {
   return (
     <ScrollView
       contentContainerStyle={[styles.container, { padding: spacing.base }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBatch(); }} colors={[colors.primary]} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            loadBatch();
+          }}
+          colors={[colors.primary]}
+        />
+      }
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
         <View>
-          <Text style={{ color: colors.text, fontSize: typography.sizes.xl, fontWeight: typography.weights.heavy }}>
-            {batch?.batchNumber || 'Flock Details'}
+          <Text
+            style={{
+              color: colors.text,
+              fontSize: typography.sizes.xl,
+              fontWeight: typography.weights.heavy,
+            }}
+          >
+            {batch?.batchNumber || "Flock Details"}
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.sizes.sm }}>
-            {batch?.shedId?.name || 'Shed'} • Placed: {batch?.chicksPlaced?.toLocaleString()} ({batch?.breed})
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: typography.sizes.sm,
+            }}
+          >
+            {batch?.shedId?.name || "Shed"} • Placed:{" "}
+            {batch?.chicksPlaced?.toLocaleString()} ({batch?.breed})
           </Text>
         </View>
 
         <Badge
-          label={batch?.status?.toUpperCase() || 'ACTIVE'}
-          variant={batch?.status === 'active' ? 'success' : 'neutral'}
+          label={batch?.status?.toUpperCase() || "ACTIVE"}
+          variant={batch?.status === "active" ? "success" : "neutral"}
         />
       </View>
 
       {/* If Closed, display Final Performance Summary */}
       {summary ? (
         <View style={{ marginBottom: spacing.lg }}>
-          <Text style={{ color: colors.primary, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold, marginBottom: 8 }}>
+          <Text
+            style={{
+              color: colors.primary,
+              fontSize: typography.sizes.lg,
+              fontWeight: typography.weights.bold,
+              marginBottom: 8,
+            }}
+          >
             🏆 Harvest Performance Summary
           </Text>
 
@@ -113,7 +166,7 @@ export default function BatchDetailScreen() {
                 value={`Rs. ${(summary.netProfit || 0).toLocaleString()}`}
                 subtitle={`Revenue Rs. ${(summary.totalSalesRevenue || 0).toLocaleString()}`}
                 badgeLabel="Profit"
-                badgeVariant={summary.netProfit >= 0 ? 'success' : 'danger'}
+                badgeVariant={summary.netProfit >= 0 ? "success" : "danger"}
               />
             </View>
           </View>
@@ -145,40 +198,88 @@ export default function BatchDetailScreen() {
           </View>
 
           <Card elevated style={{ marginTop: spacing.md }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 8 }}>
+            <Text
+              style={{
+                color: colors.text,
+                fontWeight: "700",
+                fontSize: 15,
+                marginBottom: 8,
+              }}
+            >
               Financial Breakdown
             </Text>
             <View style={styles.breakdownRow}>
-              <Text style={{ color: colors.textSecondary }}>Chick Purchase Cost:</Text>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Rs. {summary.totalChickCost?.toLocaleString()}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                Chick Purchase Cost:
+              </Text>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                Rs. {summary.totalChickCost?.toLocaleString()}
+              </Text>
             </View>
             <View style={styles.breakdownRow}>
               <Text style={{ color: colors.textSecondary }}>Feed Cost:</Text>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Rs. {summary.totalFeedCost?.toLocaleString()}</Text>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                Rs. {summary.totalFeedCost?.toLocaleString()}
+              </Text>
             </View>
             <View style={styles.breakdownRow}>
-              <Text style={{ color: colors.textSecondary }}>Medicines & Vaccines:</Text>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Rs. {summary.totalMedicineCost?.toLocaleString()}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                Medicines & Vaccines:
+              </Text>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                Rs. {summary.totalMedicineCost?.toLocaleString()}
+              </Text>
             </View>
             <View style={styles.breakdownRow}>
-              <Text style={{ color: colors.textSecondary }}>Other Expenses:</Text>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>Rs. {summary.totalOtherExpenses?.toLocaleString()}</Text>
+              <Text style={{ color: colors.textSecondary }}>
+                Other Expenses:
+              </Text>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                Rs. {summary.totalOtherExpenses?.toLocaleString()}
+              </Text>
             </View>
-            <View style={[styles.breakdownRow, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6, marginTop: 4 }]}>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Total Batch Cost:</Text>
-              <Text style={{ color: colors.danger, fontWeight: '700' }}>Rs. {summary.totalBatchCost?.toLocaleString()}</Text>
+            <View
+              style={[
+                styles.breakdownRow,
+                {
+                  borderTopWidth: 1,
+                  borderTopColor: colors.border,
+                  paddingTop: 6,
+                  marginTop: 4,
+                },
+              ]}
+            >
+              <Text style={{ color: colors.text, fontWeight: "700" }}>
+                Total Batch Cost:
+              </Text>
+              <Text style={{ color: colors.danger, fontWeight: "700" }}>
+                Rs. {summary.totalBatchCost?.toLocaleString()}
+              </Text>
             </View>
           </Card>
         </View>
       ) : null}
 
       {/* Active Flock Actions */}
-      {batch?.status === 'active' ? (
+      {batch?.status === "active" ? (
         <Card elevated>
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 4 }}>
+          <Text
+            style={{
+              color: colors.text,
+              fontWeight: "700",
+              fontSize: 16,
+              marginBottom: 4,
+            }}
+          >
             Flock Lifecycle Actions
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 14 }}>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 13,
+              marginBottom: 14,
+            }}
+          >
             Harvest flock, compute final FCR, cost per kg, and net profit.
           </Text>
 
@@ -190,16 +291,53 @@ export default function BatchDetailScreen() {
               onPress={() => setShowCloseModal(true)}
             />
           ) : (
-            <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14 }}>
-              <Text style={{ color: colors.danger, fontWeight: '700', fontSize: 14, marginBottom: 8 }}>
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                paddingTop: 14,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.danger,
+                  fontWeight: "700",
+                  fontSize: 14,
+                  marginBottom: 8,
+                }}
+              >
                 Confirm Batch Closure & Harvest
               </Text>
-              <Input label="Harvest / Close Date" value={closeDate} onChangeText={setCloseDate} />
-              <Input label="Final Mortality Adjustment (Birds)" value={finalMortalityAdj} onChangeText={setFinalMortalityAdj} keyboardType="numeric" />
-              <Input label="Final Culls Adjustment (Birds)" value={finalCullsAdj} onChangeText={setFinalCullsAdj} keyboardType="numeric" />
-              <Input label="Harvest Notes" value={closeNotes} onChangeText={setCloseNotes} />
+              <Input
+                label="Harvest / Close Date"
+                value={closeDate}
+                onChangeText={setCloseDate}
+              />
+              <Input
+                label="Final Mortality Adjustment (Birds)"
+                value={finalMortalityAdj}
+                onChangeText={setFinalMortalityAdj}
+                keyboardType="numeric"
+              />
+              <Input
+                label="Final Culls Adjustment (Birds)"
+                value={finalCullsAdj}
+                onChangeText={setFinalCullsAdj}
+                keyboardType="numeric"
+              />
+              <Input
+                label="Harvest Notes"
+                value={closeNotes}
+                onChangeText={setCloseNotes}
+              />
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginTop: 10,
+                }}
+              >
                 <Button
                   title="Cancel"
                   variant="outline"
@@ -224,24 +362,24 @@ export default function BatchDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40
+    paddingBottom: 40,
   },
   gridRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -4,
   },
   gridCol2: {
-    width: '50%',
-    padding: 4
+    width: "50%",
+    padding: 4,
   },
   gridCol3: {
-    width: '33.333%',
-    padding: 4
+    width: "33.333%",
+    padding: 4,
   },
   breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 4
-  }
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
+  },
 });

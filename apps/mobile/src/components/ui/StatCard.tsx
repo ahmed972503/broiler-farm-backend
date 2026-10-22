@@ -1,18 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { useTheme } from '../../theme';
-import { Card } from './Card';
-import { Badge } from './Badge';
+import React from "react";
+import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import { useTheme } from "../../theme";
+import { Card } from "./Card";
+import { Badge } from "./Badge";
 
 export interface StatCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
   badgeLabel?: string;
-  badgeVariant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+  badgeVariant?: "success" | "warning" | "danger" | "info" | "neutral";
   icon?: React.ReactNode;
   style?: ViewStyle;
-  trend?: 'up' | 'down' | 'neutral';
+  trend?: "up" | "down" | "neutral";
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -20,9 +20,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   subtitle,
   badgeLabel,
-  badgeVariant = 'neutral',
+  badgeVariant = "neutral",
   icon,
-  style
+  style,
 }) => {
   const { colors, spacing, typography } = useTheme();
 
@@ -35,8 +35,8 @@ export const StatCard: React.FC<StatCardProps> = ({
             {
               color: colors.textSecondary,
               fontSize: typography.sizes.sm,
-              fontWeight: typography.weights.semibold
-            }
+              fontWeight: typography.weights.semibold,
+            },
           ]}
         >
           {title}
@@ -51,8 +51,8 @@ export const StatCard: React.FC<StatCardProps> = ({
             color: colors.text,
             fontSize: typography.sizes.xl,
             fontWeight: typography.weights.heavy,
-            marginVertical: spacing.xs
-          }
+            marginVertical: spacing.xs,
+          },
         ]}
       >
         {value}
@@ -66,8 +66,8 @@ export const StatCard: React.FC<StatCardProps> = ({
               {
                 color: colors.textMuted,
                 fontSize: typography.sizes.xs,
-                fontWeight: typography.weights.medium
-              }
+                fontWeight: typography.weights.medium,
+              },
             ]}
           >
             {subtitle}
@@ -84,23 +84,23 @@ export const StatCard: React.FC<StatCardProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   iconWrapper: {},
   title: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   value: {},
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 2
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 2,
   },
   subtitle: {
-    flex: 1
-  }
+    flex: 1,
+  },
 });

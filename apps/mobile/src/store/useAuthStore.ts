@@ -1,10 +1,10 @@
-import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserRole } from '@broiler/shared';
+import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { UserRole } from "@broiler/shared";
 
-const AUTH_USER_KEY = '@broiler_farm_auth_user';
-const AUTH_TOKEN_KEY = '@broiler_farm_auth_token';
-const AUTH_REFRESH_KEY = '@broiler_farm_auth_refresh';
+const AUTH_USER_KEY = "@broiler_farm_auth_user";
+const AUTH_TOKEN_KEY = "@broiler_farm_auth_token";
+const AUTH_REFRESH_KEY = "@broiler_farm_auth_refresh";
 
 export interface AuthUser {
   id: string;
@@ -27,12 +27,16 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setAuth: (user: AuthUser, token: string, refreshToken: string) => Promise<void>;
+  setAuth: (
+    user: AuthUser,
+    token: string,
+    refreshToken: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>(set => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   refreshToken: null,
@@ -44,9 +48,15 @@ export const useAuthStore = create<AuthState>(set => ({
       await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
       await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
       await AsyncStorage.setItem(AUTH_REFRESH_KEY, refreshToken);
-      set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
+      set({
+        user,
+        token,
+        refreshToken,
+        isAuthenticated: true,
+        isLoading: false,
+      });
     } catch (err) {
-      console.error('Failed to save auth session', err);
+      console.error("Failed to save auth session", err);
     }
   },
 
@@ -55,9 +65,15 @@ export const useAuthStore = create<AuthState>(set => ({
       await AsyncStorage.removeItem(AUTH_USER_KEY);
       await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
       await AsyncStorage.removeItem(AUTH_REFRESH_KEY);
-      set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isLoading: false });
+      set({
+        user: null,
+        token: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
     } catch (err) {
-      console.error('Logout error', err);
+      console.error("Logout error", err);
     }
   },
 
@@ -73,7 +89,7 @@ export const useAuthStore = create<AuthState>(set => ({
           token: storedToken,
           refreshToken: storedRefresh,
           isAuthenticated: true,
-          isLoading: false
+          isLoading: false,
         });
       } else {
         set({ isLoading: false });
@@ -81,5 +97,5 @@ export const useAuthStore = create<AuthState>(set => ({
     } catch {
       set({ isLoading: false });
     }
-  }
+  },
 }));

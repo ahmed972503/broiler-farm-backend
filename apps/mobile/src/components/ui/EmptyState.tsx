@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme';
-import { Button } from './Button';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useTheme } from "../../theme";
+import { Button } from "./Button";
 
 export interface EmptyStateProps {
   title: string;
@@ -16,7 +16,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   description,
   actionTitle,
   onAction,
-  icon
+  icon,
 }) => {
   const { colors, spacing, typography } = useTheme();
 
@@ -29,8 +29,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           {
             color: colors.text,
             fontSize: typography.sizes.lg,
-            fontWeight: typography.weights.bold
-          }
+            fontWeight: typography.weights.bold,
+          },
         ]}
       >
         {title}
@@ -42,8 +42,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             {
               color: colors.textSecondary,
               fontSize: typography.sizes.sm,
-              marginVertical: spacing.sm
-            }
+              marginVertical: spacing.sm,
+            },
           ]}
         >
           {description}
@@ -64,15 +64,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 180
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 180,
   },
   title: {
-    textAlign: 'center'
+    textAlign: "center",
   },
   description: {
-    textAlign: 'center',
-    maxWidth: 280
-  }
+    textAlign: "center",
+    maxWidth: 280,
+  },
 });

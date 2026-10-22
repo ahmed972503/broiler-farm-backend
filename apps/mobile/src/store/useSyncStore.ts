@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { OfflineStore } from '../db/offlineStore';
-import { SyncPacket, SyncResponse } from '@broiler/shared';
+import { create } from "zustand";
+import { OfflineStore } from "../db/offlineStore";
+import { SyncPacket, SyncResponse } from "@broiler/shared";
 
 interface SyncState {
   isSyncing: boolean;
@@ -8,7 +8,11 @@ interface SyncState {
   lastSyncTime: string | null;
   syncError: string | null;
   refreshPendingCount: () => Promise<void>;
-  syncWithServer: (apiBaseUrl: string, token: string, userId: string) => Promise<boolean>;
+  syncWithServer: (
+    apiBaseUrl: string,
+    token: string,
+    userId: string,
+  ) => Promise<boolean>;
 }
 
 export const useSyncStore = create<SyncState>((set, get) => ({
@@ -22,7 +26,11 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     set({ pendingCount: queue.length });
   },
 
-  syncWithServer: async (apiBaseUrl: string, token: string, userId: string): Promise<boolean> => {
+  syncWithServer: async (
+    apiBaseUrl: string,
+    token: string,
+    userId: string,
+  ): Promise<boolean> => {
     if (get().isSyncing) return false;
 
     const queue = await OfflineStore.getQueue();
@@ -35,18 +43,18 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 
     try {
       const packet: SyncPacket = {
-        deviceId: 'mobile-client-device',
+        deviceId: "mobile-client-device",
         userId,
-        items: queue
+        items: queue,
       };
 
       const res = await fetch(`${apiBaseUrl}/api/sync`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(packet)
+        body: JSON.stringify(packet),
       });
 
       if (!res.ok) {
@@ -57,8 +65,13 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       if (data.success && data.results) {
         // Collect successfully processed mutation IDs
         const processedIds = data.results
-          .filter(r => r.status === 'synced' || r.status === 'conflict')
-          .map(r => r.clientMutationId);
+          .filter(
+            (r) =>
+              r.status === "synced" ||
+              r.status === "conflict" ||
+              r.status === "duplicate",
+          )
+          .map((r) => r.clientMutationId);
 
         await OfflineStore.removeProcessedMutations(processedIds);
 
@@ -67,19 +80,19 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           isSyncing: false,
           pendingCount: remainingQueue.length,
           lastSyncTime: new Date().toLocaleTimeString(),
-          syncError: null
+          syncError: null,
         });
         return true;
       } else {
-        throw new Error('Sync response indicated failure');
+        throw new Error("Sync response indicated failure");
       }
     } catch (err: any) {
-      console.warn('[Sync Error]: Offline or server unavailable:', err.message);
+      console.warn("[Sync Error]: Offline or server unavailable:", err.message);
       set({
         isSyncing: false,
-        syncError: err.message || 'Network unavailable'
+        syncError: err.message || "Network unavailable",
       });
       return false;
     }
-  }
+  },
 }));

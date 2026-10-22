@@ -1,19 +1,19 @@
-import React from 'react';
+import React from "react";
 import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
-  TextStyle
-} from 'react-native';
-import { useTheme } from '../../theme';
+  TextStyle,
+} from "react-native";
+import { useTheme } from "../../theme";
 
 export interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "danger" | "outline" | "ghost";
+  size?: "sm" | "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -24,28 +24,28 @@ export interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   disabled = false,
   style,
   textStyle,
-  icon
+  icon,
 }) => {
   const { colors, spacing, borderRadius, typography } = useTheme();
 
   const getBackgroundColor = () => {
     if (disabled) return colors.border;
     switch (variant) {
-      case 'primary':
+      case "primary":
         return colors.primary;
-      case 'secondary':
+      case "secondary":
         return colors.secondary;
-      case 'danger':
+      case "danger":
         return colors.danger;
-      case 'outline':
-      case 'ghost':
-        return 'transparent';
+      case "outline":
+      case "ghost":
+        return "transparent";
       default:
         return colors.primary;
     }
@@ -54,13 +54,13 @@ export const Button: React.FC<ButtonProps> = ({
   const getTextColor = () => {
     if (disabled) return colors.textMuted;
     switch (variant) {
-      case 'outline':
+      case "outline":
         return colors.primary;
-      case 'ghost':
+      case "ghost":
         return colors.text;
-      case 'secondary':
-      case 'primary':
-      case 'danger':
+      case "secondary":
+      case "primary":
+      case "danger":
       default:
         return colors.white;
     }
@@ -68,11 +68,17 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getPadding = () => {
     switch (size) {
-      case 'sm':
-        return { paddingVertical: spacing.xs + 2, paddingHorizontal: spacing.md };
-      case 'lg':
-        return { paddingVertical: spacing.base + 2, paddingHorizontal: spacing.xl };
-      case 'md':
+      case "sm":
+        return {
+          paddingVertical: spacing.xs + 2,
+          paddingHorizontal: spacing.md,
+        };
+      case "lg":
+        return {
+          paddingVertical: spacing.base + 2,
+          paddingHorizontal: spacing.xl,
+        };
+      case "md":
       default:
         return { paddingVertical: spacing.md, paddingHorizontal: spacing.lg };
     }
@@ -80,11 +86,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const getFontSize = () => {
     switch (size) {
-      case 'sm':
+      case "sm":
         return typography.sizes.sm;
-      case 'lg':
+      case "lg":
         return typography.sizes.lg;
-      case 'md':
+      case "md":
       default:
         return typography.sizes.base;
     }
@@ -100,11 +106,11 @@ export const Button: React.FC<ButtonProps> = ({
         {
           backgroundColor: getBackgroundColor(),
           borderRadius: borderRadius.md,
-          borderColor: variant === 'outline' ? colors.primary : 'transparent',
-          borderWidth: variant === 'outline' ? 1.5 : 0,
-          ...getPadding()
+          borderColor: variant === "outline" ? colors.primary : "transparent",
+          borderWidth: variant === "outline" ? 1.5 : 0,
+          ...getPadding(),
         },
-        style
+        style,
       ]}
     >
       {loading ? (
@@ -118,10 +124,13 @@ export const Button: React.FC<ButtonProps> = ({
               {
                 color: getTextColor(),
                 fontSize: getFontSize(),
-                fontWeight: size === 'lg' ? typography.weights.bold : typography.weights.semibold,
-                marginLeft: icon ? spacing.sm : 0
+                fontWeight:
+                  size === "lg"
+                    ? typography.weights.bold
+                    : typography.weights.semibold,
+                marginLeft: icon ? spacing.sm : 0,
               },
-              textStyle
+              textStyle,
             ]}
           >
             {title}
@@ -134,12 +143,12 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44 // Large touch target for farm workers
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44, // Large touch target for farm workers
   },
   text: {
-    textAlign: 'center'
-  }
+    textAlign: "center",
+  },
 });

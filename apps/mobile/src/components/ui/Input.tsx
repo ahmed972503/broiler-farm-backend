@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -6,9 +6,9 @@ import {
   TextInputProps,
   StyleSheet,
   ViewStyle,
-  TextStyle
-} from 'react-native';
-import { useTheme } from '../../theme';
+  TextStyle,
+} from "react-native";
+import { useTheme } from "../../theme";
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -31,7 +31,9 @@ export const Input: React.FC<InputProps> = ({
   const { colors, spacing, borderRadius, typography } = useTheme();
 
   return (
-    <View style={[styles.container, { marginBottom: spacing.md }, containerStyle]}>
+    <View
+      style={[styles.container, { marginBottom: spacing.md }, containerStyle]}
+    >
       {label ? (
         <Text
           style={[
@@ -40,8 +42,8 @@ export const Input: React.FC<InputProps> = ({
               color: colors.text,
               fontSize: typography.sizes.sm,
               fontWeight: typography.weights.semibold,
-              marginBottom: spacing.xs
-            }
+              marginBottom: spacing.xs,
+            },
           ]}
         >
           {label}
@@ -55,8 +57,8 @@ export const Input: React.FC<InputProps> = ({
             backgroundColor: colors.card,
             borderColor: error ? colors.danger : colors.border,
             borderRadius: borderRadius.md,
-            paddingHorizontal: spacing.md
-          }
+            paddingHorizontal: spacing.md,
+          },
         ]}
       >
         <TextInput
@@ -65,9 +67,9 @@ export const Input: React.FC<InputProps> = ({
             styles.input,
             {
               color: colors.text,
-              fontSize: typography.sizes.base
+              fontSize: typography.sizes.base,
             },
-            inputStyle
+            inputStyle,
           ]}
           {...props}
         />
@@ -79,8 +81,8 @@ export const Input: React.FC<InputProps> = ({
                 color: colors.textSecondary,
                 fontSize: typography.sizes.sm,
                 fontWeight: typography.weights.medium,
-                marginLeft: spacing.xs
-              }
+                marginLeft: spacing.xs,
+              },
             ]}
           >
             {suffix}
@@ -95,8 +97,8 @@ export const Input: React.FC<InputProps> = ({
             {
               color: colors.danger,
               fontSize: typography.sizes.xs,
-              marginTop: spacing.xs
-            }
+              marginTop: spacing.xs,
+            },
           ]}
         >
           {error}
@@ -108,8 +110,8 @@ export const Input: React.FC<InputProps> = ({
             {
               color: colors.textMuted,
               fontSize: typography.sizes.xs,
-              marginTop: spacing.xs
-            }
+              marginTop: spacing.xs,
+            },
           ]}
         >
           {helperText}
@@ -121,22 +123,22 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%'
+    width: "100%",
   },
   label: {},
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
-    minHeight: 48 // Large easy touch target
+    minHeight: 48, // Large easy touch target
   },
   input: {
     flex: 1,
-    paddingVertical: 10
+    paddingVertical: 10,
   },
   suffix: {},
   errorText: {
-    fontWeight: '500'
+    fontWeight: "500",
   },
-  helperText: {}
+  helperText: {},
 });
