@@ -94,6 +94,7 @@ graph TB
 ## 3. Offline-First Sync & Conflict Resolution Flow
 
 When working in the shed with weak or absent 3G/EDGE internet connectivity:
+
 1. All worker actions (daily entries, vaccination completions, sample weights) write immediately to the local cache and are enqueued into a persistent `SyncQueue` with a client UUID mutation ID.
 2. The UI provides instant tactile feedback, displaying a non-blocking banner: `"X changes pending - Will sync when connected"`.
 3. When network connectivity is re-established, the sync engine dispatches `POST /api/sync` with the mutation packet.
@@ -135,32 +136,33 @@ sequenceDiagram
 
 ## 4. Role-Based Access Control (RBAC) Matrix
 
-| Resource / Endpoint | Admin Role | Worker Role | Boundary Enforcement Mechanism |
-| :--- | :--- | :--- | :--- |
-| **Login / Refresh Token** | Allowed | Allowed | `authenticate` |
-| **All 5 Sheds Overview** | Allowed | View Assigned Shed Only | `requireShedAccess` |
-| **Batch Details** | All Batches | Assigned Shed's Batch Only | Backend route guard + Query filter |
-| **Place New Batch (Chicks)** | Allowed | 403 Forbidden | `requireAdmin` |
-| **Close Batch (Harvest P&L)** | Allowed | 403 Forbidden | `requireAdmin` |
-| **Create Daily Record** | Allowed | Assigned Shed Only (Today only) | `requireShedAccess` + Date Lock Policy |
-| **Edit Daily Record** | Allowed | Same day only (unless unlocked) | `DailyRecord.isLocked` Check |
-| **Unlock Daily Record** | Allowed | 403 Forbidden | `requireAdmin` + Audit Log |
-| **Vaccination Tasks** | Full CRUD | Complete tasks for assigned shed | `requireShedAccess` |
-| **Feed Purchases** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Feed Issue to Shed** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Expenses (All Categories)**| Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Sales & Buyer Invoices** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Staff & Payroll Wages** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Financial Reports & P&L** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Admin Dashboard** | Full Access | 403 Forbidden | `requireAdmin` |
-| **User Management** | Full CRUD | 403 Forbidden | `requireAdmin` |
-| **Farm Thresholds** | Full CRUD | 403 Forbidden | `requireAdmin` |
+| Resource / Endpoint           | Admin Role  | Worker Role                      | Boundary Enforcement Mechanism         |
+| :---------------------------- | :---------- | :------------------------------- | :------------------------------------- |
+| **Login / Refresh Token**     | Allowed     | Allowed                          | `authenticate`                         |
+| **All 5 Sheds Overview**      | Allowed     | View Assigned Shed Only          | `requireShedAccess`                    |
+| **Batch Details**             | All Batches | Assigned Shed's Batch Only       | Backend route guard + Query filter     |
+| **Place New Batch (Chicks)**  | Allowed     | 403 Forbidden                    | `requireAdmin`                         |
+| **Close Batch (Harvest P&L)** | Allowed     | 403 Forbidden                    | `requireAdmin`                         |
+| **Create Daily Record**       | Allowed     | Assigned Shed Only (Today only)  | `requireShedAccess` + Date Lock Policy |
+| **Edit Daily Record**         | Allowed     | Same day only (unless unlocked)  | `DailyRecord.isLocked` Check           |
+| **Unlock Daily Record**       | Allowed     | 403 Forbidden                    | `requireAdmin` + Audit Log             |
+| **Vaccination Tasks**         | Full CRUD   | Complete tasks for assigned shed | `requireShedAccess`                    |
+| **Feed Purchases**            | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Feed Issue to Shed**        | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Expenses (All Categories)** | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Sales & Buyer Invoices**    | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Staff & Payroll Wages**     | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Financial Reports & P&L**   | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Admin Dashboard**           | Full Access | 403 Forbidden                    | `requireAdmin`                         |
+| **User Management**           | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
+| **Farm Thresholds**           | Full CRUD   | 403 Forbidden                    | `requireAdmin`                         |
 
 ---
 
 ## 5. Pure Business Formulas
 
 All mathematical and financial formulas are isolated as pure, test-covered functions in `@broiler/shared/src/formulas`:
+
 - **Mortality %**:
   $$\text{Mortality \%} = \frac{\text{Placed} - \text{Birds Remaining}}{\text{Placed}} \times 100$$
 - **Birds Remaining**:

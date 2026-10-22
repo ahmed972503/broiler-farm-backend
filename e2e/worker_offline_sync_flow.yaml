@@ -1,0 +1,67 @@
+appId: com.broilerfarm.app
+---
+# ==============================================================================
+# MAESTRO E2E TEST: WORKER OFFLINE DAILY ENTRY & RECONNECT SYNC
+# Flow: Login -> Shed Summary -> Disconnect Network -> Log Daily Entry ->
+#       Verify Offline SQLite Queue -> Reconnect -> Trigger Sync -> Verify Synced
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Worker Authentication
+- assertVisible: "Broiler Farm"
+- tapOn:
+    id: "input-username"
+- inputText: "worker1"
+- tapOn:
+    id: "input-password"
+- inputText: "worker123"
+- tapOn: "Log In"
+
+# 2. Verify Worker Today Dashboard
+- assertVisible: "Aaj Ka Khata"
+- assertVisible: "Shed 1"
+
+# 3. Simulate Shed Offline Condition (Weak / Zero Cellular Reception)
+- setAirplaneMode: true
+
+# 4. Fill and Submit Daily Entry in under 60 seconds
+- tapOn: "Add Daily Entry"
+- assertVisible: "Daily Entry Form"
+
+- tapOn:
+    id: "input-mortality"
+- inputText: "3"
+
+- tapOn:
+    id: "input-feed-bags"
+- inputText: "8"
+
+- tapOn:
+    id: "input-min-temp"
+- inputText: "24.5"
+
+- tapOn:
+    id: "input-max-temp"
+- inputText: "31.0"
+
+- tapOn:
+    id: "input-notes"
+- inputText: "Chicks active, good water intake"
+
+- tapOn: "Save Daily Entry"
+
+# 5. Verify Offline SQLite Queue Indicator
+- assertVisible: "Offline Mode"
+- assertVisible: "1 pending"
+- assertVisible: "✓ Entry Completed"
+
+# 6. Reconnect Network (Worker leaves shed into reception area)
+- setAirplaneMode: false
+
+# 7. Trigger Reconnect Sync
+- tapOn: "Tap to Sync"
+
+# 8. Assert Successful Sync & Zero Pending Writes
+- assertVisible: "All changes synced"

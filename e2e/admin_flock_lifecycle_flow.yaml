@@ -1,0 +1,103 @@
+appId: com.broilerfarm.app
+---
+# ==============================================================================
+# MAESTRO E2E TEST: ADMIN COMPLETE FLOCK LIFECYCLE & HARVEST P&L
+# Flow: Admin Login -> Create Batch -> Mark Vaccine Done -> Record Bird Sale ->
+#       Close Batch with Final Metrics -> Export Performance Report PDF
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Admin Authentication
+- assertVisible: "Broiler Farm"
+- tapOn:
+    id: "input-username"
+- inputText: "admin"
+- tapOn:
+    id: "input-password"
+- inputText: "admin123"
+- tapOn: "Log In"
+
+# 2. Verify Command Center Dashboard
+- assertVisible: "Farm Command Center"
+- assertVisible: "Live Shed Status"
+
+# 3. Create New Batch in Shed 2
+- tapOn: "Batches"
+- assertVisible: "Flocks & Batches"
+- tapOn: "+ New Batch"
+
+- tapOn:
+    id: "input-batch-number"
+- inputText: "FLOCK-MAESTRO-2026"
+
+- tapOn:
+    id: "select-shed"
+- tapOn: "Shed 2"
+
+- tapOn:
+    id: "input-chicks-placed"
+- inputText: "5000"
+
+- tapOn:
+    id: "input-chick-rate"
+- inputText: "115"
+
+- tapOn:
+    id: "input-supplier"
+- inputText: "Big Bird Hatchery"
+
+- tapOn: "Place Chicks (Create Batch)"
+- assertVisible: "FLOCK-MAESTRO-2026"
+
+# 4. Complete Scheduled Vaccination Task
+- tapOn: "Vaccines"
+- assertVisible: "Vaccination Tasks"
+- tapOn: "Mark Done"
+- assertVisible: "Completed"
+
+# 5. Record Bird Harvest Sale with Manually Editable Rate
+- tapOn: "Sales"
+- tapOn: "+ New Sale"
+
+- tapOn:
+    id: "input-buyer-name"
+- inputText: "Haji Aslam Lahore Mandi"
+
+- tapOn:
+    id: "input-birds-sold"
+- inputText: "2000"
+
+- tapOn:
+    id: "input-live-weight"
+- inputText: "4300"
+
+- tapOn:
+    id: "input-rate-per-kg"
+- inputText: "392"
+
+- tapOn:
+    id: "input-amount-paid"
+- inputText: "1500000"
+
+- tapOn: "Record Sale"
+- assertVisible: "Sale Recorded"
+
+# 6. Close Batch & Verify Harvest Metrics Calculation
+- tapOn: "Batches"
+- tapOn: "FLOCK-MAESTRO-2026"
+- tapOn: "Close Batch"
+- assertVisible: "Final Harvest Calculation"
+- tapOn: "Confirm Flock Close"
+
+# 7. Assert FCR, Cost/Kg, EPEF, and P&L Computed
+- assertVisible: "FCR"
+- assertVisible: "EPEF"
+- assertVisible: "Net Profit"
+
+# 8. Export Performance Report
+- tapOn: "Reports"
+- tapOn: "Batch Performance"
+- tapOn: "Export PDF Report"
+- assertVisible: "Report Generated Successfully"

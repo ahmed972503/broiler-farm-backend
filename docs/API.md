@@ -10,6 +10,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 1. Authentication & Users (`/api/auth`)
 
 ### `POST /api/auth/login`
+
 - **Access**: Public
 - **Body**:
   ```json
@@ -36,18 +37,22 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
   ```
 
 ### `POST /api/auth/refresh`
+
 - **Access**: Public
 - **Body**: `{ "refreshToken": "eyJhbGciOi..." }`
 - **Response `200 OK`**: `{ "success": true, "data": { "accessToken": "...", "refreshToken": "..." } }`
 
 ### `POST /api/auth/logout`
+
 - **Access**: Authenticated
 
 ### `GET /api/auth/me`
+
 - **Access**: Authenticated
 - **Returns**: Current user session and assigned shed details.
 
 ### `POST /api/auth/users`
+
 - **Access**: Admin only
 - **Body**:
   ```json
@@ -62,6 +67,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
   ```
 
 ### `POST /api/auth/reset-password`
+
 - **Access**: Admin only
 - **Body**: `{ "userId": "...", "newPassword": "newSecretPassword" }`
 
@@ -70,17 +76,21 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 2. Sheds (`/api/sheds`)
 
 ### `GET /api/sheds`
+
 - **Access**: Authenticated (Workers only see their assigned shed)
 - **Returns**: Array of sheds with assigned worker and active batch stats.
 
 ### `GET /api/sheds/:id`
+
 - **Access**: Authenticated (Workers restricted to assigned shed)
 
 ### `POST /api/sheds`
+
 - **Access**: Admin only
 - **Body**: `{ "name": "Shed 1", "shedNumber": 1, "capacity": 5000, "status": "active" }`
 
 ### `PUT /api/sheds/:id`
+
 - **Access**: Admin only
 
 ---
@@ -88,13 +98,16 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 3. Batches / Flocks (`/api/batches`)
 
 ### `GET /api/batches`
+
 - **Query Params**: `status=active|closed`, `shedId=...`
 - **Access**: Authenticated
 
 ### `GET /api/batches/:id`
+
 - **Access**: Authenticated (Workers restricted to their shed's flock)
 
 ### `POST /api/batches`
+
 - **Access**: Admin only
 - **Description**: Places a new flock in an empty shed. Computes initial chick cost and auto-instantiates vaccination tasks.
 - **Body**:
@@ -112,6 +125,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
   ```
 
 ### `POST /api/batches/:id/close`
+
 - **Access**: Admin only
 - **Description**: Harvests flock, computes FCR, mortality %, net profit, cost per kg, and sets shed to `cleaning`.
 - **Body**:
@@ -129,12 +143,15 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 4. Daily Records (`/api/daily-records`)
 
 ### `GET /api/daily-records`
+
 - **Query Params**: `batchId=...`, `shedId=...`, `date=YYYY-MM-DD`
 
 ### `GET /api/daily-records/today/:shedId?`
+
 - **Access**: Authenticated (Worker receives today's record for their shed)
 
 ### `POST /api/daily-records`
+
 - **Access**: Authenticated (Workers can only submit for their assigned shed)
 - **Body**:
   ```json
@@ -156,9 +173,11 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
   ```
 
 ### `PUT /api/daily-records/:id`
+
 - **Access**: Authenticated (Only allowed for same-day unless unlocked by admin)
 
 ### `POST /api/daily-records/:id/unlock`
+
 - **Access**: Admin only
 - **Body**: `{ "reason": "Worker corrected counting error" }`
 
@@ -167,9 +186,11 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 5. Weight Growth Tracking (`/api/weights`)
 
 ### `GET /api/weights`
+
 - **Query Params**: `batchId=...`, `shedId=...`
 
 ### `POST /api/weights`
+
 - **Body**:
   ```json
   {
@@ -188,13 +209,17 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 6. Vaccinations & Medicines (`/api/vaccinations`)
 
 ### `GET /api/vaccinations/templates`
+
 ### `GET /api/vaccinations/tasks`
+
 - **Query Params**: `batchId=...`, `shedId=...`, `status=pending|completed`
 
 ### `POST /api/vaccinations/tasks/:id/complete`
+
 - **Body**: `{ "completedAt": "2026-03-08", "notes": "Administered in cool morning water" }`
 
 ### `POST /api/vaccinations/medicines`
+
 - **Body**:
   ```json
   {
@@ -213,17 +238,21 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 7. Feed Management (`/api/feed`)
 
 ### `GET /api/feed/stock`
+
 - Returns warehouse bags and kg live stock for Starter, Grower, and Finisher.
 
 ### `POST /api/feed/purchases`
+
 - **Access**: Admin only
 - **Body**: `{ "supplier": "National Feeds", "date": "2026-03-01", "feedType": "starter", "bags": 100, "ratePerBag": 4200, "amountPaid": 420000 }`
 
 ### `POST /api/feed/issues`
+
 - **Access**: Admin only
 - **Body**: `{ "date": "2026-03-02", "shedId": "...", "batchId": "...", "feedType": "starter", "bags": 10 }`
 
 ### `GET /api/feed/reconciliation`
+
 - **Access**: Admin only
 - Returns issued bags vs consumed bags with discrepancy variance.
 
@@ -232,10 +261,12 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 8. Expenses (`/api/expenses`)
 
 ### `GET /api/expenses`
+
 - **Access**: Admin only (Workers return 403 Forbidden)
 - **Query Params**: `batchId=...`, `category=...`, `startDate=...`, `endDate=...`
 
 ### `POST /api/expenses`
+
 - **Access**: Admin only
 - **Body**: `{ "category": "electricity", "amount": 45000, "date": "2026-03-10", "description": "WAPDA Bill" }`
 
@@ -244,9 +275,11 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 9. Sales & Buyers (`/api/sales`)
 
 ### `GET /api/sales`
+
 - **Access**: Admin only (Workers return 403 Forbidden)
 
 ### `POST /api/sales`
+
 - **Access**: Admin only
 - **Body**:
   ```json
@@ -263,6 +296,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
   ```
 
 ### `POST /api/sales/payment`
+
 - **Access**: Admin only
 - Records installment payment from buyer and reduces balance.
 
@@ -271,6 +305,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 10. Offline Synchronization (`/api/sync`)
 
 ### `POST /api/sync`
+
 - **Access**: Authenticated
 - **Description**: Idempotent batch ingestion endpoint for offline client mutations.
 - **Body**:
@@ -295,7 +330,11 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
     "success": true,
     "processedCount": 1,
     "results": [
-      { "clientMutationId": "c8d62638-3482-4f3a-9e12-b1b51db8f801", "serverId": "65f0b...", "status": "synced" }
+      {
+        "clientMutationId": "c8d62638-3482-4f3a-9e12-b1b51db8f801",
+        "serverId": "65f0b...",
+        "status": "synced"
+      }
     ],
     "serverTimestamp": "2026-03-15T18:00:02.124Z"
   }
@@ -306,15 +345,21 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ## 11. Reports & Exports (`/api/reports`)
 
 ### `GET /api/reports/batch/:id`
+
 - Returns full performance metrics, FCR, cost per kg, and daily tables.
 
 ### `GET /api/reports/batch/:id/csv`
+
 - Returns downloadable CSV attachment containing all daily logs.
 
 ### `GET /api/reports/sheds`
+
 - Comparative performance across all 5 sheds.
 
 ### `GET /api/reports/feed`
+
 ### `GET /api/reports/expenses`
+
 ### `GET /api/reports/sales`
+
 ### `GET /api/reports/wages?month=YYYY-MM`

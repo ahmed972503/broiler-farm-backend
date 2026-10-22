@@ -57,12 +57,15 @@ A production-grade, offline-first mobile application and responsive web admin sy
 ## 🚀 Quickstart & Local Setup
 
 ### Prerequisites
+
 - Node.js v20+ LTS
 - npm v10+
 - MongoDB v6+ (or run via Docker)
 
 ### 1. Installation
+
 Clone the repository and install all dependencies from the root:
+
 ```bash
 git clone <repo-url>
 cd "Poultary Farm"
@@ -70,34 +73,45 @@ npm install
 ```
 
 ### 2. Build Shared Package
+
 ```bash
 npm run build:shared
 ```
 
 ### 3. Run Automated Tests & Static Verification
+
 Run all 83 unit, component, middleware, and formula test suites:
+
 ```bash
 npm test
 ```
+
 Run strict TypeScript type checking across all 3 workspaces (Shared, API, Mobile):
+
 ```bash
 npm run type-check
 ```
 
 ### 4. Seed Realistic Demo Data
+
 Populate MongoDB with 1 Admin, 4 Workers, 5 Sheds, 5 active flocks at staggered ages (Days 5 to 35), 30 days of daily logs, feed inventory, buyer ledgers, and 1 closed flock with completed sales:
+
 ```bash
 npm run seed
 ```
 
 ### 5. Launch Backend API
+
 ```bash
 npm run dev:api
 ```
+
 The API server starts on `http://localhost:5000`.
 
 ### 6. Launch Mobile App & Admin Web View
+
 In a new terminal:
+
 ```bash
 # To run responsive web dashboard on laptop browser:
 npm run dev:web
@@ -105,6 +119,7 @@ npm run dev:web
 # Or to start Expo for iOS/Android:
 npm run dev:mobile
 ```
+
 Press `w` in the terminal to open the web browser at `http://localhost:8081`.
 
 ---
@@ -113,19 +128,20 @@ Press `w` in the terminal to open the web browser at `http://localhost:8081`.
 
 The login screen provides quick one-tap demo buttons to easily switch between roles:
 
-| Role | Username | Password | Assigned Shed | Permissions |
-| :--- | :--- | :--- | :--- | :--- |
-| **Admin (Owner)** | `admin` | `admin123` | *All Sheds (1–5)* | Full access to finances, P&L, sales, reports, users |
-| **Worker 1** | `worker1` | `worker123` | **Shed 1** | Daily entries, vaccines, weights for Shed 1 only |
-| **Worker 2** | `worker2` | `worker123` | **Shed 2** | Daily entries, vaccines, weights for Shed 2 only |
-| **Worker 3** | `worker3` | `worker123` | **Shed 3** | Daily entries, vaccines, weights for Shed 3 only |
-| **Worker 4** | `worker4` | `worker123` | **Shed 4** | Daily entries, vaccines, weights for Shed 4 only |
+| Role              | Username  | Password    | Assigned Shed     | Permissions                                         |
+| :---------------- | :-------- | :---------- | :---------------- | :-------------------------------------------------- |
+| **Admin (Owner)** | `admin`   | `admin123`  | _All Sheds (1–5)_ | Full access to finances, P&L, sales, reports, users |
+| **Worker 1**      | `worker1` | `worker123` | **Shed 1**        | Daily entries, vaccines, weights for Shed 1 only    |
+| **Worker 2**      | `worker2` | `worker123` | **Shed 2**        | Daily entries, vaccines, weights for Shed 2 only    |
+| **Worker 3**      | `worker3` | `worker123` | **Shed 3**        | Daily entries, vaccines, weights for Shed 3 only    |
+| **Worker 4**      | `worker4` | `worker123` | **Shed 4**        | Daily entries, vaccines, weights for Shed 4 only    |
 
 ---
 
 ## 🧪 Automated Testing Breakdown
 
 All 83 test suites execute in memory with zero external dependencies:
+
 1. **`packages/shared`** (48 tests):
    - FCR, EPEF, Cost per Kg, ADG, Livability %, Bag conversions, and Payroll wage formulas.
    - Zod validation schemas for all domain entities.
@@ -142,9 +158,11 @@ All 83 test suites execute in memory with zero external dependencies:
 ## 🚢 Production Deployment & Containers
 
 To deploy the entire production stack (API + MongoDB) with a single command:
+
 ```bash
 docker compose up -d --build
 ```
+
 Refer to [docs/DEPLOYMENT.md](file:///d:/Poultary%20Farm/docs/DEPLOYMENT.md) for automated nightly MongoDB backup scripts, disaster recovery restore commands, Nginx reverse proxy configuration, and EAS build instructions for compiling standalone Android `.apk` files.
 
 ---

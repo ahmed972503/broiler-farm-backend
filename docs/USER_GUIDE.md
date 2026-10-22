@@ -7,6 +7,7 @@
 Ye application khas tor par poultry farm ke workers ke liye banai gayi hai taake kam se kam waqt (60 seconds se kam) mein daily entry mukammal ki ja sakay, chahay shed mein internet ho ya bilkul na ho.
 
 ### 1. App Mein Login Kaise Karein (لاگ اِن کرنے کا طریقہ)
+
 1. App open karein.
 2. Apna **Username** (maslan: `worker1`) aur **Password** darj karein.
    - Demo ke liye screen par **"Demo Worker 1"** ka green button dabayein.
@@ -16,7 +17,9 @@ Ye application khas tor par poultry farm ke workers ke liye banai gayi hai taake
 ---
 
 ### 2. Rozana Khata Entry (Daily Entry < 60 Seconds)
+
 Har roz subha ya sham ko sirf 1 minute mein apne shed ka record darj karein:
+
 1. Login hone ke baad **"Aaj Ka Khata (Today)"** screen nazar aayegi.
 2. Bada green button dabayein: **"Rozana Khata Darj Karein (Add Daily Entry)"**.
 3. Form mein mandarja zail cheezain likhein:
@@ -37,6 +40,7 @@ Har roz subha ya sham ko sirf 1 minute mein apne shed ka record darj karein:
 ---
 
 ### 3. Teeka / Vaccine Tasks (Vaccination Tracker)
+
 1. Neechay diye gaye menu se **"Vaccine"** tab par click karein.
 2. Yahan aapko apne batch ki tamam vaccines ki tareekh aur din (Age in days) nazar aayengi:
    - **ND + IB** (Day 1 - Spray / Eye Drop)
@@ -47,6 +51,7 @@ Har roz subha ya sham ko sirf 1 minute mein apne shed ka record darj karein:
 ---
 
 ### 4. Wazan Ka Record (Weekly Weight Sampling)
+
 1. Har hafte ke aakhir mein 50 ya 100 choozay pakar kar wazan karein.
 2. Menu se **"Wazan (Weight)"** tab par jayein.
 3. **Sample Size** (maslan 50 birds) aur **Average Wazan (grams)** darj karein.
@@ -55,6 +60,7 @@ Har roz subha ya sham ko sirf 1 minute mein apne shed ka record darj karein:
 ---
 
 ### 5. Pichla Record (History)
+
 - Pichlay tamam dinon ka record dekhne ke liye **"Tareekh (History)"** tab par click karein. Yahan har din ki mortality, feed consumption, aur temperature ka khata mojood hota hai.
 
 ---
@@ -64,6 +70,7 @@ Har roz subha ya sham ko sirf 1 minute mein apne shed ka record darj karein:
 The Admin web and mobile interface provides real-time oversight of all 5 sheds, flock life cycles, feed inventory, financial ledgers, staff payroll, automated anomaly alerts, and PDF/CSV reporting.
 
 ### 1. Admin Dashboard (Command Center)
+
 - **Live Shed Cards**: Instantly view all 5 sheds with flock age (days), current bird count, cumulative mortality %, today's feed consumption, and timestamp of the worker's latest entry.
 - **Top Metrics**:
   - Total Active Birds across all 5 sheds.
@@ -75,6 +82,7 @@ The Admin web and mobile interface provides real-time oversight of all 5 sheds, 
 ---
 
 ### 2. Flock / Batch Management
+
 - **Placing New Chicks**:
   1. Navigate to **Batches** -> click **+ New Batch**.
   2. Select Shed (Shed 1 to 5), enter batch number, chicks placed count, supplier (e.g., Big Bird, Jadeed), chick rate (PKR), and placement date.
@@ -91,6 +99,7 @@ The Admin web and mobile interface provides real-time oversight of all 5 sheds, 
 ---
 
 ### 3. Feed & Consumables Inventory
+
 - **Feed Purchases**: Record bulk feed deliveries (Starter, Grower, Finisher) with supplier name, bag count, and purchase rate per bag (default: 50.0 kg/bag).
 - **Feed Issuance**: Track feed bags moved from central store to Shed 1–5.
 - **Stock Reconciliation**: Real-time alerts when physical bags dip below configured threshold (e.g., 50 bags).
@@ -98,9 +107,10 @@ The Admin web and mobile interface provides real-time oversight of all 5 sheds, 
 ---
 
 ### 4. Sales & Buyer Accounts (Ledger)
+
 - **Bird Harvest Entry**:
   - Enter Buyer Name, Birds Sold, Total Live Weight (kg), and Rate per kg.
-  - *Rate is always manually editable* to match fluctuating daily poultry mandi market rates.
+  - _Rate is always manually editable_ to match fluctuating daily poultry mandi market rates.
   - System automatically calculates average bird weight and total amount.
 - **Payment Tracking**:
   - Record upfront cash, bank transfers, or credit balance.
@@ -109,6 +119,7 @@ The Admin web and mobile interface provides real-time oversight of all 5 sheds, 
 ---
 
 ### 5. Staff Attendance & Payroll
+
 - **Daily Attendance**: Mark staff as Present, Absent, Half Day, or Leave.
 - **Advances**: Log cash advances disbursed to workers.
 - **Monthly Wages**: System automatically computes gross wages, advance deductions, and net payable wages based on daily wage rates.
@@ -116,6 +127,7 @@ The Admin web and mobile interface provides real-time oversight of all 5 sheds, 
 ---
 
 ### 6. Reports & Analytics Export (PDF + CSV)
+
 - Access **Reports** module to generate:
   1. **Batch Performance Report**: Comprehensive flock summary including FCR, EPEF, growth curves, and P&L.
   2. **Shed-wise Comparison**: Side-by-side benchmarking of feed efficiency across Sheds 1 to 5.

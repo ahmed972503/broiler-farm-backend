@@ -1,6 +1,7 @@
 # Broiler Farm Management System - Deployment & Operations Guide
 
 ## 1. System Requirements
+
 - **Host OS**: Ubuntu 22.04 LTS / Debian 12 (or Windows Server 2022)
 - **CPU**: 2 vCPUs minimum (4 vCPUs recommended for multi-shed reporting)
 - **RAM**: 4 GB minimum (8 GB recommended with embedded MongoDB)
@@ -14,6 +15,7 @@
 The fastest and most reliable way to run the entire backend infrastructure (Node.js API, MongoDB 7.0 with replica set or standalone volume, and automated backup sidecar) is via Docker Compose.
 
 ### Step 2.1: Clone & Configure Environment
+
 ```bash
 git clone <repository-url> /opt/broiler-farm
 cd /opt/broiler-farm
@@ -23,6 +25,7 @@ cp apps/api/.env.example apps/api/.env
 ```
 
 Edit `apps/api/.env` with your secure secrets:
+
 ```env
 NODE_ENV=production
 PORT=5000
@@ -34,11 +37,13 @@ RATE_LIMIT_MAX=500
 ```
 
 ### Step 2.2: Launch with Docker Compose
+
 ```bash
 docker compose up -d --build
 ```
 
 Verify services are running:
+
 ```bash
 docker compose ps
 docker compose logs -f api
@@ -51,9 +56,11 @@ The API will now be listening on port `5000` (e.g., `http://your-server-ip:5000/
 ## 3. Database Backup & Disaster Recovery
 
 ### Step 3.1: Automated Daily Backup Script
+
 A dedicated cron job runs every night at 2:00 AM Pakistan Standard Time (PKT) to take an encrypted, compressed dump of MongoDB and prune backups older than 30 days.
 
 Save this script as `/opt/broiler-farm/scripts/backup-mongodb.sh`:
+
 ```bash
 #!/usr/bin/env bash
 set -eo pipefail
@@ -77,6 +84,7 @@ echo "[$(date)] Old backups pruned."
 ```
 
 Make executable and add to crontab:
+
 ```bash
 chmod +x /opt/broiler-farm/scripts/backup-mongodb.sh
 crontab -e
@@ -85,7 +93,9 @@ crontab -e
 ```
 
 ### Step 3.2: Database Restore Procedure
+
 In the event of hardware failure or accidental data deletion:
+
 ```bash
 # 1. Identify backup archive to restore
 BACKUP_FILE="/opt/broiler-farm/backups/broiler_farm_20261021_020000.gz"
@@ -103,26 +113,33 @@ echo "Database restored successfully."
 The mobile and web app is built using Expo Application Services (EAS) to generate production-ready Android APKs for farm tablets and phones, plus responsive web bundles for admin laptops.
 
 ### Step 4.1: Install EAS CLI & Login
+
 ```bash
 npm install -g eas-cli
 eas login
 ```
 
 ### Step 4.2: Build Standalone Android APK for Direct Install
+
 Workers in Pakistani sheds can install the APK directly via WhatsApp or USB without needing the Google Play Store:
+
 ```bash
 cd apps/mobile
 eas build --platform android --profile preview
 ```
+
 This produces a standalone `apk` file downloadable directly to Android devices.
 
 ### Step 4.3: Build Production Android AAB for Google Play Store
+
 ```bash
 eas build --platform android --profile production
 ```
 
 ### Step 4.4: Deploy Admin Web View (Expo Web)
+
 The admin web dashboard can be hosted on any static web server (Nginx, Netlify, Cloudflare Pages, or AWS S3):
+
 ```bash
 cd apps/mobile
 npm run web:export
@@ -163,6 +180,7 @@ server {
 ```
 
 Enable SSL:
+
 ```bash
 sudo certbot --nginx -d farm.yourdomain.com
 ```
