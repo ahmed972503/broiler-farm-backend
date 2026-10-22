@@ -16,13 +16,19 @@
     "build": "npm run build:shared && npm run build:api",
     "test:shared": "npm --workspace=@broiler/shared run test",
     "test:mobile": "npm --workspace=@broiler/mobile run test",
-    "test:api": "npm --workspace=@broiler/api run test -- src/__tests__/rbac_middleware.test.ts src/__tests__/auth_middleware.test.ts src/__tests__/services.test.ts",
+    "test:api": "npm --workspace=@broiler/api run test",
     "test": "npm run test:shared && npm run test:mobile && npm run test:api",
     "type-check": "npm --workspace=@broiler/shared run type-check && npm --workspace=@broiler/api run type-check && npm --workspace=@broiler/mobile run type-check",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "seed": "npm --workspace=@broiler/api run seed"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
+    "eslint": "^10.13.0",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.72.0"
   }
 }
