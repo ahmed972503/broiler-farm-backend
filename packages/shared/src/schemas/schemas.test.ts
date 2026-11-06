@@ -19,6 +19,11 @@ import {
   CreateStaffAdvanceSchema,
   SyncPacketSchema,
   UpdateFarmSettingsSchema,
+  DailyMedicineItemSchema,
+  CreateDailyMedicineSheetSchema,
+  CreateFeedTransferSchema,
+  HistoricalRegisterRowSchema,
+  HistoricalRegisterImportSchema,
 } from "./index";
 
 describe("Zod Schemas Validation Tests", () => {
@@ -265,14 +270,160 @@ describe("Zod Schemas Validation Tests", () => {
     expect(validSync.success).toBe(true);
   });
 
-  it("validates UpdateFarmSettingsSchema", () => {
+  it("validates UpdateFarmSettingsSchema with customDailyColumn and batchScope", () => {
     const validSettings = UpdateFarmSettingsSchema.safeParse({
       farmName: "Bismillah Poultry Farm",
+      customDailyColumn: {
+        enabled: true,
+        label: "E.S",
+      },
+      batchScope: "per_shed",
       alertThresholds: {
         mortalitySpikePercentDaily: 1.0,
+        weeklyMortalityAlertPercent: 3.0,
+        stockShortageAlert: true,
+        missedShiftEntryAlert: true,
         lowFeedStockBags: 25,
       },
     });
     expect(validSettings.success).toBe(true);
+  });
+
+  it("validates Day/Night shift fields and Custom Daily Column on Daily Record Schema", () => {
+    const validShiftRecord = CreateDailyRecordSchema.safeParse({
+      batchId: "batch-1",
+      shedId: "shed-1",
+      date: "2026-04-10",
+      openingFeedStockBags: 120,
+      feedUsedDayShiftBags: 14,
+      feedUsedNightShiftBags: 16,
+      feedReceivedBags: 50,
+      feedTransferredOutBags: 0,
+      closingFeedStockBags: 140,
+      feedRemarks: "Received 50 bags Star Starter",
+      openingBirds: 19800,
+      mortalityDayShift: 6,
+      mortalityDayCause: "Ascites",
+      mortalityNightShift: 8,
+      mortalityNightCause: "Crushed / Weak",
+      culls: 2,
+      liftedBirds: 0,
+      customColumnES: 12.5,
+      feedType: "starter",
+      waterLiters: 1800,
+      minTemp: 22,
+      maxTemp: 31,
+      litterCondition: "normal",
+      shift: "full",
+    });
+    expect(validShiftRecord.success).toBe(true);
+  });
+
+  it("validates Daily Medicine Sheet and multi-item entries with autocomplete support", () => {
+    const validSheet = CreateDailyMedicineSheetSchema.safeParse({
+      batchId: "batch-1",
+      shedId: "shed-1",
+      date: "2026-04-10",
+      items: [
+        {
+          name: "Enrofloxacin 10%",
+          category: "antibiotic",
+          isVaccine: false,
+          dosage: "1ml per 2L water",
+          quantity: 2,
+          unit: "liters",
+          cost: 3200,
+          route: "drinking_water",
+        },
+        {
+          name: "ND + IB Live Vaccine",
+          category: "vaccine",
+          isVaccine: true,
+          dosage: "1000 doses/vial",
+          route: "eye_drop",
+        },
+      ],
+    });
+    expect(validSheet.success).toBe(true);
+  });
+
+  it("validates Feed Transfer Schema (in and out between farms)", () => {
+    const validTransferIn = CreateFeedTransferSchema.safeParse({
+      date: "2026-04-11",
+      partyName: "Chenab Poultry Farm",
+      type: "transfer_in",
+      brand: "Star Feed",
+      feedType: "grower",
+      bags: 25,
+      bagWeightKg: 50,
+      notes: "Borrowed 25 bags grower, will return next Monday",
+    });
+    expect(validTransferIn.success).toBe(true);
+
+    const validTransferOut = CreateFeedTransferSchema.safeParse({
+      date: "2026-04-12",
+      partyName: "Haji Aslam Farm",
+      type: "transfer_out",
+      brand: "Chenab Feed",
+      feedType: "finisher",
+      bags: 15,
+      bagWeightKg: 50,
+      notes: "Lent 15 bags finisher",
+    });
+    expect(validTransferOut.success).toBe(true);
+  });
+
+  it("validates Partial Lifting Lot with manual override and reason", () => {
+    const validLifting = CreateSaleSchema.safeParse({
+      batchId: "batch-1",
+      shedId: "shed-1",
+      lotNumber: 1,
+      buyerName: "Al-Rehman Chicken Traders",
+      date: "2026-04-14",
+      totalLiveWeightKg: 3475,
+      averageWeightKg: 2.25,
+      birdsSold: 1540, // Overridden from 1544
+      isManualBirdCountOverride: true,
+      overrideReason: "4 DOA culled at scale",
+      ratePerKg: 390,
+      amountPaid: 1000000,
+      paymentStatus: "partial",
+    });
+    expect(validLifting.success).toBe(true);
+  });
+
+  it("validates Historical Register CSV Import schema with row validation", () => {
+    const validImport = HistoricalRegisterImportSchema.safeParse({
+      batchId: "batch-historical-1",
+      shedId: "shed-1",
+      rows: [
+        {
+          date: "2026-01-01",
+          dayNumber: 1,
+          openingFeedStockBags: 100,
+          feedUsedDayShiftBags: 2,
+          feedUsedNightShiftBags: 2,
+          closingFeedStockBags: 96,
+          openingBirds: 19888,
+          mortalityDayShift: 10,
+          mortalityNightShift: 12,
+          customColumnES: 5,
+          feedRemarks: "First day placement Star Starter",
+        },
+        {
+          date: "2026-01-02",
+          dayNumber: 2,
+          openingFeedStockBags: 96,
+          feedUsedDayShiftBags: 3,
+          feedUsedNightShiftBags: 3,
+          closingFeedStockBags: 90,
+          openingBirds: 19866,
+          mortalityDayShift: 8,
+          mortalityNightShift: 9,
+          customColumnES: 5,
+        },
+      ],
+    });
+    expect(validImport.success).toBe(true);
   });
 });

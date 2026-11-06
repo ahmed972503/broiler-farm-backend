@@ -89,11 +89,37 @@ export interface DailyRecord {
   shedId: string;
   date: string; // YYYY-MM-DD
   ageInDays: number;
-  mortalityCount: number;
+  // Opening stock & birds
+  openingFeedStockBags: number;
+  openingBirds?: number;
+  // Shift-specific Feed (bags)
+  feedUsedDayShiftBags: number;
+  feedUsedNightShiftBags: number;
+  feedUsed24hBags: number; // 24h feed total (Day + Night)
+  feedUsedBags: number; // Backward compatibility alias
+  feedUsedKg: number; // feedUsed24hBags * bagWeightKg
+  feedReceivedBags: number; // Feed bags received today
+  feedTransferredOutBags: number; // Feed bags lent / transferred out today
+  cumulativeFeedBags: number; // Running cumulative feed in bags
+  closingFeedStockBags: number; // Closing stock reported or calculated
+  feedStockDiscrepancyBags: number; // closing - (opening - used + received - transferred)
+  hasFeedStockShortage: boolean; // Flagged when discrepancy != 0
+  feedRemarks?: string; // Remarks on Feed In/Out
+  // Shift-specific Mortality
+  mortalityDayShift: number;
+  mortalityDayCause?: string;
+  mortalityNightShift: number;
+  mortalityNightCause?: string;
+  mortality24h: number; // 24h mortality total (Day + Night)
+  mortalityCount: number; // Backward compatibility alias
   mortalityCause?: string;
+  cumulativeMortality: number; // Running cumulative mortality
+  closingBirds: number; // openingBirds - 24h mortality - culls - lifted
   culls: number;
-  feedUsedBags: number;
-  feedUsedKg: number;
+  liftedBirds?: number; // Birds lifted today (if partial catching)
+  // Custom Daily Column ("E.S" unconfirmed paper column)
+  customColumnES?: number;
+  // Environment & Feed specs
   feedType: FeedType;
   waterLiters: number;
   minTemp: number; // Celsius
@@ -106,6 +132,7 @@ export interface DailyRecord {
   createdBy: string;
   createdByName?: string;
   updatedBy?: string;
+  shift?: "day" | "night" | "full";
   clientUpdatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -181,12 +208,74 @@ export interface MedicineRecord {
   withdrawalPeriodDays: number;
   withdrawalEndDate: string; // YYYY-MM-DD
   administeredBy: string;
+  quantity?: number;
+  unit?: string;
+  cost?: number;
+  isVaccine?: boolean;
+  clientUpdatedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DailyMedicineItem {
+  id?: string;
+  name: string;
+  category:
+    | "water_medication"
+    | "supplement"
+    | "antibiotic"
+    | "vitamin"
+    | "acidifier"
+    | "electrolyte"
+    | "vaccine"
+    | "other";
+  isVaccine: boolean;
+  dosage?: string;
+  quantity?: number;
+  unit?: string;
+  cost?: number;
+  route?: string;
+  notes?: string;
+}
+
+export interface DailyMedicineSheet {
+  id: string;
+  batchId: string;
+  shedId: string;
+  date: string; // YYYY-MM-DD
+  items: DailyMedicineItem[];
+  recordedBy: string;
   clientUpdatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export type PaymentStatus = "paid" | "partial" | "pending";
+
+export interface FeedTransfer {
+  id: string;
+  date: string; // YYYY-MM-DD
+  partyName: string; // Neighboring farm, person, or feed merchant
+  type: "transfer_in" | "transfer_out"; // in = borrowed/received, out = lent/returned
+  brand: string; // Star Feed, Chenab Feed, etc.
+  feedType: FeedType;
+  bags: number;
+  bagWeightKg: number;
+  notes?: string;
+  recordedBy: string;
+  clientUpdatedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FeedPartyLedger {
+  partyName: string;
+  totalBagsIn: number;
+  totalBagsOut: number;
+  netBalanceBags: number; // totalBagsOut - totalBagsIn (positive = they owe us, negative = we owe them)
+  status: "they_owe_us" | "we_owe_them" | "settled";
+  summaryText: string;
+}
 
 export interface FeedPurchase {
   id: string;
@@ -281,10 +370,13 @@ export interface Sale {
   id: string;
   batchId: string;
   shedId: string;
+  lotNumber?: number; // Partial lifting lot number (Lot 1, Lot 2, etc.)
   buyerName: string;
   buyerPhone?: string;
   date: string; // YYYY-MM-DD
   birdsSold: number;
+  isManualBirdCountOverride?: boolean;
+  overrideReason?: string;
   totalLiveWeightKg: number;
   averageWeightKg: number;
   ratePerKg: number; // Manually editable
@@ -297,6 +389,21 @@ export interface Sale {
   createdBy: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface WeeklyFlockSummaryRow {
+  weekNumber: number; // 1 to 6
+  ageDays: number; // 7, 14, 21, 28, 35, 42
+  totalChicks: number; // Total chicks placed
+  remainingChicks: number; // Remaining live chicks
+  weeklyFeedBags: number; // Feed consumed during this specific week (bags)
+  totalFeedBags: number; // Cumulative feed consumed up to this week (bags)
+  weeklyMortality: number; // Mortality during this week
+  totalMortality: number; // Cumulative mortality up to this week
+  averageWeightGrams: number; // Sample average bird weight in grams
+  totalWeightKg: number; // Remaining chicks * (averageWeightGrams / 1000)
+  trueFcr: number; // TRUE FCR = total feed (kg) / total live weight (kg)
+  farmMethodFcr: number; // Farm legacy method = total live weight (kg) / total feed (bags)
 }
 
 export interface BuyerPayment {
@@ -360,7 +467,10 @@ export interface StaffAdvance {
 
 export type AlertType =
   | "mortality_spike"
+  | "weekly_mortality_alert"
+  | "feed_shortage_alert"
   | "missed_daily_entry"
+  | "missed_shift_entry"
   | "vaccine_due"
   | "vaccine_overdue"
   | "low_feed_stock"
@@ -388,11 +498,19 @@ export interface Alert {
 export interface AlertThresholds {
   mortalitySpikePercentDaily: number;
   mortalitySpikePercent3Day: number;
+  weeklyMortalityAlertPercent: number;
+  stockShortageAlert: boolean;
+  missedShiftEntryAlert: boolean;
   lowFeedStockBags: number;
   tempMinCelsius: number;
   tempMaxCelsius: number;
   medicineExpiryWarningDays: number;
   paymentOverdueDays: number;
+}
+
+export interface CustomDailyColumnConfig {
+  enabled: boolean;
+  label: string; // default "E.S"
 }
 
 export interface FarmSettings {
@@ -404,6 +522,8 @@ export interface FarmSettings {
   defaultFeedBagWeightKg: number;
   currency: string;
   defaultLanguage: "en" | "ur";
+  customDailyColumn: CustomDailyColumnConfig;
+  batchScope: "per_shed" | "multi_shed";
   alertThresholds: AlertThresholds;
 }
 
@@ -426,9 +546,12 @@ export type SyncEntity =
   | "WEIGHT_RECORD"
   | "VACCINATION_TASK"
   | "MEDICINE_RECORD"
+  | "DAILY_MEDICINE"
   | "FEED_ISSUE"
+  | "FEED_TRANSFER"
   | "EXPENSE"
-  | "ATTENDANCE";
+  | "ATTENDANCE"
+  | "SALE";
 
 export interface SyncItem {
   clientMutationId: string;

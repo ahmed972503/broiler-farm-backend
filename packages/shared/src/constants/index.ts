@@ -115,13 +115,21 @@ export const STANDARD_BROILER_VACCINATION_SCHEDULE: VaccinationScheduleItem[] =
   ];
 
 export const DEFAULT_ALERT_THRESHOLDS: AlertThresholds = {
-  mortalitySpikePercentDaily: 0.8, // > 0.8% mortality in a single day
+  mortalitySpikePercentDaily: 1.0, // > 1.0% mortality of live birds in a single 24h day
   mortalitySpikePercent3Day: 2.0, // > 2.0% cumulative in 3 days
+  weeklyMortalityAlertPercent: 3.0, // > 3.0% cumulative mortality in a single 7-day week
+  stockShortageAlert: true, // Flag when closing stock != expected stock
+  missedShiftEntryAlert: true, // Flag missing DAY or NIGHT shift records
   lowFeedStockBags: 20, // Warning if feed stock drops below 20 bags
   tempMinCelsius: 20.0, // Broiler comfort range lower limit
   tempMaxCelsius: 34.0, // Broiler heat stress risk upper limit
   medicineExpiryWarningDays: 30, // 30 days before medicine expiration
   paymentOverdueDays: 14, // Pending balance overdue warning
+};
+
+export const DEFAULT_CUSTOM_DAILY_COLUMN = {
+  enabled: true,
+  label: "E.S", // Unconfirmed column in farm's paper register
 };
 
 export const DEFAULT_FARM_SETTINGS: FarmSettings = {
@@ -133,6 +141,8 @@ export const DEFAULT_FARM_SETTINGS: FarmSettings = {
   defaultFeedBagWeightKg: DEFAULT_FEED_BAG_WEIGHT_KG,
   currency: "PKR",
   defaultLanguage: "ur",
+  customDailyColumn: DEFAULT_CUSTOM_DAILY_COLUMN,
+  batchScope: "per_shed",
   alertThresholds: DEFAULT_ALERT_THRESHOLDS,
 };
 

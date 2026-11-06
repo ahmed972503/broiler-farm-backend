@@ -39,6 +39,12 @@ export const ResetPasswordSchema = z.object({
 });
 export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
+
 // Shed Schemas
 export const CreateShedSchema = z.object({
   name: z.string().min(2, "Shed name is required"),
@@ -83,23 +89,42 @@ export const CloseBatchSchema = z.object({
 });
 export type CloseBatchInput = z.infer<typeof CloseBatchSchema>;
 
-// Daily Record Schema (Worker UI Optimized)
+// Daily Record Schema (Worker UI & Paper Register Optimized)
 export const CreateDailyRecordSchema = z.object({
   batchId: z.string().min(1, "Batch ID is required"),
   shedId: z.string().min(1, "Shed ID is required"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format YYYY-MM-DD"),
-  mortalityCount: z.number().int().min(0, "Mortality cannot be negative"),
+  // Opening stock
+  openingFeedStockBags: z.number().min(0, "Opening feed stock cannot be negative").default(0),
+  openingBirds: z.number().int().min(0).optional(),
+  // Shift-specific Feed
+  feedUsedDayShiftBags: z.number().min(0, "Day shift feed cannot be negative").default(0),
+  feedUsedNightShiftBags: z.number().min(0, "Night shift feed cannot be negative").default(0),
+  feedUsedBags: z.number().min(0).optional(), // 24h total or legacy input
+  feedUsedKg: z.number().min(0).optional(),
+  feedReceivedBags: z.number().min(0).default(0),
+  feedTransferredOutBags: z.number().min(0).default(0),
+  closingFeedStockBags: z.number().min(0).optional(),
+  feedRemarks: z.string().optional(),
+  // Shift-specific Mortality
+  mortalityDayShift: z.number().int().min(0, "Day mortality cannot be negative").default(0),
+  mortalityDayCause: z.string().optional(),
+  mortalityNightShift: z.number().int().min(0, "Night mortality cannot be negative").default(0),
+  mortalityNightCause: z.string().optional(),
+  mortalityCount: z.number().int().min(0, "Mortality cannot be negative").optional(), // legacy or 24h
   mortalityCause: z.string().optional(),
   culls: z.number().int().min(0, "Culls cannot be negative").default(0),
-  feedUsedBags: z.number().min(0, "Feed bags cannot be negative"),
-  feedUsedKg: z.number().min(0, "Feed kg cannot be negative").optional(),
-  feedType: z.enum(FEED_TYPES),
-  waterLiters: z.number().min(0, "Water consumed cannot be negative"),
-  minTemp: z.number().min(0).max(60, "Temperature realistic range 0-60 C"),
-  maxTemp: z.number().min(0).max(60, "Temperature realistic range 0-60 C"),
+  liftedBirds: z.number().int().min(0).default(0),
+  // Unconfirmed paper column "E.S"
+  customColumnES: z.number().optional().nullable(),
+  feedType: z.enum(FEED_TYPES).default("grower"),
+  waterLiters: z.number().min(0, "Water consumed cannot be negative").default(0),
+  minTemp: z.number().min(0).max(60, "Temperature realistic range 0-60 C").default(24),
+  maxTemp: z.number().min(0).max(60, "Temperature realistic range 0-60 C").default(30),
   litterCondition: z.enum(LITTER_CONDITIONS).default("normal"),
   notes: z.string().optional(),
   photoUrl: z.string().optional(),
+  shift: z.enum(["day", "night", "full"]).optional(),
   clientUpdatedAt: z.string().optional(),
 });
 export type CreateDailyRecordInput = z.infer<typeof CreateDailyRecordSchema>;
@@ -143,17 +168,71 @@ export const CreateMedicineRecordSchema = z.object({
   shedId: z.string().min(1, "Shed ID is required"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format YYYY-MM-DD"),
   medicineName: z.string().min(2, "Medicine name is required"),
-  dosage: z.string().min(1, "Dosage is required (e.g., 1g per 2L water)"),
+  dosage: z.string().default("As directed"),
   route: z.string().default("drinking_water"),
-  reason: z.string().min(2, "Reason/Diagnosis is required"),
+  reason: z.string().default("General flock health / supplement"),
   withdrawalPeriodDays: z.number().int().min(0).default(0),
   withdrawalEndDate: z.string().optional(),
+  quantity: z.number().optional(),
+  unit: z.string().optional(),
+  cost: z.number().optional(),
+  isVaccine: z.boolean().default(false),
   notes: z.string().optional(),
   clientUpdatedAt: z.string().optional(),
 });
 export type CreateMedicineRecordInput = z.infer<
   typeof CreateMedicineRecordSchema
 >;
+
+export const DailyMedicineItemSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Medicine name is required"),
+  category: z
+    .enum([
+      "water_medication",
+      "supplement",
+      "antibiotic",
+      "vitamin",
+      "acidifier",
+      "electrolyte",
+      "vaccine",
+      "other",
+    ])
+    .default("supplement"),
+  isVaccine: z.boolean().default(false),
+  dosage: z.string().optional(),
+  quantity: z.number().optional(),
+  unit: z.string().optional(),
+  cost: z.number().optional(),
+  route: z.string().optional(),
+  notes: z.string().optional(),
+});
+export type DailyMedicineItemInput = z.infer<typeof DailyMedicineItemSchema>;
+
+export const CreateDailyMedicineSheetSchema = z.object({
+  batchId: z.string().min(1, "Batch ID is required"),
+  shedId: z.string().min(1, "Shed ID is required"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format YYYY-MM-DD"),
+  items: z.array(DailyMedicineItemSchema),
+  clientUpdatedAt: z.string().optional(),
+});
+export type CreateDailyMedicineSheetInput = z.infer<
+  typeof CreateDailyMedicineSheetSchema
+>;
+
+// Feed Purchase, Issue & Transfer Schemas
+export const CreateFeedTransferSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format YYYY-MM-DD"),
+  partyName: z.string().min(2, "Party / Neighboring farm name is required"),
+  type: z.enum(["transfer_in", "transfer_out"]),
+  brand: z.string().min(2, "Feed brand is required (e.g. Star Feed, Chenab Feed)"),
+  feedType: z.enum(FEED_TYPES),
+  bags: z.number().positive("Bags count must be positive"),
+  bagWeightKg: z.number().positive().default(50.0),
+  notes: z.string().optional(),
+  clientUpdatedAt: z.string().optional(),
+});
+export type CreateFeedTransferInput = z.infer<typeof CreateFeedTransferSchema>;
 
 // Feed Purchase & Issue Schemas
 export const CreateFeedPurchaseSchema = z.object({
@@ -213,15 +292,19 @@ export const CreateExpenseSchema = z.object({
 });
 export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
 
-// Sale Schema
+// Sale / Lifting Lots Schema
 export const CreateSaleSchema = z.object({
   batchId: z.string().min(1, "Batch ID is required"),
   shedId: z.string().min(1, "Shed ID is required"),
+  lotNumber: z.number().int().positive().optional(),
   buyerName: z.string().min(2, "Buyer name is required"),
   buyerPhone: z.string().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format YYYY-MM-DD"),
-  birdsSold: z.number().int().positive("Number of birds sold must be positive"),
-  totalLiveWeightKg: z.number().positive("Total live weight must be positive"),
+  totalLiveWeightKg: z.number().positive("Total live weight (kg) must be positive"),
+  averageWeightKg: z.number().positive("Average weight (kg) must be positive").optional(),
+  birdsSold: z.number().int().positive("Number of birds sold must be positive").optional(), // Computed or manual
+  isManualBirdCountOverride: z.boolean().default(false),
+  overrideReason: z.string().optional(),
   ratePerKg: z.number().positive("Rate per kg must be positive"), // Manually editable
   amountPaid: z.number().min(0).default(0),
   paymentStatus: z.enum(["paid", "partial", "pending"]).default("pending"),
@@ -278,6 +361,33 @@ export const CreateStaffAdvanceSchema = z.object({
 });
 export type CreateStaffAdvanceInput = z.infer<typeof CreateStaffAdvanceSchema>;
 
+// Historical CSV Register Import Schema
+export const HistoricalRegisterRowSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD"),
+  dayNumber: z.number().int().min(1, "Day number must be >= 1").optional(),
+  openingFeedStockBags: z.number().min(0).default(0),
+  feedUsedDayShiftBags: z.number().min(0).default(0),
+  feedUsedNightShiftBags: z.number().min(0).default(0),
+  feedReceivedBags: z.number().min(0).default(0),
+  feedTransferredOutBags: z.number().min(0).default(0),
+  closingFeedStockBags: z.number().min(0).optional(),
+  openingBirds: z.number().int().min(0).optional(),
+  mortalityDayShift: z.number().int().min(0).default(0),
+  mortalityNightShift: z.number().int().min(0).default(0),
+  culls: z.number().int().min(0).default(0),
+  liftedBirds: z.number().int().min(0).default(0),
+  customColumnES: z.number().optional().nullable(),
+  feedRemarks: z.string().optional(),
+});
+export type HistoricalRegisterRowInput = z.infer<typeof HistoricalRegisterRowSchema>;
+
+export const HistoricalRegisterImportSchema = z.object({
+  batchId: z.string().min(1, "Batch ID is required"),
+  shedId: z.string().min(1, "Shed ID is required"),
+  rows: z.array(HistoricalRegisterRowSchema).min(1, "At least one register row is required"),
+});
+export type HistoricalRegisterImportInput = z.infer<typeof HistoricalRegisterImportSchema>;
+
 // Offline Sync Packet Schema
 export const SyncItemSchema = z.object({
   clientMutationId: z.string().uuid(),
@@ -286,9 +396,12 @@ export const SyncItemSchema = z.object({
     "WEIGHT_RECORD",
     "VACCINATION_TASK",
     "MEDICINE_RECORD",
+    "DAILY_MEDICINE",
     "FEED_ISSUE",
+    "FEED_TRANSFER",
     "EXPENSE",
     "ATTENDANCE",
+    "SALE",
   ]),
   action: z.enum(["CREATE", "UPDATE", "DELETE"]),
   payload: z.record(z.any()),
@@ -312,10 +425,20 @@ export const UpdateFarmSettingsSchema = z.object({
   defaultFeedBagWeightKg: z.number().positive().optional(),
   currency: z.string().default("PKR"),
   defaultLanguage: z.enum(["en", "ur"]).optional(),
+  customDailyColumn: z
+    .object({
+      enabled: z.boolean(),
+      label: z.string().min(1),
+    })
+    .optional(),
+  batchScope: z.enum(["per_shed", "multi_shed"]).optional(),
   alertThresholds: z
     .object({
       mortalitySpikePercentDaily: z.number().positive().optional(),
       mortalitySpikePercent3Day: z.number().positive().optional(),
+      weeklyMortalityAlertPercent: z.number().positive().optional(),
+      stockShortageAlert: z.boolean().optional(),
+      missedShiftEntryAlert: z.boolean().optional(),
       lowFeedStockBags: z.number().int().positive().optional(),
       tempMinCelsius: z.number().optional(),
       tempMaxCelsius: z.number().optional(),
