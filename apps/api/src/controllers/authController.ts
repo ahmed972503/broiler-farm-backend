@@ -212,6 +212,7 @@ export class AuthController {
         role,
         assignedShedId: assignedShedId || null,
         isActive: true,
+        mustChangePassword: true,
       });
 
       if (assignedShedId) {

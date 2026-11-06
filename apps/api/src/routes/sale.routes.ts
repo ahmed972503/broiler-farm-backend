@@ -17,5 +17,6 @@ router.post(
   SaleController.recordBuyerPayment,
 );
 router.get("/ledger/:buyerName", SaleController.getBuyerLedger);
+router.get("/consistency/:batchId", SaleController.getLiftingConsistency);
 
 export default router;

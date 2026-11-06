@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { createApp } from "../app";
 import { Express } from "express";
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryServer | null = null;
 let appInstance: Express;
 
 export async function setupTestEnvironment(): Promise<{ app: Express }> {
@@ -12,14 +12,22 @@ export async function setupTestEnvironment(): Promise<{ app: Express }> {
   process.env.JWT_REFRESH_SECRET =
     "test-refresh-secret-key-32chars-for-testing";
 
-  mongoServer = await MongoMemoryServer.create({
-    binary: {
-      version: "4.4.29",
-    },
-  });
-  const uri = mongoServer.getUri();
+  let uri = process.env.TEST_MONGODB_URI;
+  if (!uri) {
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        ip: "127.0.0.1",
+      },
+      binary: {
+        version: "4.4.29",
+      },
+    });
+    uri = mongoServer.getUri();
+  }
 
-  await mongoose.connect(uri);
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(uri);
+  }
 
   appInstance = createApp() as Express;
   return { app: appInstance };
@@ -32,6 +40,7 @@ export async function teardownTestEnvironment(): Promise<void> {
   }
   if (mongoServer) {
     await mongoServer.stop();
+    mongoServer = null;
   }
 }
 

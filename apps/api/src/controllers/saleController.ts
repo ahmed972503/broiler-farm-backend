@@ -1,7 +1,11 @@
 import { Response } from "express";
-import { Sale, BuyerPayment, Batch } from "../models";
+import { Sale, BuyerPayment, Batch, DailyRecord } from "../models";
 import { AuthRequest } from "../middleware/auth";
-import { roundTo } from "@broiler/shared";
+import {
+  roundTo,
+  calculateLiftingBirds,
+  reconcileLiftingConsistency,
+} from "@broiler/shared";
 import { logAuditEvent } from "../services/auditService";
 import { AlertService } from "../services/alertService";
 
@@ -30,11 +34,15 @@ export class SaleController {
       const {
         batchId,
         shedId,
+        lotNumber = 1,
         buyerName,
         buyerPhone,
         date,
-        birdsSold,
         totalLiveWeightKg,
+        averageWeightKg: inputAvgWeight,
+        birdsSold: inputBirdsSold,
+        isManualBirdCountOverride = false,
+        overrideReason,
         ratePerKg,
         amountPaid = 0,
         vehicleNo,
@@ -47,7 +55,33 @@ export class SaleController {
         return;
       }
 
-      const averageWeightKg = roundTo(totalLiveWeightKg / birdsSold, 3);
+      let birdsSold = 0;
+      let averageWeightKg = 0;
+      let isOverridden = Boolean(isManualBirdCountOverride);
+      let finalOverrideReason = overrideReason;
+
+      if (inputAvgWeight && inputAvgWeight > 0) {
+        averageWeightKg = Number(inputAvgWeight);
+        const liftingCalc = calculateLiftingBirds(
+          totalLiveWeightKg,
+          averageWeightKg,
+          isManualBirdCountOverride ? inputBirdsSold : undefined,
+          overrideReason,
+        );
+        birdsSold = liftingCalc.birds;
+        isOverridden = liftingCalc.isOverridden;
+        finalOverrideReason = liftingCalc.overrideReason;
+      } else if (inputBirdsSold && inputBirdsSold > 0) {
+        birdsSold = Number(inputBirdsSold);
+        averageWeightKg = roundTo(totalLiveWeightKg / birdsSold, 3);
+      } else {
+        res.status(400).json({
+          success: false,
+          error: "Either average weight (kg) or birds sold count is required",
+        });
+        return;
+      }
+
       const totalAmount = roundTo(totalLiveWeightKg * ratePerKg, 2);
       const balanceAmount = roundTo(Math.max(0, totalAmount - amountPaid), 2);
 
@@ -61,10 +95,13 @@ export class SaleController {
       const sale = await Sale.create({
         batchId,
         shedId,
+        lotNumber,
         buyerName: buyerName.trim(),
         buyerPhone,
         date,
         birdsSold,
+        isManualBirdCountOverride: isOverridden,
+        overrideReason: finalOverrideReason || "",
         totalLiveWeightKg,
         averageWeightKg,
         ratePerKg,
@@ -86,7 +123,7 @@ export class SaleController {
           date,
           amount: amountPaid,
           paymentMethod: "cash",
-          notes: "Down payment on bird lifting",
+          notes: `Down payment for Lifting Lot #${lotNumber}`,
           receivedBy: req.user!._id,
         });
       }
@@ -100,12 +137,77 @@ export class SaleController {
       });
 
       AlertService.runAlertSweep().catch((e) => {
-        if (process.env.NODE_ENV !== "test") {
-          console.error("Alert sweep error", e);
-        }
+        if (process.env.NODE_ENV !== "test") console.error("Alert sweep error", e);
       });
 
       res.status(201).json({ success: true, data: sale });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getLiftingConsistency(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const batchId = req.params.batchId || req.params.id;
+      const batch = await Batch.findById(batchId);
+      if (!batch) {
+        res.status(404).json({ success: false, error: "Batch not found" });
+        return;
+      }
+
+      const dailyRecords = await DailyRecord.find({ batchId });
+      const totalMortality = dailyRecords.reduce(
+        (sum, r) => sum + (r.mortality24h || r.mortalityCount || 0),
+        0,
+      );
+      const totalCulls = dailyRecords.reduce((sum, r) => sum + (r.culls || 0), 0);
+
+      const sales = await Sale.find({ batchId });
+      const totalLifted = sales.reduce(
+        (sum, s) => sum + (s.birdsSold || 0),
+        0,
+      );
+      const totalWeightSoldKg = roundTo(
+        sales.reduce((sum, s) => sum + s.totalLiveWeightKg, 0),
+        2,
+      );
+
+      const latestRecord = await DailyRecord.findOne({ batchId }).sort({
+        date: -1,
+      });
+      const reportedRemaining =
+        latestRecord?.closingBirds !== undefined
+          ? latestRecord.closingBirds
+          : Math.max(
+              0,
+              batch.chicksPlaced - totalMortality - totalCulls - totalLifted,
+            );
+
+      const reconciliation = reconcileLiftingConsistency(
+        batch.chicksPlaced,
+        totalMortality,
+        totalLifted,
+        reportedRemaining,
+        10,
+      );
+
+      res.json({
+        success: true,
+        data: {
+          batchNumber: batch.batchNumber,
+          chicksPlaced: batch.chicksPlaced,
+          totalMortality,
+          totalCulls,
+          totalLifted,
+          totalWeightSoldKg,
+          reportedRemaining,
+          lotsCount: sales.length,
+          ...reconciliation,
+        },
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

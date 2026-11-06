@@ -5,21 +5,30 @@ import {
   Sale,
   FeedPurchase,
   FeedIssue,
+  FeedTransfer,
   Staff,
   Attendance,
   StaffAdvance,
   WeightRecord,
+  FarmSettings,
 } from "../models";
 import {
   calculateBirdsRemaining,
   calculateMortalityPercent,
   calculateFCR,
+  calculateTrueFCR,
+  calculateFarmMethodMetric,
+  calculateWeeklyFlockSummaryRow,
+  calculateFeedPartyLedger,
+  calculateDailyRecordSummary,
   calculateCostPerKg,
   calculateBatchProfit,
   calculateLivabilityPercent,
   calculateEPEF,
   roundTo,
   calculateStaffWage,
+  TARGET_WEIGHTS_BY_DAY,
+  WeeklyFlockSummaryRow,
 } from "@broiler/shared";
 
 export class ReportService {
@@ -344,6 +353,310 @@ export class ReportService {
     }
 
     return reports;
+  }
+
+  /**
+   * Generates Weekly Flock Summary (weeks 1 to 6) in the farm's exact paper register layout
+   */
+  static async getWeeklySummaryReport(batchId: string): Promise<{
+    batch: any;
+    weeks: WeeklyFlockSummaryRow[];
+  }> {
+    const batch = await Batch.findById(batchId).populate("shedId");
+    if (!batch) throw new Error("Batch not found");
+
+    const settings = await FarmSettings.findOne();
+    const bagWeightKg = settings?.defaultFeedBagWeightKg || 50.0;
+
+    const dailyRecords = await DailyRecord.find({ batchId }).sort({
+      ageInDays: 1,
+      date: 1,
+    });
+    const weightRecords = await WeightRecord.find({ batchId }).sort({
+      ageInDays: 1,
+    });
+    const sales = await Sale.find({ batchId });
+
+    const totalLiftedBirds = sales.reduce((sum, s) => sum + (s.birdsSold || 0), 0);
+
+    const weeks: WeeklyFlockSummaryRow[] = [];
+    let prevCumFeed = 0;
+    let prevCumMort = 0;
+
+    for (let w = 1; w <= 6; w++) {
+      const endAge = w * 7;
+      // Records up to end of week
+      const recordsUpToWeek = dailyRecords.filter((r) => r.ageInDays <= endAge);
+      if (recordsUpToWeek.length === 0) continue;
+
+      const currentCumFeed = recordsUpToWeek.reduce(
+        (sum, r) => sum + (r.feedUsed24hBags || r.feedUsedBags || 0),
+        0,
+      );
+      const currentCumMort = recordsUpToWeek.reduce(
+        (sum, r) => sum + (r.mortality24h || r.mortalityCount || 0),
+        0,
+      );
+
+      // Find closest sample weight for this week
+      const sampleWeight = weightRecords
+        .filter((wr) => wr.ageInDays <= endAge && wr.ageInDays >= endAge - 6)
+        .pop();
+      const avgWeightGrams =
+        sampleWeight?.averageWeightGrams || TARGET_WEIGHTS_BY_DAY[endAge] || 200;
+
+      const row = calculateWeeklyFlockSummaryRow({
+        weekNumber: w,
+        ageDays: endAge,
+        totalChicksPlaced: batch.chicksPlaced,
+        currentCumulativeFeedBags: currentCumFeed,
+        previousCumulativeFeedBags: prevCumFeed,
+        currentCumulativeMortality: currentCumMort,
+        previousCumulativeMortality: prevCumMort,
+        averageWeightGrams: avgWeightGrams,
+        totalLiftedBirds: w === 6 ? totalLiftedBirds : 0,
+        bagWeightKg,
+      });
+
+      weeks.push(row);
+      prevCumFeed = currentCumFeed;
+      prevCumMort = currentCumMort;
+    }
+
+    return {
+      batch: {
+        id: batch._id,
+        batchNumber: batch.batchNumber,
+        shedName: (batch.shedId as any)?.name || "Shed",
+        shedNumber: (batch.shedId as any)?.shedNumber || 1,
+        chicksPlaced: batch.chicksPlaced,
+        placementDate: batch.placementDate,
+        expectedCloseDate: batch.expectedCloseDate,
+      },
+      weeks,
+    };
+  }
+
+  /**
+   * Exports Daily Register in the EXACT column order of the farm's paper register:
+   * Date, Day number, opening feed stock (bags), feed used DAY shift, feed used NIGHT shift,
+   * 24h feed total, cumulative feed, closing feed stock, opening birds, mortality DAY shift,
+   * mortality NIGHT shift, 24h mortality, cumulative mortality, closing birds, E.S, Feed In/Out remarks
+   */
+  static async exportDailyRegisterCSV(batchId: string): Promise<string> {
+    const dailyRecords = await DailyRecord.find({ batchId }).sort({
+      date: 1,
+      ageInDays: 1,
+    });
+    const settings = await FarmSettings.findOne();
+    const esLabel = settings?.customDailyColumn?.label || "E.S";
+
+    const rows = dailyRecords.map((r) => ({
+      Date: r.date,
+      "Day number": r.ageInDays,
+      "Opening feed stock (bags)": r.openingFeedStockBags ?? 0,
+      "Feed used DAY shift": r.feedUsedDayShiftBags ?? 0,
+      "Feed used NIGHT shift": r.feedUsedNightShiftBags ?? 0,
+      "24h feed total": r.feedUsed24hBags || r.feedUsedBags || 0,
+      "Cumulative feed": r.cumulativeFeedBags ?? 0,
+      "Closing feed stock": r.closingFeedStockBags ?? 0,
+      "Opening birds": r.openingBirds ?? 0,
+      "Mortality DAY shift": r.mortalityDayShift ?? 0,
+      "Mortality NIGHT shift": r.mortalityNightShift ?? 0,
+      "24h mortality": r.mortality24h || r.mortalityCount || 0,
+      "Cumulative mortality": r.cumulativeMortality ?? 0,
+      "Closing birds": r.closingBirds ?? 0,
+      [esLabel]: r.customColumnES ?? "",
+      "Feed In/Out remarks": r.feedRemarks || "",
+    }));
+
+    return this.convertToCSV(rows);
+  }
+
+  /**
+   * Exports Weekly Flock Summary in the EXACT column order of the farm's paper register:
+   * Week, Total chicks, Remaining chicks, Weekly feed (bags), Total feed (bags),
+   * Weekly mortality, Total mortality, Average weight (grams), Total weight (kg), TRUE FCR, Farm method (kg/bag)
+   */
+  static async exportWeeklySummaryCSV(batchId: string): Promise<string> {
+    const report = await this.getWeeklySummaryReport(batchId);
+    const rows = report.weeks.map((w) => ({
+      Week: `Week ${w.weekNumber}`,
+      "Total chicks": w.totalChicks,
+      "Remaining chicks": w.remainingChicks,
+      "Weekly feed (bags)": w.weeklyFeedBags,
+      "Total feed (bags)": w.totalFeedBags,
+      "Weekly mortality": w.weeklyMortality,
+      "Total mortality": w.totalMortality,
+      "Average weight (grams)": w.averageWeightGrams,
+      "Total weight (kg)": w.totalWeightKg,
+      "TRUE FCR": w.trueFcr,
+      "Farm method (kg/bag)": w.farmMethodFcr,
+    }));
+
+    return this.convertToCSV(rows);
+  }
+
+  /**
+   * Feed Party Ledger Report in bags (who owes whom)
+   */
+  static async getFeedPartyLedgerReport() {
+    const transfers = await FeedTransfer.find().sort({ date: -1 });
+    const ledger = calculateFeedPartyLedger(
+      transfers.map((t) => ({
+        partyName: t.partyName,
+        type: t.type,
+        bags: t.bags,
+      })),
+    );
+    return {
+      transfers,
+      ledger,
+    };
+  }
+
+  /**
+   * Generates printable HTML representation for Daily Register in paper register layout
+   */
+  static async generateDailyRegisterHTML(batchId: string): Promise<string> {
+    const batch = await Batch.findById(batchId).populate("shedId");
+    const records = await DailyRecord.find({ batchId }).sort({ date: 1 });
+    const settings = await FarmSettings.findOne();
+    const esLabel = settings?.customDailyColumn?.label || "E.S";
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Daily Register - ${batch?.batchNumber || "Flock"}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
+    h2, h4 { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #333; padding: 4px 6px; text-align: right; }
+    th { background: #eee; font-weight: bold; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h2>Al-Barakah Broiler Farm - Daily Flock Register</h2>
+  <h4>Flock: ${batch?.batchNumber || ""} | Shed: ${(batch?.shedId as any)?.name || "Shed"} | Placed: ${batch?.chicksPlaced || 0} chicks</h4>
+  <table>
+    <thead>
+      <tr>
+        <th class="text-left">Date</th>
+        <th>Day #</th>
+        <th>Opening Feed (bags)</th>
+        <th>Feed Day</th>
+        <th>Feed Night</th>
+        <th>24h Feed Total</th>
+        <th>Cum. Feed</th>
+        <th>Closing Feed</th>
+        <th>Opening Birds</th>
+        <th>Mort Day</th>
+        <th>Mort Night</th>
+        <th>24h Mort</th>
+        <th>Cum. Mort</th>
+        <th>Closing Birds</th>
+        <th>${esLabel}</th>
+        <th class="text-left">Feed Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${records
+        .map(
+          (r) => `<tr>
+        <td class="text-left">${r.date}</td>
+        <td class="text-center">${r.ageInDays}</td>
+        <td>${r.openingFeedStockBags ?? 0}</td>
+        <td>${r.feedUsedDayShiftBags ?? 0}</td>
+        <td>${r.feedUsedNightShiftBags ?? 0}</td>
+        <td><strong>${r.feedUsed24hBags || r.feedUsedBags || 0}</strong></td>
+        <td>${r.cumulativeFeedBags ?? 0}</td>
+        <td>${r.closingFeedStockBags ?? 0}</td>
+        <td>${r.openingBirds ?? ""}</td>
+        <td>${r.mortalityDayShift ?? 0}</td>
+        <td>${r.mortalityNightShift ?? 0}</td>
+        <td><strong>${r.mortality24h || r.mortalityCount || 0}</strong></td>
+        <td>${r.cumulativeMortality ?? 0}</td>
+        <td><strong>${r.closingBirds ?? ""}</strong></td>
+        <td>${r.customColumnES ?? ""}</td>
+        <td class="text-left">${r.feedRemarks || ""}</td>
+      </tr>`,
+        )
+        .join("")}
+    </tbody>
+  </table>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generates printable HTML representation for Weekly Summary in paper register layout
+   */
+  static async generateWeeklySummaryHTML(batchId: string): Promise<string> {
+    const report = await this.getWeeklySummaryReport(batchId);
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Weekly Flock Summary - ${report.batch.batchNumber}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 25px; font-size: 13px; }
+    h2, h4 { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #222; padding: 6px 10px; text-align: right; }
+    th { background: #e0e0e0; font-weight: bold; }
+    .text-left { text-align: left; }
+    .text-center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h2>Al-Barakah Broiler Farm - Weekly Flock Summary</h2>
+  <h4>Flock: ${report.batch.batchNumber} | Shed: ${report.batch.shedName} | Placed: ${report.batch.chicksPlaced} chicks</h4>
+  <table>
+    <thead>
+      <tr>
+        <th class="text-left">Week</th>
+        <th>Total Chicks</th>
+        <th>Remaining Chicks</th>
+        <th>Weekly Feed (bags)</th>
+        <th>Total Feed (bags)</th>
+        <th>Weekly Mortality</th>
+        <th>Total Mortality</th>
+        <th>Avg Weight (g)</th>
+        <th>Total Weight (kg)</th>
+        <th>TRUE FCR</th>
+        <th>Farm Method (kg/bag)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${report.weeks
+        .map(
+          (w) => `<tr>
+        <td class="text-left">Week ${w.weekNumber} (Day ${w.ageDays})</td>
+        <td>${w.totalChicks}</td>
+        <td><strong>${w.remainingChicks}</strong></td>
+        <td>${w.weeklyFeedBags}</td>
+        <td><strong>${w.totalFeedBags}</strong></td>
+        <td>${w.weeklyMortality}</td>
+        <td>${w.totalMortality}</td>
+        <td>${w.averageWeightGrams}</td>
+        <td>${w.totalWeightKg}</td>
+        <td><strong>${w.trueFcr}</strong></td>
+        <td><em>${w.farmMethodFcr}</em></td>
+      </tr>`,
+        )
+        .join("")}
+    </tbody>
+  </table>
+  <p style="margin-top:20px; font-size:11px; color:#555;">
+    * Note: <strong>TRUE FCR</strong> = total feed (kg) / total live weight (kg). <em>Farm method</em> = total live weight (kg) / total feed (bags).
+  </p>
+</body>
+</html>`;
   }
 
   /**

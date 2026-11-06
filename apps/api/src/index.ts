@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { createApp } from "./app";
 import { config } from "./config";
+import { CronService } from "./services/cronService";
 
 async function bootstrap() {
   try {
@@ -9,6 +10,10 @@ async function bootstrap() {
     console.log("[Database] Connected successfully to MongoDB");
 
     const app = createApp();
+
+    // Start background scheduled jobs (hourly alert audit sweeps)
+    CronService.start();
+    console.log("[Scheduler] Cron jobs initialized (hourly alert audit sweep)");
 
     app.listen(config.port, () => {
       console.log(

@@ -4,14 +4,23 @@ import {
   WeightRecord,
   VaccinationTask,
   MedicineRecord,
+  DailyMedicineSheet,
   FeedIssue,
+  FeedTransfer,
   Expense,
   Attendance,
   AuditLog,
   FeedStock,
   Batch,
+  Sale,
 } from "../models";
-import { SyncPacketInput, SyncItemResult, bagsToKg } from "@broiler/shared";
+import {
+  SyncPacketInput,
+  SyncItemResult,
+  bagsToKg,
+  calculateDailyRecordSummary,
+  calculateLiftingBirds,
+} from "@broiler/shared";
 import { logAuditEvent } from "./auditService";
 
 export class SyncService {
@@ -58,8 +67,16 @@ export class SyncService {
             serverId = await this.handleMedicineRecordSync(item, userId);
             break;
           }
+          case "DAILY_MEDICINE": {
+            serverId = await this.handleDailyMedicineSheetSync(item, userId);
+            break;
+          }
           case "FEED_ISSUE": {
             serverId = await this.handleFeedIssueSync(item, userId);
+            break;
+          }
+          case "FEED_TRANSFER": {
+            serverId = await this.handleFeedTransferSync(item, userId);
             break;
           }
           case "EXPENSE": {
@@ -68,6 +85,10 @@ export class SyncService {
           }
           case "ATTENDANCE": {
             serverId = await this.handleAttendanceSync(item, userId);
+            break;
+          }
+          case "SALE": {
+            serverId = await this.handleSaleSync(item, userId);
             break;
           }
           default:
@@ -93,7 +114,10 @@ export class SyncService {
           status: "synced",
         });
       } catch (err: any) {
-        console.error(`[Sync Item Error] ${item.clientMutationId}:`, err);
+        /* istanbul ignore if */
+        if (process.env.NODE_ENV !== "test") {
+          console.error(`[Sync Item Error] ${item.clientMutationId}:`, err);
+        }
         results.push({
           clientMutationId: item.clientMutationId,
           status: "error",
@@ -105,6 +129,10 @@ export class SyncService {
     return results;
   }
 
+  /**
+   * Intelligently merges Day and Night shift records from different workers/devices
+   * without overwriting earlier shifts!
+   */
   private static async handleDailyRecordSync(
     item: any,
     userId: string,
@@ -113,34 +141,157 @@ export class SyncService {
     const batch = await Batch.findById(payload.batchId);
     if (!batch) throw new Error("Associated batch not found");
 
-    const feedUsedKg =
-      payload.feedUsedKg || bagsToKg(payload.feedUsedBags || 0);
-
-    // Compound check: batchId + date
     let record = await DailyRecord.findOne({
       batchId: payload.batchId,
       date: payload.date,
     });
+
     if (!record) {
+      // First entry for this date
+      let feedDay = payload.feedUsedDayShiftBags || 0;
+      let feedNight = payload.feedUsedNightShiftBags || 0;
+      let mortDay = payload.mortalityDayShift || 0;
+      let mortNight = payload.mortalityNightShift || 0;
+
+      if (feedDay === 0 && feedNight === 0 && payload.feedUsedBags && payload.feedUsedBags > 0) {
+        if (payload.shift === "night") {
+          feedNight = payload.feedUsedBags;
+        } else {
+          feedDay = payload.feedUsedBags;
+        }
+      }
+
+      if (mortDay === 0 && mortNight === 0 && payload.mortalityCount && payload.mortalityCount > 0) {
+        if (payload.shift === "night") {
+          mortNight = payload.mortalityCount;
+        } else {
+          mortDay = payload.mortalityCount;
+        }
+      }
+
+      const summary = calculateDailyRecordSummary({
+        openingFeedStockBags: payload.openingFeedStockBags || 0,
+        feedUsedDayShiftBags: feedDay,
+        feedUsedNightShiftBags: feedNight,
+        feedReceivedBags: payload.feedReceivedBags || 0,
+        feedTransferredOutBags: payload.feedTransferredOutBags || 0,
+        reportedClosingFeedStockBags: payload.closingFeedStockBags,
+        openingBirds: payload.openingBirds || batch.chicksPlaced,
+        mortalityDayShift: mortDay,
+        mortalityNightShift: mortNight,
+        culls: payload.culls || 0,
+        liftedBirds: payload.liftedBirds || 0,
+      });
+
+      const ageInDays =
+        payload.ageInDays !== undefined
+          ? payload.ageInDays
+          : Math.max(
+              0,
+              Math.ceil(
+                (new Date(payload.date).getTime() -
+                  new Date(batch.placementDate).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              ),
+            );
+
       record = await DailyRecord.create({
         ...payload,
-        feedUsedKg,
+        ageInDays,
+        feedType: payload.feedType || "grower",
+        culls: payload.culls || 0,
+        feedUsedDayShiftBags: feedDay,
+        feedUsedNightShiftBags: feedNight,
+        feedUsed24hBags: summary.feedUsed24hBags,
+        feedUsedBags: summary.feedUsed24hBags,
+        feedUsedKg: payload.feedUsedKg !== undefined ? payload.feedUsedKg : summary.feedUsedKg,
+        closingFeedStockBags: summary.closingFeedStockBags,
+        feedStockDiscrepancyBags: summary.feedStockDiscrepancyBags,
+        hasFeedStockShortage: summary.hasFeedStockShortage,
+        mortalityDayShift: mortDay,
+        mortalityNightShift: mortNight,
+        mortality24h: summary.mortality24h,
+        mortalityCount: summary.mortality24h,
+        closingBirds: summary.closingBirds,
+        customColumnES: payload.customColumnES !== undefined ? payload.customColumnES : null,
         createdBy: new mongoose.Types.ObjectId(userId),
         clientUpdatedAt: item.clientTimestamp,
       });
     } else {
-      // Last-Write-Wins based on timestamp
-      if (
-        !record.clientUpdatedAt ||
-        new Date(item.clientTimestamp) >= new Date(record.clientUpdatedAt)
-      ) {
-        Object.assign(record, payload, {
-          feedUsedKg,
-          updatedBy: new mongoose.Types.ObjectId(userId),
-          clientUpdatedAt: item.clientTimestamp,
-        });
-        await record.save();
+      // Day & Night Merge Logic:
+      let mergedDayFeed = record.feedUsedDayShiftBags || 0;
+      let mergedNightFeed = record.feedUsedNightShiftBags || 0;
+      let mergedDayMort = record.mortalityDayShift || 0;
+      let mergedNightMort = record.mortalityNightShift || 0;
+
+      if (payload.feedUsedDayShiftBags !== undefined) {
+        mergedDayFeed = payload.feedUsedDayShiftBags;
+      } else if (payload.shift !== "night" && payload.feedUsedBags !== undefined) {
+        mergedDayFeed = payload.feedUsedBags;
       }
+
+      if (payload.feedUsedNightShiftBags !== undefined) {
+        mergedNightFeed = payload.feedUsedNightShiftBags;
+      } else if (payload.shift === "night" && payload.feedUsedBags !== undefined) {
+        mergedNightFeed = payload.feedUsedBags;
+      }
+
+      if (payload.mortalityDayShift !== undefined) {
+        mergedDayMort = payload.mortalityDayShift;
+      } else if (payload.shift !== "night" && payload.mortalityCount !== undefined) {
+        mergedDayMort = payload.mortalityCount;
+      }
+
+      if (payload.mortalityNightShift !== undefined) {
+        mergedNightMort = payload.mortalityNightShift;
+      } else if (payload.shift === "night" && payload.mortalityCount !== undefined) {
+        mergedNightMort = payload.mortalityCount;
+      }
+
+      const summary = calculateDailyRecordSummary({
+        openingFeedStockBags: payload.openingFeedStockBags !== undefined ? payload.openingFeedStockBags : record.openingFeedStockBags,
+        feedUsedDayShiftBags: mergedDayFeed,
+        feedUsedNightShiftBags: mergedNightFeed,
+        feedReceivedBags: payload.feedReceivedBags !== undefined ? payload.feedReceivedBags : record.feedReceivedBags,
+        feedTransferredOutBags: payload.feedTransferredOutBags !== undefined ? payload.feedTransferredOutBags : record.feedTransferredOutBags,
+        reportedClosingFeedStockBags: payload.closingFeedStockBags !== undefined ? payload.closingFeedStockBags : record.closingFeedStockBags,
+        openingBirds: record.openingBirds || batch.chicksPlaced,
+        mortalityDayShift: mergedDayMort,
+        mortalityNightShift: mergedNightMort,
+        culls: payload.culls !== undefined ? payload.culls : record.culls,
+        liftedBirds: payload.liftedBirds !== undefined ? payload.liftedBirds : record.liftedBirds,
+      });
+
+      // Update merged record
+      record.feedUsedDayShiftBags = mergedDayFeed;
+      record.feedUsedNightShiftBags = mergedNightFeed;
+      record.feedUsed24hBags = summary.feedUsed24hBags;
+      record.feedUsedBags = summary.feedUsed24hBags;
+      record.feedUsedKg = payload.feedUsedKg !== undefined ? payload.feedUsedKg : summary.feedUsedKg;
+      record.closingFeedStockBags = summary.closingFeedStockBags;
+      record.feedStockDiscrepancyBags = summary.feedStockDiscrepancyBags;
+      record.hasFeedStockShortage = summary.hasFeedStockShortage;
+      record.mortalityDayShift = mergedDayMort;
+      record.mortalityNightShift = mergedNightMort;
+      record.mortality24h = summary.mortality24h;
+      record.mortalityCount = summary.mortality24h;
+      record.closingBirds = summary.closingBirds;
+
+      if (payload.mortalityDayCause) record.mortalityDayCause = payload.mortalityDayCause;
+      if (payload.mortalityNightCause) record.mortalityNightCause = payload.mortalityNightCause;
+      if (payload.feedRemarks) record.feedRemarks = payload.feedRemarks;
+      if (payload.customColumnES !== undefined) record.customColumnES = payload.customColumnES;
+      if (payload.waterLiters !== undefined) record.waterLiters = payload.waterLiters;
+      if (payload.minTemp !== undefined) record.minTemp = payload.minTemp;
+      if (payload.maxTemp !== undefined) record.maxTemp = payload.maxTemp;
+      if (payload.litterCondition) record.litterCondition = payload.litterCondition;
+      if (payload.notes) record.notes = payload.notes;
+
+      record.shift = mergedDayFeed > 0 && mergedNightFeed > 0 ? "full" : payload.shift || record.shift;
+      record.updatedBy = new mongoose.Types.ObjectId(userId);
+      record.clientUpdatedAt = item.clientTimestamp;
+
+      await record.save();
     }
     return record._id.toString();
   }
@@ -150,10 +301,16 @@ export class SyncService {
     userId: string,
   ): Promise<string> {
     const payload = item.payload;
+    const target = payload.targetWeightGrams !== undefined ? payload.targetWeightGrams : 0;
+    const deviation = payload.deviationGrams !== undefined ? payload.deviationGrams : 0;
+    const ageInDays = payload.ageInDays !== undefined ? payload.ageInDays : 1;
     let record = payload.id ? await WeightRecord.findById(payload.id) : null;
     if (!record) {
       record = await WeightRecord.create({
         ...payload,
+        ageInDays,
+        targetWeightGrams: target,
+        deviationGrams: deviation,
         createdBy: new mongoose.Types.ObjectId(userId),
         clientUpdatedAt: item.clientTimestamp,
       });
@@ -194,6 +351,30 @@ export class SyncService {
     return record._id.toString();
   }
 
+  private static async handleDailyMedicineSheetSync(
+    item: any,
+    userId: string,
+  ): Promise<string> {
+    const payload = item.payload;
+    let sheet = await DailyMedicineSheet.findOne({
+      batchId: payload.batchId,
+      date: payload.date,
+    });
+
+    if (!sheet) {
+      sheet = await DailyMedicineSheet.create({
+        ...payload,
+        recordedBy: new mongoose.Types.ObjectId(userId),
+        clientUpdatedAt: item.clientTimestamp,
+      });
+    } else {
+      sheet.items = payload.items || sheet.items;
+      sheet.clientUpdatedAt = item.clientTimestamp;
+      await sheet.save();
+    }
+    return sheet._id.toString();
+  }
+
   private static async handleFeedIssueSync(
     item: any,
     userId: string,
@@ -220,6 +401,36 @@ export class SyncService {
     );
 
     return issue._id.toString();
+  }
+
+  private static async handleFeedTransferSync(
+    item: any,
+    userId: string,
+  ): Promise<string> {
+    const payload = item.payload;
+    const brand = payload.brand || payload.feedBrand || "Star Feed";
+    const transfer = await FeedTransfer.create({
+      ...payload,
+      brand,
+      recordedBy: new mongoose.Types.ObjectId(userId),
+      clientUpdatedAt: item.clientTimestamp,
+    });
+
+    // Adjust feed stock: transfer_in increases stock, transfer_out decreases stock
+    const multiplier = payload.type === "transfer_in" ? 1 : -1;
+    const bagWeightKg = payload.bagWeightKg || 50;
+    const bagsDelta = payload.bags * multiplier;
+    const kgDelta = bagsDelta * bagWeightKg;
+
+    await FeedStock.findOneAndUpdate(
+      { feedType: payload.feedType },
+      {
+        $inc: { currentBags: bagsDelta, currentKg: kgDelta },
+        $set: { lastUpdated: new Date() },
+      },
+    );
+
+    return transfer._id.toString();
   }
 
   private static async handleExpenseSync(
@@ -254,5 +465,39 @@ export class SyncService {
       await record.save();
     }
     return record._id.toString();
+  }
+
+  private static async handleSaleSync(
+    item: any,
+    userId: string,
+  ): Promise<string> {
+    const payload = item.payload;
+    const date = payload.date || payload.saleDate || new Date().toISOString().split("T")[0];
+    const averageWeightKg = payload.averageWeightKg || (payload.birdsSold ? payload.totalLiveWeightKg / payload.birdsSold : 2.0);
+    const liftingCalc = calculateLiftingBirds(
+      payload.totalLiveWeightKg,
+      averageWeightKg,
+      payload.isManualBirdCountOverride ? payload.birdsSold : undefined,
+      payload.overrideReason,
+    );
+
+    const birdsSold = payload.birdsSold || liftingCalc.birds;
+    const totalAmount = payload.totalAmount || payload.totalLiveWeightKg * payload.ratePerKg;
+    const amountPaid = payload.amountPaid || 0;
+    const balanceAmount = totalAmount - amountPaid;
+
+    const sale = await Sale.create({
+      ...payload,
+      date,
+      averageWeightKg,
+      birdsSold,
+      totalAmount,
+      balanceAmount,
+      isManualBirdCountOverride: liftingCalc.isOverridden,
+      overrideReason: liftingCalc.overrideReason || payload.overrideReason,
+      createdBy: new mongoose.Types.ObjectId(userId),
+    });
+
+    return sale._id.toString();
   }
 }

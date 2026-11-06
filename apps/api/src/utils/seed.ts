@@ -117,6 +117,7 @@ export async function seedDatabase() {
     role: "admin",
     assignedShedId: shed5._id,
     isActive: true,
+    mustChangePassword: true,
   });
 
   const worker1 = await User.create({
@@ -127,6 +128,7 @@ export async function seedDatabase() {
     role: "worker",
     assignedShedId: shed1._id,
     isActive: true,
+    mustChangePassword: true,
   });
 
   const worker2 = await User.create({
@@ -137,6 +139,7 @@ export async function seedDatabase() {
     role: "worker",
     assignedShedId: shed2._id,
     isActive: true,
+    mustChangePassword: true,
   });
 
   const worker3 = await User.create({
@@ -147,6 +150,7 @@ export async function seedDatabase() {
     role: "worker",
     assignedShedId: shed3._id,
     isActive: true,
+    mustChangePassword: true,
   });
 
   const worker4 = await User.create({
@@ -157,6 +161,7 @@ export async function seedDatabase() {
     role: "worker",
     assignedShedId: shed4._id,
     isActive: true,
+    mustChangePassword: true,
   });
 
   // Link workers back to sheds

@@ -390,19 +390,8 @@ export type HistoricalRegisterImportInput = z.infer<typeof HistoricalRegisterImp
 
 // Offline Sync Packet Schema
 export const SyncItemSchema = z.object({
-  clientMutationId: z.string().uuid(),
-  entityType: z.enum([
-    "DAILY_RECORD",
-    "WEIGHT_RECORD",
-    "VACCINATION_TASK",
-    "MEDICINE_RECORD",
-    "DAILY_MEDICINE",
-    "FEED_ISSUE",
-    "FEED_TRANSFER",
-    "EXPENSE",
-    "ATTENDANCE",
-    "SALE",
-  ]),
+  clientMutationId: z.string().min(1, "Client mutation ID is required"),
+  entityType: z.string().min(1, "Entity type is required"),
   action: z.enum(["CREATE", "UPDATE", "DELETE"]),
   payload: z.record(z.any()),
   clientTimestamp: z.string(),

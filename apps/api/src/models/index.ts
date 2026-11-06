@@ -54,7 +54,7 @@ const UserSchema = new Schema<IUser>(
     assignedShedId: { type: Schema.Types.ObjectId, ref: "Shed", default: null },
     refreshToken: { type: String, default: null },
     isActive: { type: Boolean, default: true },
-    mustChangePassword: { type: Boolean, default: false },
+    mustChangePassword: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
@@ -149,11 +149,32 @@ export interface IDailyRecord extends Document {
   shedId: mongoose.Types.ObjectId;
   date: string;
   ageInDays: number;
-  mortalityCount: number;
-  mortalityCause?: string;
-  culls: number;
+  openingFeedStockBags: number;
+  openingBirds?: number;
+  feedUsedDayShiftBags: number;
+  feedUsedNightShiftBags: number;
+  feedUsed24hBags: number;
   feedUsedBags: number;
   feedUsedKg: number;
+  feedReceivedBags: number;
+  feedTransferredOutBags: number;
+  cumulativeFeedBags: number;
+  closingFeedStockBags: number;
+  feedStockDiscrepancyBags: number;
+  hasFeedStockShortage: boolean;
+  feedRemarks?: string;
+  mortalityDayShift: number;
+  mortalityDayCause?: string;
+  mortalityNightShift: number;
+  mortalityNightCause?: string;
+  mortality24h: number;
+  mortalityCount: number;
+  mortalityCause?: string;
+  cumulativeMortality: number;
+  closingBirds: number;
+  culls: number;
+  liftedBirds?: number;
+  customColumnES?: number | null;
   feedType: FeedType;
   waterLiters: number;
   minTemp: number;
@@ -165,6 +186,7 @@ export interface IDailyRecord extends Document {
   lockedAt?: Date;
   createdBy: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
+  shift?: "day" | "night" | "full";
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -186,19 +208,41 @@ const DailyRecordSchema = new Schema<IDailyRecord>(
     },
     date: { type: String, required: true }, // YYYY-MM-DD
     ageInDays: { type: Number, required: true, min: 0 },
-    mortalityCount: { type: Number, required: true, min: 0, default: 0 },
-    mortalityCause: { type: String, default: "" },
-    culls: { type: Number, required: true, min: 0, default: 0 },
+    openingFeedStockBags: { type: Number, default: 0, min: 0 },
+    openingBirds: { type: Number },
+    feedUsedDayShiftBags: { type: Number, default: 0, min: 0 },
+    feedUsedNightShiftBags: { type: Number, default: 0, min: 0 },
+    feedUsed24hBags: { type: Number, default: 0, min: 0 },
     feedUsedBags: { type: Number, required: true, min: 0, default: 0 },
     feedUsedKg: { type: Number, required: true, min: 0, default: 0 },
+    feedReceivedBags: { type: Number, default: 0, min: 0 },
+    feedTransferredOutBags: { type: Number, default: 0, min: 0 },
+    cumulativeFeedBags: { type: Number, default: 0, min: 0 },
+    closingFeedStockBags: { type: Number, default: 0 },
+    feedStockDiscrepancyBags: { type: Number, default: 0 },
+    hasFeedStockShortage: { type: Boolean, default: false },
+    feedRemarks: { type: String, default: "" },
+    mortalityDayShift: { type: Number, default: 0, min: 0 },
+    mortalityDayCause: { type: String, default: "" },
+    mortalityNightShift: { type: Number, default: 0, min: 0 },
+    mortalityNightCause: { type: String, default: "" },
+    mortality24h: { type: Number, default: 0, min: 0 },
+    mortalityCount: { type: Number, required: true, min: 0, default: 0 },
+    mortalityCause: { type: String, default: "" },
+    cumulativeMortality: { type: Number, default: 0, min: 0 },
+    closingBirds: { type: Number, default: 0, min: 0 },
+    culls: { type: Number, required: true, min: 0, default: 0 },
+    liftedBirds: { type: Number, default: 0, min: 0 },
+    customColumnES: { type: Number, default: null },
     feedType: {
       type: String,
       enum: ["starter", "grower", "finisher"],
       required: true,
+      default: "grower",
     },
     waterLiters: { type: Number, required: true, min: 0, default: 0 },
-    minTemp: { type: Number, required: true },
-    maxTemp: { type: Number, required: true },
+    minTemp: { type: Number, required: true, default: 24 },
+    maxTemp: { type: Number, required: true, default: 30 },
     litterCondition: {
       type: String,
       enum: ["dry", "normal", "wet"],
@@ -210,6 +254,7 @@ const DailyRecordSchema = new Schema<IDailyRecord>(
     lockedAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    shift: { type: String, enum: ["day", "night", "full"], default: "full" },
     clientUpdatedAt: { type: String },
   },
   { timestamps: true },
@@ -340,7 +385,7 @@ const VaccinationTaskSchema = new Schema<IVaccinationTask>(
   { timestamps: true },
 );
 
-// 7. MedicineRecord
+// 7. MedicineRecord & DailyMedicineSheet
 export interface IMedicineRecord extends Document {
   batchId: mongoose.Types.ObjectId;
   shedId: mongoose.Types.ObjectId;
@@ -352,6 +397,11 @@ export interface IMedicineRecord extends Document {
   withdrawalPeriodDays: number;
   withdrawalEndDate: string;
   administeredBy: string;
+  quantity?: number;
+  unit?: string;
+  cost?: number;
+  category?: string;
+  isVaccine?: boolean;
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -373,16 +423,77 @@ const MedicineRecordSchema = new Schema<IMedicineRecord>(
     },
     date: { type: String, required: true },
     medicineName: { type: String, required: true },
-    dosage: { type: String, required: true },
+    dosage: { type: String, default: "As directed" },
     route: { type: String, default: "drinking_water" },
-    reason: { type: String, required: true },
+    reason: { type: String, default: "General flock health / supplement" },
     withdrawalPeriodDays: { type: Number, default: 0 },
-    withdrawalEndDate: { type: String, required: true },
-    administeredBy: { type: String, required: true },
+    withdrawalEndDate: { type: String, default: "" },
+    administeredBy: { type: String, default: "Worker" },
+    quantity: { type: Number },
+    unit: { type: String, default: "" },
+    cost: { type: Number, default: 0 },
+    category: { type: String, default: "supplement" },
+    isVaccine: { type: Boolean, default: false },
     clientUpdatedAt: { type: String },
   },
   { timestamps: true },
 );
+
+export interface IDailyMedicineSheet extends Document {
+  batchId: mongoose.Types.ObjectId;
+  shedId: mongoose.Types.ObjectId;
+  date: string;
+  items: Array<{
+    name: string;
+    category: string;
+    isVaccine: boolean;
+    dosage?: string;
+    quantity?: number;
+    unit?: string;
+    cost?: number;
+    route?: string;
+    notes?: string;
+  }>;
+  recordedBy: mongoose.Types.ObjectId;
+  clientUpdatedAt?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const DailyMedicineSheetSchema = new Schema<IDailyMedicineSheet>(
+  {
+    batchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Batch",
+      required: true,
+      index: true,
+    },
+    shedId: {
+      type: Schema.Types.ObjectId,
+      ref: "Shed",
+      required: true,
+      index: true,
+    },
+    date: { type: String, required: true, index: true },
+    items: [
+      {
+        name: { type: String, required: true },
+        category: { type: String, default: "supplement" },
+        isVaccine: { type: Boolean, default: false },
+        dosage: { type: String, default: "" },
+        quantity: { type: Number },
+        unit: { type: String, default: "" },
+        cost: { type: Number, default: 0 },
+        route: { type: String, default: "drinking_water" },
+        notes: { type: String, default: "" },
+      },
+    ],
+    recordedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    clientUpdatedAt: { type: String },
+  },
+  { timestamps: true },
+);
+DailyMedicineSheetSchema.index({ batchId: 1, date: 1 }, { unique: true });
 
 // 8. Feed Models
 export interface IFeedPurchase extends Document {
@@ -503,6 +614,46 @@ const FeedStockSchema = new Schema<IFeedStock>(
   { timestamps: true },
 );
 
+export interface IFeedTransfer extends Document {
+  date: string;
+  partyName: string;
+  type: "transfer_in" | "transfer_out";
+  brand: string;
+  feedType: FeedType;
+  bags: number;
+  bagWeightKg: number;
+  notes?: string;
+  recordedBy: mongoose.Types.ObjectId;
+  clientUpdatedAt?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const FeedTransferSchema = new Schema<IFeedTransfer>(
+  {
+    date: { type: String, required: true, index: true },
+    partyName: { type: String, required: true, index: true },
+    type: {
+      type: String,
+      enum: ["transfer_in", "transfer_out"],
+      required: true,
+      index: true,
+    },
+    brand: { type: String, required: true },
+    feedType: {
+      type: String,
+      enum: ["starter", "grower", "finisher"],
+      required: true,
+    },
+    bags: { type: Number, required: true, min: 0.1 },
+    bagWeightKg: { type: Number, required: true, default: 50.0 },
+    notes: { type: String, default: "" },
+    recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    clientUpdatedAt: { type: String },
+  },
+  { timestamps: true },
+);
+
 // 9. InventoryItem
 export interface IInventoryItem extends Document {
   category: InventoryCategory;
@@ -593,10 +744,13 @@ const ExpenseSchema = new Schema<IExpense>(
 export interface ISale extends Document {
   batchId: mongoose.Types.ObjectId;
   shedId: mongoose.Types.ObjectId;
+  lotNumber: number;
   buyerName: string;
   buyerPhone?: string;
   date: string;
   birdsSold: number;
+  isManualBirdCountOverride: boolean;
+  overrideReason?: string;
   totalLiveWeightKg: number;
   averageWeightKg: number;
   ratePerKg: number;
@@ -625,10 +779,13 @@ const SaleSchema = new Schema<ISale>(
       required: true,
       index: true,
     },
+    lotNumber: { type: Number, default: 1 },
     buyerName: { type: String, required: true, index: true },
     buyerPhone: { type: String, default: "" },
     date: { type: String, required: true, index: true },
     birdsSold: { type: Number, required: true, min: 1 },
+    isManualBirdCountOverride: { type: Boolean, default: false },
+    overrideReason: { type: String, default: "" },
     totalLiveWeightKg: { type: Number, required: true, min: 0.1 },
     averageWeightKg: { type: Number, required: true },
     ratePerKg: { type: Number, required: true, min: 0 }, // Manually editable
@@ -795,7 +952,10 @@ const AlertSchema = new Schema<IAlert>({
     type: String,
     enum: [
       "mortality_spike",
+      "weekly_mortality_alert",
+      "feed_shortage_alert",
       "missed_daily_entry",
+      "missed_shift_entry",
       "vaccine_due",
       "vaccine_overdue",
       "low_feed_stock",
@@ -857,9 +1017,17 @@ export interface IFarmSettings extends Document {
   defaultFeedBagWeightKg: number;
   currency: string;
   defaultLanguage: "en" | "ur";
+  customDailyColumn: {
+    enabled: boolean;
+    label: string;
+  };
+  batchScope: "per_shed" | "multi_shed";
   alertThresholds: {
     mortalitySpikePercentDaily: number;
     mortalitySpikePercent3Day: number;
+    weeklyMortalityAlertPercent: number;
+    stockShortageAlert: boolean;
+    missedShiftEntryAlert: boolean;
     lowFeedStockBags: number;
     tempMinCelsius: number;
     tempMaxCelsius: number;
@@ -878,9 +1046,21 @@ const FarmSettingsSchema = new Schema<IFarmSettings>(
     defaultFeedBagWeightKg: { type: Number, default: 50.0 },
     currency: { type: String, default: "PKR" },
     defaultLanguage: { type: String, enum: ["en", "ur"], default: "ur" },
+    customDailyColumn: {
+      enabled: { type: Boolean, default: true },
+      label: { type: String, default: "E.S" },
+    },
+    batchScope: {
+      type: String,
+      enum: ["per_shed", "multi_shed"],
+      default: "per_shed",
+    },
     alertThresholds: {
-      mortalitySpikePercentDaily: { type: Number, default: 0.8 },
+      mortalitySpikePercentDaily: { type: Number, default: 1.0 },
       mortalitySpikePercent3Day: { type: Number, default: 2.0 },
+      weeklyMortalityAlertPercent: { type: Number, default: 3.0 },
+      stockShortageAlert: { type: Boolean, default: true },
+      missedShiftEntryAlert: { type: Boolean, default: true },
       lowFeedStockBags: { type: Number, default: 20 },
       tempMinCelsius: { type: Number, default: 20.0 },
       tempMaxCelsius: { type: Number, default: 34.0 },
@@ -914,6 +1094,10 @@ export const MedicineRecord = mongoose.model<IMedicineRecord>(
   "MedicineRecord",
   MedicineRecordSchema,
 );
+export const DailyMedicineSheet = mongoose.model<IDailyMedicineSheet>(
+  "DailyMedicineSheet",
+  DailyMedicineSheetSchema,
+);
 export const FeedPurchase = mongoose.model<IFeedPurchase>(
   "FeedPurchase",
   FeedPurchaseSchema,
@@ -925,6 +1109,10 @@ export const FeedIssue = mongoose.model<IFeedIssue>(
 export const FeedStock = mongoose.model<IFeedStock>(
   "FeedStock",
   FeedStockSchema,
+);
+export const FeedTransfer = mongoose.model<IFeedTransfer>(
+  "FeedTransfer",
+  FeedTransferSchema,
 );
 export const InventoryItem = mongoose.model<IInventoryItem>(
   "InventoryItem",

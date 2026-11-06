@@ -37,5 +37,10 @@ router.post(
   validateBody(UnlockDailyRecordSchema),
   DailyRecordController.unlockDailyRecord,
 );
+router.post(
+  "/import-history",
+  requireAdmin,
+  DailyRecordController.importHistoricalRegister,
+);
 
 export default router;

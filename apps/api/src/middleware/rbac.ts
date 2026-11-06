@@ -20,6 +20,24 @@ export function requireAdmin(
   next();
 }
 
+export function requireWorker(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (!req.user) {
+    res.status(401).json({ success: false, error: "Unauthenticated" });
+    return;
+  }
+  if (req.user.role !== "worker") {
+    res
+      .status(403)
+      .json({ success: false, error: "Forbidden: Worker access required" });
+    return;
+  }
+  next();
+}
+
 export async function requireShedAccess(
   req: AuthRequest,
   res: Response,

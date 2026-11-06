@@ -3,12 +3,13 @@ import {
   FeedStock,
   FeedPurchase,
   FeedIssue,
+  FeedTransfer,
   Expense,
   DailyRecord,
   Batch,
 } from "../models";
 import { AuthRequest } from "../middleware/auth";
-import { bagsToKg, roundTo } from "@broiler/shared";
+import { bagsToKg, roundTo, calculateFeedPartyLedger } from "@broiler/shared";
 import { logAuditEvent } from "../services/auditService";
 import { AlertService } from "../services/alertService";
 
@@ -202,6 +203,86 @@ export class FeedController {
               : "discrepancy_detected",
         },
       });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async createTransfer(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { date, partyName, type, brand, feedType, bags, bagWeightKg = 50, notes } = req.body;
+
+      const transfer = await FeedTransfer.create({
+        date,
+        partyName: partyName.trim(),
+        type,
+        brand,
+        feedType,
+        bags,
+        bagWeightKg,
+        notes,
+        recordedBy: req.user!._id,
+      });
+
+      // Stock adjustment: transfer_in adds bags, transfer_out removes bags
+      const multiplier = type === "transfer_in" ? 1 : -1;
+      const bagsDelta = bags * multiplier;
+      const kgDelta = bagsDelta * bagWeightKg;
+
+      await FeedStock.findOneAndUpdate(
+        { feedType },
+        {
+          $inc: { currentBags: bagsDelta, currentKg: kgDelta },
+          $set: { lastUpdated: new Date() },
+        },
+        { upsert: true, new: true },
+      );
+
+      await logAuditEvent({
+        entityType: "FeedTransfer",
+        entityId: transfer._id.toString(),
+        action: "CREATE",
+        performedBy: req.user!._id,
+        newState: transfer.toObject(),
+      });
+
+      AlertService.runAlertSweep().catch((e) => {
+        if (process.env.NODE_ENV !== "test") console.error("Alert sweep error", e);
+      });
+
+      res.status(201).json({ success: true, data: transfer });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getTransfers(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const query: any = {};
+      if (req.query.partyName) query.partyName = req.query.partyName;
+      if (req.query.type) query.type = req.query.type;
+
+      const transfers = await FeedTransfer.find(query)
+        .populate("recordedBy", "name username")
+        .sort({ date: -1 });
+
+      res.json({ success: true, data: transfers });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getPartyLedger(_req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const transfers = await FeedTransfer.find().sort({ date: -1 });
+      const ledger = calculateFeedPartyLedger(
+        transfers.map((t) => ({
+          partyName: t.partyName,
+          type: t.type,
+          bags: t.bags,
+        })),
+      );
+      res.json({ success: true, data: ledger });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

@@ -12,6 +12,76 @@ export class ReportController {
     }
   }
 
+  static async getWeeklySummary(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = await ReportService.getWeeklySummaryReport(req.params.batchId || req.params.id);
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async exportDailyRegisterCSV(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const batchId = req.params.batchId || req.params.id;
+      const csv = await ReportService.exportDailyRegisterCSV(batchId);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="daily-register-${batchId}.csv"`,
+      );
+      res.send(csv);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async exportWeeklySummaryCSV(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const batchId = req.params.batchId || req.params.id;
+      const csv = await ReportService.exportWeeklySummaryCSV(batchId);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="weekly-summary-${batchId}.csv"`,
+      );
+      res.send(csv);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async exportDailyRegisterHTML(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const batchId = req.params.batchId || req.params.id;
+      const html = await ReportService.generateDailyRegisterHTML(batchId);
+      res.setHeader("Content-Type", "text/html");
+      res.send(html);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async exportWeeklySummaryHTML(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const batchId = req.params.batchId || req.params.id;
+      const html = await ReportService.generateWeeklySummaryHTML(batchId);
+      res.setHeader("Content-Type", "text/html");
+      res.send(html);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getFeedPartyLedger(_req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = await ReportService.getFeedPartyLedgerReport();
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   static async getBatchCSV(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = await ReportService.getBatchReport(req.params.id);

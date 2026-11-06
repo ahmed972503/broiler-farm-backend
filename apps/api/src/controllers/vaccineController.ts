@@ -3,6 +3,7 @@ import {
   VaccinationTemplate,
   VaccinationTask,
   MedicineRecord,
+  DailyMedicineSheet,
   Expense,
   Batch,
 } from "../models";
@@ -158,6 +159,197 @@ export class VaccineController {
       });
 
       res.status(201).json({ success: true, data: record });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  /**
+   * "Copy yesterday's list" (ditto feature) endpoint
+   * Retrieves previous day's medicines for this batch/shed so worker can copy in 1 click
+   */
+  static async getYesterdayMedicines(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { batchId, shedId, date } = req.query as {
+        batchId: string;
+        shedId?: string;
+        date?: string;
+      };
+
+      if (!batchId) {
+        res.status(400).json({ success: false, error: "batchId is required" });
+        return;
+      }
+
+      const targetDate = date || new Date().toISOString().split("T")[0];
+
+      // Check DailyMedicineSheet first
+      const priorSheet = await DailyMedicineSheet.findOne({
+        batchId,
+        ...(shedId ? { shedId } : {}),
+        date: { $lt: targetDate },
+      }).sort({ date: -1 });
+
+      if (priorSheet && priorSheet.items && priorSheet.items.length > 0) {
+        res.json({
+          success: true,
+          date: priorSheet.date,
+          source: "daily_sheet",
+          items: priorSheet.items,
+        });
+        return;
+      }
+
+      // Fallback to MedicineRecord collection
+      const priorRecords = await MedicineRecord.find({
+        batchId,
+        ...(shedId ? { shedId } : {}),
+        date: { $lt: targetDate },
+      }).sort({ date: -1 });
+
+      if (priorRecords.length > 0) {
+        const latestDate = priorRecords[0].date;
+        const latestDayRecords = priorRecords.filter((r) => r.date === latestDate);
+        const items = latestDayRecords.map((r) => ({
+          name: r.medicineName,
+          category: r.category || (r.isVaccine ? "vaccine" : "supplement"),
+          isVaccine: r.isVaccine || false,
+          dosage: r.dosage,
+          route: r.route,
+          quantity: r.quantity,
+          unit: r.unit,
+          cost: r.cost,
+          notes: r.reason,
+        }));
+        res.json({
+          success: true,
+          date: latestDate,
+          source: "medicine_records",
+          items,
+        });
+        return;
+      }
+
+      res.json({ success: true, date: null, items: [] });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  /**
+   * Autocomplete endpoint: returns distinct list of previously recorded medicine and vaccine names
+   */
+  static async getAutocompleteNames(
+    _req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const medNames = await MedicineRecord.distinct("medicineName");
+      const templateTasks = await VaccinationTemplate.find();
+      const templateNames = templateTasks.flatMap((t) =>
+        t.schedule.map((s) => s.vaccineName),
+      );
+
+      // Common broiler medications in Pakistan as sensible baseline
+      const baselineCommon = [
+        "Electrolytes + Vitamin C",
+        "Enrofloxacin 10%",
+        "Colistin Sulfate",
+        "Amoxicillin 20%",
+        "Tylosin Tartrate",
+        "Doxycycline HCl",
+        "Vitamin AD3E + E-Care",
+        "Liver Tonic (Hepatoprotective)",
+        "Acidifier (Formic + Propionic)",
+        "Kidney Renalin / Antidote",
+        "ND + IB Live Vaccine",
+        "ND Lasota Clone 30",
+        "IBD Gumboro Intermediate Plus",
+        "ND Killed Injection (Subcutaneous)",
+      ];
+
+      const combined = Array.from(
+        new Set([...baselineCommon, ...medNames, ...templateNames]),
+      ).sort();
+
+      res.json({ success: true, data: combined });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  /**
+   * Multi-item Daily Medicine Sheet
+   */
+  static async createDailyMedicineSheet(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { batchId, shedId, date, items } = req.body;
+      const batch = await Batch.findById(batchId);
+      if (!batch) {
+        res.status(404).json({ success: false, error: "Batch not found" });
+        return;
+      }
+
+      const sheet = await DailyMedicineSheet.findOneAndUpdate(
+        { batchId, date },
+        {
+          batchId,
+          shedId,
+          date,
+          items,
+          recordedBy: req.user!._id,
+        },
+        { upsert: true, new: true },
+      );
+
+      // Record any associated costs to Expenses
+      const totalCost = items.reduce(
+        (sum: number, it: any) => sum + (it.cost || 0),
+        0,
+      );
+      if (totalCost > 0) {
+        await Expense.create({
+          batchId: batch._id,
+          category: "medicine",
+          amount: totalCost,
+          date,
+          description: `Daily medicine items administration (${items.length} items)`,
+          paymentMethod: "cash",
+          createdBy: req.user!._id,
+        });
+      }
+
+      await logAuditEvent({
+        entityType: "DailyMedicineSheet",
+        entityId: sheet._id.toString(),
+        action: "CREATE",
+        performedBy: req.user!._id,
+        newState: sheet.toObject(),
+      });
+
+      res.status(201).json({ success: true, data: sheet });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getDailyMedicineSheet(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<void> {
+    try {
+      const { batchId, date } = req.query as { batchId: string; date: string };
+      const sheet = await DailyMedicineSheet.findOne({ batchId, date }).populate(
+        "recordedBy",
+        "name username",
+      );
+      res.json({ success: true, data: sheet });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

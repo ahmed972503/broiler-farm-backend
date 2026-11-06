@@ -6,6 +6,7 @@ import { validateBody } from "../middleware/validate";
 import {
   CreateFeedPurchaseSchema,
   CreateFeedIssueSchema,
+  CreateFeedTransferSchema,
 } from "@broiler/shared";
 
 const router = Router();
@@ -26,5 +27,14 @@ router.post(
   FeedController.createIssue,
 );
 router.get("/reconciliation", requireAdmin, FeedController.getReconciliation);
+
+router.post(
+  "/transfers",
+  requireAdmin,
+  validateBody(CreateFeedTransferSchema),
+  FeedController.createTransfer,
+);
+router.get("/transfers", requireAdmin, FeedController.getTransfers);
+router.get("/party-ledger", requireAdmin, FeedController.getPartyLedger);
 
 export default router;
