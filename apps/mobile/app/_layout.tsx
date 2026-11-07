@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Platform } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -25,6 +25,60 @@ function RootNavigation() {
 
   useEffect(() => {
     restoreSession();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const styleId = "rnw-global-input-reset";
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `
+          /* Eradicate default browser white outline/borders on inputs across all pages */
+          input {
+            outline: none !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            -webkit-appearance: none !important;
+          }
+          input:focus {
+            outline: none !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            box-shadow: none !important;
+          }
+          textarea {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+          textarea:focus {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+          select {
+            outline: none !important;
+          }
+          /* Custom sleek scrollbars */
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.35);
+            border-radius: 4px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.6);
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
   }, []);
 
   useEffect(() => {

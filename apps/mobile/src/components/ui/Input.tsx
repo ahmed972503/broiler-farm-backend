@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  Platform,
 } from "react-native";
 import { useTheme } from "../../theme";
 
@@ -26,9 +27,22 @@ export const Input: React.FC<InputProps> = ({
   containerStyle,
   inputStyle,
   helperText,
+  onFocus,
+  onBlur,
   ...props
 }) => {
   const { colors, spacing, borderRadius, typography } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = (e: any) => {
+    setIsFocused(true);
+    onFocus?.(e);
+  };
+
+  const handleBlur = (e: any) => {
+    setIsFocused(false);
+    onBlur?.(e);
+  };
 
   return (
     <View
@@ -55,10 +69,26 @@ export const Input: React.FC<InputProps> = ({
           styles.inputWrapper,
           {
             backgroundColor: colors.card,
-            borderColor: error ? colors.danger : colors.border,
+            borderColor: error
+              ? colors.danger
+              : isFocused
+              ? colors.primary
+              : colors.border,
             borderRadius: borderRadius.md,
             paddingHorizontal: spacing.md,
           },
+          props.multiline && {
+            minHeight: 80,
+            alignItems: "flex-start",
+            paddingVertical: spacing.sm,
+          },
+          Platform.OS === "web" &&
+            ({
+              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+              ...(isFocused
+                ? { boxShadow: `0 0 0 3px ${colors.primary}25` }
+                : {}),
+            } as any),
         ]}
       >
         <TextInput
@@ -69,8 +99,23 @@ export const Input: React.FC<InputProps> = ({
               color: colors.text,
               fontSize: typography.sizes.base,
             },
+            props.multiline && {
+              minHeight: 60,
+              textAlignVertical: "top",
+            },
+            Platform.OS === "web" &&
+              ({
+                outlineStyle: "none",
+                outlineWidth: 0,
+                outlineColor: "transparent",
+                borderWidth: 0,
+                borderStyle: "none",
+                backgroundColor: "transparent",
+              } as any),
             inputStyle,
           ]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
         {suffix ? (
@@ -135,6 +180,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 10,
+    borderWidth: 0,
+    backgroundColor: "transparent",
   },
   suffix: {},
   errorText: {

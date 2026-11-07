@@ -1033,13 +1033,19 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(0,0,0,0.05)",
   },
   csvTextArea: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 8,
     padding: 10,
     fontSize: 12,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     minHeight: 120,
     textAlignVertical: "top",
+    ...(Platform.OS === "web"
+      ? ({
+          outlineStyle: "none",
+          outlineWidth: 0,
+        } as any)
+      : {}),
   },
   gridHeaderRow: {
     flexDirection: "row",
