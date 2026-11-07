@@ -150,7 +150,7 @@ export default function WorkerLayout() {
           name="today"
           options={{
             title: t("tabs.today", "Aaj"),
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: { color: string }) => (
               <Ionicons name="home-outline" size={20} color={color} />
             ),
           }}
@@ -159,7 +159,7 @@ export default function WorkerLayout() {
           name="daily-entry"
           options={{
             title: t("tabs.dailyEntry", "Rozana"),
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: { color: string }) => (
               <Ionicons name="create-outline" size={20} color={color} />
             ),
           }}
@@ -168,7 +168,7 @@ export default function WorkerLayout() {
           name="vaccinations"
           options={{
             title: t("tabs.vaccinations", "Teekay"),
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: { color: string }) => (
               <MaterialCommunityIcons name="needle" size={20} color={color} />
             ),
           }}
@@ -177,7 +177,7 @@ export default function WorkerLayout() {
           name="weight"
           options={{
             title: t("tabs.weights", "Wazan"),
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: { color: string }) => (
               <MaterialCommunityIcons name="scale" size={20} color={color} />
             ),
           }}
@@ -186,7 +186,7 @@ export default function WorkerLayout() {
           name="history"
           options={{
             title: t("tabs.history", "Khata"),
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: { color: string }) => (
               <Ionicons name="reader-outline" size={20} color={color} />
             ),
           }}

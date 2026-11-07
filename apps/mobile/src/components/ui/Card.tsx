@@ -9,7 +9,7 @@ import {
 import { useTheme } from "../../theme";
 
 export interface CardProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   elevated?: boolean;
   onPress?: () => void;
