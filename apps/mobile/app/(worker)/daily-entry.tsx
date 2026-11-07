@@ -10,30 +10,49 @@ import {
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
-import { Button, Input, Card } from "../../src/components/ui";
+import { Button, Input, Card, Badge } from "../../src/components/ui";
 import { apiFetch, API_BASE_URL } from "../../src/api/client";
 import { OfflineStore } from "../../src/db/offlineStore";
 import { useSyncStore } from "../../src/store/useSyncStore";
 import { bagsToKg } from "@broiler/shared";
 import { useTranslation } from "react-i18next";
+import { changeLanguage } from "../../src/i18n";
 
 export default function DailyEntryScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const { user, token } = useAuthStore();
   const { syncWithServer } = useSyncStore();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const [date, setDate] = useState(todayStr);
-  const [mortality, setMortality] = useState("0");
-  const [mortalityCause, setMortalityCause] = useState("");
-  const [culls, setCulls] = useState("0");
-  const [feedBags, setFeedBags] = useState("8");
-  const [feedType, setFeedType] = useState<"starter" | "grower" | "finisher">(
-    "grower",
+  const [currentLang, setCurrentLang] = useState<"ur" | "en">(
+    (i18n.language as "ur" | "en") || "ur",
   );
+  const [date, setDate] = useState(todayStr);
+  const [shift, setShift] = useState<"day" | "night" | "full">("day");
+
+  // Shift-specific Feed
+  const [feedDayBags, setFeedDayBags] = useState("4");
+  const [feedNightBags, setFeedNightBags] = useState("4");
+  const [openingStockBags, setOpeningStockBags] = useState("50");
+  const [receivedBags, setReceivedBags] = useState("0");
+  const [transferredOutBags, setTransferredOutBags] = useState("0");
+  const [reportedClosingBags, setReportedClosingBags] = useState("");
+  const [feedRemarks, setFeedRemarks] = useState("");
+
+  // Shift-specific Mortality
+  const [mortDay, setMortDay] = useState("0");
+  const [mortDayCause, setMortDayCause] = useState("");
+  const [mortNight, setMortNight] = useState("0");
+  const [mortNightCause, setMortNightCause] = useState("");
+  const [culls, setCulls] = useState("0");
+
+  // Unconfirmed paper column "E.S"
+  const [customColumnES, setCustomColumnES] = useState("");
+
+  const [feedType, setFeedType] = useState<"starter" | "grower" | "finisher">("grower");
   const [waterLiters, setWaterLiters] = useState("600");
   const [minTemp, setMinTemp] = useState("24.0");
   const [maxTemp, setMaxTemp] = useState("30.5");
@@ -41,29 +60,72 @@ export default function DailyEntryScreen() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [batchId, setBatchId] = useState<string>("");
+  const [savedOfflineNotice, setSavedOfflineNotice] = useState(false);
 
   useEffect(() => {
-    // Determine active batch for worker's shed
     const fetchShedBatch = async () => {
       const shedId = user?.assignedShedId || user?.shed?.id;
       if (shedId) {
-        const res = await apiFetch(`/api/sheds/${shedId}`);
-        if (res.success && res.data?.currentBatchId) {
-          setBatchId(res.data.currentBatchId);
-        } else if (res.data?.activeBatch?._id) {
-          setBatchId(res.data.activeBatch._id);
+        try {
+          const res = await apiFetch(`/api/sheds/${shedId}`);
+          if (res.success && res.data?.currentBatchId) {
+            setBatchId(res.data.currentBatchId);
+          } else if (res.data?.activeBatch?._id) {
+            setBatchId(res.data.activeBatch._id);
+          }
+        } catch (e) {
+          // Offline fallback
+          setBatchId("active-batch-offline");
         }
       }
     };
     fetchShedBatch();
   }, [user]);
 
-  const addMortality = (val: number) => {
-    const curr = parseInt(mortality, 10) || 0;
-    setMortality(Math.max(0, curr + val).toString());
+  const toggleLanguage = () => {
+    const nextLang = currentLang === "ur" ? "en" : "ur";
+    changeLanguage(nextLang);
+    setCurrentLang(nextLang);
   };
 
-  const calculatedKg = bagsToKg(parseFloat(feedBags) || 0);
+  // Fast Touch Steppers
+  const adjustMortDay = (val: number) => {
+    const curr = parseInt(mortDay, 10) || 0;
+    setMortDay(Math.max(0, curr + val).toString());
+  };
+
+  const adjustMortNight = (val: number) => {
+    const curr = parseInt(mortNight, 10) || 0;
+    setMortNight(Math.max(0, curr + val).toString());
+  };
+
+  const adjustFeedDay = (val: number) => {
+    const curr = parseFloat(feedDayBags) || 0;
+    setFeedDayBags(Math.max(0, curr + val).toString());
+  };
+
+  const adjustFeedNight = (val: number) => {
+    const curr = parseFloat(feedNightBags) || 0;
+    setFeedNightBags(Math.max(0, curr + val).toString());
+  };
+
+  // 24h Totals
+  const numFeedDay = parseFloat(feedDayBags) || 0;
+  const numFeedNight = parseFloat(feedNightBags) || 0;
+  const totalFeed24h = shift === "day" ? numFeedDay : shift === "night" ? numFeedNight : numFeedDay + numFeedNight;
+  const calculatedKg = bagsToKg(totalFeed24h);
+
+  const numMortDay = parseInt(mortDay, 10) || 0;
+  const numMortNight = parseInt(mortNight, 10) || 0;
+  const totalMort24h = shift === "day" ? numMortDay : shift === "night" ? numMortNight : numMortDay + numMortNight;
+
+  // Stock Reconciliation
+  const numOpening = parseFloat(openingStockBags) || 0;
+  const numReceived = parseFloat(receivedBags) || 0;
+  const numTransferOut = parseFloat(transferredOutBags) || 0;
+  const expectedClosing = Math.max(0, numOpening - totalFeed24h + numReceived - numTransferOut);
+  const reportedClosingNum = reportedClosingBags !== "" ? parseFloat(reportedClosingBags) : expectedClosing;
+  const hasShortage = reportedClosingBags !== "" && reportedClosingNum < expectedClosing - 0.01;
 
   const handleSubmit = async () => {
     const shedId = user?.assignedShedId || user?.shed?.id;
@@ -78,11 +140,26 @@ export default function DailyEntryScreen() {
       batchId: batchId || "batch-active",
       shedId,
       date,
-      mortalityCount: parseInt(mortality, 10) || 0,
-      mortalityCause: mortalityCause.trim(),
-      culls: parseInt(culls, 10) || 0,
-      feedUsedBags: parseFloat(feedBags) || 0,
+      shift,
+      // Shift Feed
+      feedUsedDayShiftBags: shift === "night" ? 0 : numFeedDay,
+      feedUsedNightShiftBags: shift === "day" ? 0 : numFeedNight,
+      feedUsedBags: totalFeed24h,
       feedUsedKg: calculatedKg,
+      openingFeedStockBags: numOpening,
+      feedReceivedBags: numReceived,
+      feedTransferredOutBags: numTransferOut,
+      closingFeedStockBags: reportedClosingNum,
+      feedRemarks: feedRemarks.trim(),
+      // Shift Mortality
+      mortalityDayShift: shift === "night" ? 0 : numMortDay,
+      mortalityDayCause: mortDayCause.trim(),
+      mortalityNightShift: shift === "day" ? 0 : numMortNight,
+      mortalityNightCause: mortNightCause.trim(),
+      mortalityCount: totalMort24h,
+      culls: parseInt(culls, 10) || 0,
+      // Paper "E.S" column
+      customColumnES: customColumnES !== "" ? parseFloat(customColumnES) : null,
       feedType,
       waterLiters: parseFloat(waterLiters) || 0,
       minTemp: parseFloat(minTemp) || 24,
@@ -94,8 +171,9 @@ export default function DailyEntryScreen() {
     try {
       // 1. Enqueue to OfflineStore immediately (offline-first write)
       await OfflineStore.enqueueMutation("DAILY_RECORD", "CREATE", payload);
+      setSavedOfflineNotice(true);
 
-      // 2. Attempt sync if online
+      // 2. Background sync attempt if connected
       if (token && user) {
         syncWithServer(API_BASE_URL, token, user.id).catch((e) =>
           console.warn("Background sync", e),
@@ -104,7 +182,7 @@ export default function DailyEntryScreen() {
 
       Alert.alert(
         "Mehfooz Ho Gaya! (Saved)",
-        "Aaj ka record kamyabi se darj ho gaya hai.",
+        "Rozana khata kamyabi se phone mein mehfooz ho gaya hai.",
         [
           {
             text: "Theek Hai (OK)",
@@ -122,33 +200,103 @@ export default function DailyEntryScreen() {
   return (
     <ScrollView
       contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      testID="daily-entry-scroll-view"
     >
-      <Text
-        style={[
-          styles.screenTitle,
-          {
-            color: colors.text,
-            fontSize: typography.sizes.xl,
-            fontWeight: typography.weights.bold,
-          },
-        ]}
-      >
-        {t("daily.title")}
-      </Text>
-      <Text
-        style={[
-          styles.screenSubtitle,
-          {
-            color: colors.textSecondary,
-            fontSize: typography.sizes.sm,
-            marginBottom: spacing.md,
-          },
-        ]}
-      >
-        {date} • Tareekh
-      </Text>
+      {/* Top Bar with Language Switcher */}
+      <View style={styles.topBar}>
+        <View>
+          <Text
+            style={[
+              styles.screenTitle,
+              {
+                color: colors.text,
+                fontSize: typography.sizes.xl,
+                fontWeight: typography.weights.bold,
+              },
+            ]}
+          >
+            {t("daily.title")}
+          </Text>
+          <Text
+            style={[
+              styles.screenSubtitle,
+              {
+                color: colors.textSecondary,
+                fontSize: typography.sizes.sm,
+              },
+            ]}
+          >
+            {date} • Tareekh (Date)
+          </Text>
+        </View>
 
-      {/* 1. Mortality (Murda Choozay) with fast touch increments */}
+        <TouchableOpacity
+          onPress={toggleLanguage}
+          testID="language-toggle-btn"
+          style={[
+            styles.langPill,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+            🌐 {currentLang === "ur" ? "English" : "Roman Urdu"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Saved Offline Banner */}
+      {savedOfflineNotice && (
+        <Card
+          testID="saved-offline-banner"
+          style={{
+            backgroundColor: "#E8F5E9",
+            borderColor: "#4CAF50",
+            marginBottom: spacing.md,
+            borderWidth: 1.5,
+          }}
+        >
+          <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 14 }}>
+            ✓ Mehfooz Ho Gaya! (Saved Offline)
+          </Text>
+          <Text style={{ color: "#388E3C", fontSize: 12, marginTop: 2 }}>
+            Record local SQLite database mein safe hai aur online hote hi sync ho jaye ga.
+          </Text>
+        </Card>
+      )}
+
+      {/* Shift Switcher */}
+      <View style={[styles.shiftRow, { marginVertical: spacing.sm }]}>
+        {[
+          { key: "day", label: "Din Ka Shift (DAY)" },
+          { key: "night", label: "Raat Ka Shift (NIGHT)" },
+          { key: "full", label: "Poora Din (24h FULL)" },
+        ].map((s) => (
+          <TouchableOpacity
+            key={s.key}
+            onPress={() => setShift(s.key as any)}
+            testID={`shift-tab-${s.key}`}
+            style={[
+              styles.shiftTab,
+              {
+                backgroundColor: shift === s.key ? colors.primary : colors.surface,
+                borderColor: shift === s.key ? colors.primary : colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: shift === s.key ? "#fff" : colors.text,
+                fontWeight: "700",
+                fontSize: 12,
+              }}
+            >
+              {s.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* 1. Mortality Section */}
       <Card elevated>
         <Text
           style={[
@@ -160,66 +308,121 @@ export default function DailyEntryScreen() {
             },
           ]}
         >
-          💀 {t("daily.mortality")} (Mout)
+          💀 {t("daily.mortality")} (Mout / Mortality)
         </Text>
 
-        <View style={styles.quickCounterRow}>
-          <TouchableOpacity
-            onPress={() => addMortality(1)}
-            style={[
-              styles.stepperButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.stepperText, { color: colors.text }]}>+1</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => addMortality(5)}
-            style={[
-              styles.stepperButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.stepperText, { color: colors.text }]}>+5</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => addMortality(-1)}
-            style={[
-              styles.stepperButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.stepperText, { color: colors.text }]}>-1</Text>
-          </TouchableOpacity>
-        </View>
+        {(shift === "day" || shift === "full") && (
+          <View style={{ marginBottom: spacing.sm }}>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              Din Ki Mout (Day Shift Mortality Count):
+            </Text>
+            <View style={styles.quickCounterRow}>
+              <TouchableOpacity
+                onPress={() => adjustMortDay(1)}
+                testID="mort-day-plus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustMortDay(5)}
+                testID="mort-day-plus-5"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustMortDay(-1)}
+                testID="mort-day-minus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>-1</Text>
+              </TouchableOpacity>
+            </View>
+            <Input
+              testID="mort-day-input"
+              placeholder="0"
+              value={mortDay}
+              onChangeText={setMortDay}
+              keyboardType="number-pad"
+              suffix={t("common.birds")}
+              inputStyle={styles.bigNumericInput}
+            />
+            <Input
+              testID="mort-day-cause-input"
+              label="Din Ki Wajah (Day Cause)"
+              placeholder="e.g. Garmi, Kamzori"
+              value={mortDayCause}
+              onChangeText={setMortDayCause}
+            />
+          </View>
+        )}
+
+        {(shift === "night" || shift === "full") && (
+          <View style={{ marginTop: spacing.xs, marginBottom: spacing.sm }}>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              Raat Ki Mout (Night Shift Mortality Count):
+            </Text>
+            <View style={styles.quickCounterRow}>
+              <TouchableOpacity
+                onPress={() => adjustMortNight(1)}
+                testID="mort-night-plus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustMortNight(5)}
+                testID="mort-night-plus-5"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustMortNight(-1)}
+                testID="mort-night-minus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>-1</Text>
+              </TouchableOpacity>
+            </View>
+            <Input
+              testID="mort-night-input"
+              placeholder="0"
+              value={mortNight}
+              onChangeText={setMortNight}
+              keyboardType="number-pad"
+              suffix={t("common.birds")}
+              inputStyle={styles.bigNumericInput}
+            />
+            <Input
+              testID="mort-night-cause-input"
+              label="Raat Ki Wajah (Night Cause)"
+              placeholder="e.g. Saans ka masla, Dhakka"
+              value={mortNightCause}
+              onChangeText={setMortNightCause}
+            />
+          </View>
+        )}
 
         <Input
-          placeholder="0"
-          value={mortality}
-          onChangeText={setMortality}
-          keyboardType="numeric"
-          suffix={t("common.birds")}
-          inputStyle={{ fontSize: 24, fontWeight: "700", textAlign: "center" }}
-        />
-
-        <Input
-          label={t("daily.mortalityCause")}
-          placeholder="Wajah (e.g. garmi, kamzori, normal)"
-          value={mortalityCause}
-          onChangeText={setMortalityCause}
-        />
-
-        <Input
-          label={t("daily.culls")}
+          testID="culls-input"
+          label={t("daily.culls") + " (Zaya / Kamzor)"}
           placeholder="0"
           value={culls}
           onChangeText={setCulls}
-          keyboardType="numeric"
+          keyboardType="number-pad"
           suffix={t("common.birds")}
         />
+
+        <View style={styles.summaryBadgeRow}>
+          <Text style={{ color: colors.text, fontWeight: "700" }}>
+            24h Mortality Total: {totalMort24h} birds
+          </Text>
+        </View>
       </Card>
 
-      {/* 2. Feed & Water (Khorak Aur Paani) */}
+      {/* 2. Feed Section */}
       <Card elevated style={{ marginTop: spacing.md }}>
         <Text
           style={[
@@ -243,18 +446,15 @@ export default function DailyEntryScreen() {
               style={[
                 styles.typeChip,
                 {
-                  backgroundColor:
-                    feedType === type ? colors.primary : colors.surface,
-                  borderColor:
-                    feedType === type ? colors.primary : colors.border,
+                  backgroundColor: feedType === type ? colors.primary : colors.surface,
+                  borderColor: feedType === type ? colors.primary : colors.border,
                 },
               ]}
             >
               <Text
                 style={{
-                  color: feedType === type ? colors.white : colors.text,
-                  fontWeight: "600",
-                  fontSize: typography.sizes.xs,
+                  color: feedType === type ? "#fff" : colors.text,
+                  fontWeight: "700",
                   textTransform: "capitalize",
                 }}
               >
@@ -264,27 +464,161 @@ export default function DailyEntryScreen() {
           ))}
         </View>
 
-        <Input
-          label="Bags Consumed (Borian)"
-          placeholder="8.0"
-          value={feedBags}
-          onChangeText={setFeedBags}
-          keyboardType="decimal-pad"
-          suffix={t("common.bags")}
-          helperText={`= ${calculatedKg} kg (at 50 kg/bag)`}
-        />
+        {(shift === "day" || shift === "full") && (
+          <View style={{ marginVertical: spacing.xs }}>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              Din Ki Khorak (Day Shift Bags):
+            </Text>
+            <View style={styles.quickCounterRow}>
+              <TouchableOpacity
+                onPress={() => adjustFeedDay(1)}
+                testID="feed-day-plus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+1 Bag</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustFeedDay(5)}
+                testID="feed-day-plus-5"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+5 Bags</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustFeedDay(-1)}
+                testID="feed-day-minus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>-1 Bag</Text>
+              </TouchableOpacity>
+            </View>
+            <Input
+              testID="feed-day-input"
+              placeholder="0"
+              value={feedDayBags}
+              onChangeText={setFeedDayBags}
+              keyboardType="numeric"
+              suffix="Bags"
+              inputStyle={styles.bigNumericInput}
+            />
+          </View>
+        )}
 
-        <Input
-          label={t("daily.waterLiters")}
-          placeholder="600"
-          value={waterLiters}
-          onChangeText={setWaterLiters}
-          keyboardType="numeric"
-          suffix={t("common.liters")}
-        />
+        {(shift === "night" || shift === "full") && (
+          <View style={{ marginVertical: spacing.xs }}>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              Raat Ki Khorak (Night Shift Bags):
+            </Text>
+            <View style={styles.quickCounterRow}>
+              <TouchableOpacity
+                onPress={() => adjustFeedNight(1)}
+                testID="feed-night-plus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+1 Bag</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustFeedNight(5)}
+                testID="feed-night-plus-5"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>+5 Bags</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => adjustFeedNight(-1)}
+                testID="feed-night-minus-1"
+                style={[styles.stepperButton, { borderColor: colors.border }]}
+              >
+                <Text style={styles.stepperText}>-1 Bag</Text>
+              </TouchableOpacity>
+            </View>
+            <Input
+              testID="feed-night-input"
+              placeholder="0"
+              value={feedNightBags}
+              onChangeText={setFeedNightBags}
+              keyboardType="numeric"
+              suffix="Bags"
+              inputStyle={styles.bigNumericInput}
+            />
+          </View>
+        )}
+
+        {/* 24h Feed Total Callout */}
+        <View style={[styles.metricCallout, { backgroundColor: colors.surface }]}>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            24h Feed: <Text style={{ fontWeight: "700", color: colors.primary }}>{totalFeed24h} Bags</Text> ({calculatedKg} kg)
+          </Text>
+        </View>
+
+        {/* Feed Stock Reconciliation */}
+        <View style={{ marginTop: spacing.md, borderTopWidth: 1, borderColor: colors.border, paddingTop: spacing.sm }}>
+          <Text style={{ fontWeight: "700", color: colors.text, marginBottom: 6 }}>
+            Stock Reconciliation (Borian Ka Hisab)
+          </Text>
+          <View style={styles.stockRow}>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Input
+                testID="feed-opening-input"
+                label="Opening Stock"
+                value={openingStockBags}
+                onChangeText={setOpeningStockBags}
+                keyboardType="numeric"
+                suffix="Bags"
+              />
+            </View>
+            <View style={{ flex: 1, marginRight: 6 }}>
+              <Input
+                testID="feed-received-input"
+                label="+ Aamad (Received)"
+                value={receivedBags}
+                onChangeText={setReceivedBags}
+                keyboardType="numeric"
+                suffix="Bags"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input
+                testID="feed-transfer-out-input"
+                label="- Diya (Transfer)"
+                value={transferredOutBags}
+                onChangeText={setTransferredOutBags}
+                keyboardType="numeric"
+                suffix="Bags"
+              />
+            </View>
+          </View>
+
+          <Input
+            testID="feed-closing-input"
+            label="Reported Closing Stock (Shed mein bachi hui borian)"
+            placeholder={expectedClosing.toString()}
+            value={reportedClosingBags}
+            onChangeText={setReportedClosingBags}
+            keyboardType="numeric"
+            suffix="Bags"
+          />
+
+          {hasShortage && (
+            <Badge
+              testID="feed-shortage-badge"
+              label={`⚠️ STOCK SHORTAGE DETECTED (Expected: ${expectedClosing} bags, Reported: ${reportedClosingNum} bags)`}
+              variant="danger"
+              style={{ marginTop: 4 }}
+            />
+          )}
+
+          <Input
+            testID="feed-remarks-input"
+            label="Feed In/Out Remarks"
+            placeholder="e.g. 5 bags Star Feed borrowed from Shed 2"
+            value={feedRemarks}
+            onChangeText={setFeedRemarks}
+          />
+        </View>
       </Card>
 
-      {/* 3. Environment (Darja Hararat & Bichauna) */}
+      {/* 3. Paper Register Unconfirmed Column "E.S" */}
       <Card elevated style={{ marginTop: spacing.md }}>
         <Text
           style={[
@@ -296,76 +630,99 @@ export default function DailyEntryScreen() {
             },
           ]}
         >
-          🌡️ Temperature & Litter (Bichauna)
+          📝 Paper Register Custom Column ("E.S")
+        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>
+          Register ka khas column (Formula se bahir hai - sirf record ke liye):
+        </Text>
+        <Input
+          testID="custom-column-es-input"
+          label="E.S Value (Optional)"
+          placeholder="0"
+          value={customColumnES}
+          onChangeText={setCustomColumnES}
+          keyboardType="numeric"
+        />
+      </Card>
+
+      {/* 4. Shed Environment (Paani, Temp, Bedding) */}
+      <Card elevated style={{ marginTop: spacing.md }}>
+        <Text
+          style={[
+            styles.cardHeader,
+            {
+              color: colors.text,
+              fontSize: typography.sizes.md,
+              fontWeight: typography.weights.bold,
+            },
+          ]}
+        >
+          🌡️ Environment (Mahol)
         </Text>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flex: 0.48 }}>
+        <Input
+          testID="water-liters-input"
+          label={t("daily.waterLiters")}
+          placeholder="600"
+          value={waterLiters}
+          onChangeText={setWaterLiters}
+          keyboardType="numeric"
+          suffix={t("common.liters")}
+        />
+
+        <View style={styles.stockRow}>
+          <View style={{ flex: 1, marginRight: 6 }}>
             <Input
-              label={t("daily.minTemp")}
-              placeholder="24.0"
+              testID="min-temp-input"
+              label="Min Temp (°C)"
               value={minTemp}
               onChangeText={setMinTemp}
-              keyboardType="decimal-pad"
-              suffix="°C"
+              keyboardType="numeric"
             />
           </View>
-          <View style={{ flex: 0.48 }}>
+          <View style={{ flex: 1 }}>
             <Input
-              label={t("daily.maxTemp")}
-              placeholder="30.0"
+              testID="max-temp-input"
+              label="Max Temp (°C)"
               value={maxTemp}
               onChangeText={setMaxTemp}
-              keyboardType="decimal-pad"
-              suffix="°C"
+              keyboardType="numeric"
             />
           </View>
         </View>
 
-        <Text
-          style={{
-            color: colors.text,
-            fontSize: typography.sizes.sm,
-            fontWeight: typography.weights.semibold,
-            marginBottom: 8,
-          }}
-        >
+        <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 6 }]}>
           {t("daily.litter")}
         </Text>
         <View style={styles.selectorRow}>
-          {[
-            { key: "dry", label: t("daily.dry") },
-            { key: "normal", label: t("daily.normal") },
-            { key: "wet", label: t("daily.wet") },
-          ].map((opt) => (
+          {(["dry", "normal", "wet"] as const).map((cond) => (
             <TouchableOpacity
-              key={opt.key}
-              onPress={() => setLitter(opt.key as any)}
+              key={cond}
+              onPress={() => setLitter(cond)}
               style={[
                 styles.typeChip,
                 {
-                  backgroundColor:
-                    litter === opt.key ? colors.secondary : colors.surface,
-                  borderColor:
-                    litter === opt.key ? colors.secondary : colors.border,
+                  backgroundColor: litter === cond ? colors.secondary : colors.surface,
+                  borderColor: litter === cond ? colors.secondary : colors.border,
                 },
               ]}
             >
               <Text
                 style={{
-                  color: litter === opt.key ? colors.white : colors.text,
-                  fontWeight: "600",
-                  fontSize: typography.sizes.xs,
+                  color: litter === cond ? "#fff" : colors.text,
+                  fontWeight: "700",
+                  textTransform: "capitalize",
                 }}
               >
-                {opt.label}
+                {cond}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <Input
-          label="Notes (Izafi Baat)"
+          testID="daily-notes-input"
+          label={t("common.notes")}
           placeholder={t("daily.notesPlaceholder")}
           value={notes}
           onChangeText={setNotes}
@@ -375,15 +732,15 @@ export default function DailyEntryScreen() {
       </Card>
 
       {/* Submit Button */}
-      <Button
-        title={
-          loading ? "Mehfooz Ho Raha Hai..." : "Mehfooz Karein (Submit Entry)"
-        }
-        size="lg"
-        loading={loading}
-        onPress={handleSubmit}
-        style={{ marginTop: spacing.xl, marginBottom: spacing.xxl }}
-      />
+      <View style={{ marginTop: spacing.lg }}>
+        <Button
+          testID="submit-daily-entry-btn"
+          title={loading ? t("common.loading") : "✓ " + t("common.save") + " (Darj Karein)"}
+          onPress={handleSubmit}
+          loading={loading}
+          size="lg"
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -392,41 +749,92 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: 60,
   },
-  screenTitle: {
-    marginBottom: 2,
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
+  screenTitle: {},
   screenSubtitle: {},
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  shiftRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  shiftTab: {
+    flex: 1,
+    marginHorizontal: 2,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
   cardHeader: {
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 4,
   },
   quickCounterRow: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   stepperButton: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: "center",
+    borderRadius: 6,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 6,
+    marginHorizontal: 3,
+    backgroundColor: "#F3F4F6",
   },
   stepperText: {
-    fontSize: 16,
     fontWeight: "700",
+    fontSize: 14,
+    color: "#1F2937",
+  },
+  bigNumericInput: {
+    fontSize: 22,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  summaryBadgeRow: {
+    marginTop: 8,
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
   },
   selectorRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   typeChip: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginHorizontal: 3,
+    marginHorizontal: 2,
+    paddingVertical: 8,
     alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  metricCallout: {
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    marginVertical: 4,
+  },
+  stockRow: {
+    flexDirection: "row",
+    marginBottom: 4,
   },
 });

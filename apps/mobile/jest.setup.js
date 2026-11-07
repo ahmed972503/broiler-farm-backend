@@ -58,13 +58,54 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
+// Mock i18next
+jest.mock("i18next", () => ({
+  use: () => ({
+    init: () => {},
+  }),
+  init: () => {},
+  changeLanguage: (lng) => {
+    mockCurrentLang = lng;
+    return Promise.resolve();
+  },
+  get language() {
+    return mockCurrentLang;
+  },
+}));
+
 // Mock react-i18next
+const mockUrTranslations = require("./src/i18n/ur.json");
+const mockEnTranslations = require("./src/i18n/en.json");
+
+let mockCurrentLang = "ur";
+
+function mockResolveTranslation(dict, key) {
+  const parts = key.split(".");
+  let cur = dict;
+  for (const p of parts) {
+    if (!cur || typeof cur !== "object") return null;
+    cur = cur[p];
+  }
+  return typeof cur === "string" ? cur : null;
+}
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (str) => str,
+    t: (str) => {
+      const activeDict = mockCurrentLang === "ur" ? mockUrTranslations : mockEnTranslations;
+      const translated = mockResolveTranslation(activeDict, str);
+      if (translated) return translated;
+      const fallback = mockResolveTranslation(mockEnTranslations, str);
+      return fallback || str;
+    },
     i18n: {
-      changeLanguage: () => new Promise(() => {}),
-      language: "en",
+      changeLanguage: (lng) => {
+        mockCurrentLang = lng;
+        return Promise.resolve();
+      },
+      get language() {
+        return mockCurrentLang;
+      },
     },
   }),
   initReactI18next: {

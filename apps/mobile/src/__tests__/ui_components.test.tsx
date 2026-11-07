@@ -120,7 +120,7 @@ describe("Design System UI Components", () => {
         syncError: null,
       });
       const { getByText } = render(<SyncStatusBanner />);
-      expect(getByText(/worker\.syncedNotice/i)).toBeTruthy();
+      expect(getByText(/Tamam record server par sync|worker\.syncedNotice/i)).toBeTruthy();
     });
 
     it("renders pending changes banner when items are queued", () => {
@@ -131,7 +131,7 @@ describe("Design System UI Components", () => {
       });
       const { getByText } = render(<SyncStatusBanner />);
       expect(getByText(/3/)).toBeTruthy();
-      expect(getByText(/sync\.pendingChanges/i)).toBeTruthy();
+      expect(getByText(/Baqi Records|sync\.pendingChanges/i)).toBeTruthy();
     });
   });
 });

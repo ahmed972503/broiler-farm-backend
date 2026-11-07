@@ -7,10 +7,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Switch,
 } from "react-native";
 import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button, Input } from "../../../src/components/ui";
 import { apiFetch } from "../../../src/api/client";
+import { calculateLiftingBirds } from "@broiler/shared";
 
 export default function SalesScreen() {
   const { colors, typography, spacing } = useTheme();
@@ -20,14 +22,21 @@ export default function SalesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Lifting consistency state
+  const [consistencyData, setConsistencyData] = useState<any>(null);
+
   // New Sale Form
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [selectedShedId, setSelectedShedId] = useState("");
+  const [lotNumber, setLotNumber] = useState("1");
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
-  const [birdsSold, setBirdsSold] = useState("2000");
-  const [totalLiveWeightKg, setTotalLiveWeightKg] = useState("4200");
-  const [ratePerKg, setRatePerKg] = useState("390"); // Manually editable
+  const [totalLiveWeightKg, setTotalLiveWeightKg] = useState("3475");
+  const [averageWeightKg, setAverageWeightKg] = useState("2.25");
+  const [isManualOverride, setIsManualOverride] = useState(false);
+  const [overrideBirdCount, setOverrideBirdCount] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [ratePerKg, setRatePerKg] = useState("380"); // Manually editable
   const [amountPaid, setAmountPaid] = useState("1000000");
   const [vehicleNo, setVehicleNo] = useState("");
   const [submittingSale, setSubmittingSale] = useState(false);
@@ -39,6 +48,18 @@ export default function SalesScreen() {
   const [payAmount, setPayAmount] = useState("");
   const [submittingPay, setSubmittingPay] = useState(false);
 
+  // Real-time calculated birds using shared formula
+  const numTotalWeight = parseFloat(totalLiveWeightKg) || 0;
+  const numAvgWeight = parseFloat(averageWeightKg) || 0;
+  const liftingCalc = calculateLiftingBirds(
+    numTotalWeight,
+    numAvgWeight,
+    isManualOverride ? parseInt(overrideBirdCount, 10) || 0 : undefined,
+    overrideReason,
+  );
+  const finalBirdsSold = liftingCalc.birds;
+  const totalCalculatedAmount = numTotalWeight * (parseFloat(ratePerKg) || 0);
+
   const loadData = async () => {
     try {
       const salesRes = await apiFetch("/api/sales");
@@ -47,8 +68,12 @@ export default function SalesScreen() {
       const shedRes = await apiFetch("/api/sheds");
       if (shedRes.success && shedRes.data) {
         setSheds(shedRes.data);
-        if (!selectedShedId && shedRes.data.length > 0)
-          setSelectedShedId(shedRes.data[0]._id);
+        const activeShed = shedRes.data[0];
+        if (!selectedShedId && activeShed) {
+          setSelectedShedId(activeShed._id);
+          const bId = activeShed.currentBatch?._id || activeShed.currentBatchId;
+          if (bId) fetchConsistency(bId);
+        }
       }
     } catch (err) {
       console.warn(err);
@@ -58,16 +83,32 @@ export default function SalesScreen() {
     }
   };
 
+  const fetchConsistency = async (batchId: string) => {
+    try {
+      const res = await apiFetch(`/api/sales/consistency/${batchId}`);
+      if (res.success && res.data) {
+        setConsistencyData(res.data);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const totalCalculated =
-    (parseFloat(totalLiveWeightKg) || 0) * (parseFloat(ratePerKg) || 0);
+  const handleSelectShed = (shedId: string) => {
+    setSelectedShedId(shedId);
+    const shed = sheds.find((s) => s._id === shedId);
+    const bId = shed?.currentBatch?._id || shed?.currentBatchId;
+    if (bId) fetchConsistency(bId);
+  };
 
   const handleCreateSale = async () => {
     const shed = sheds.find((s) => s._id === selectedShedId);
-    if (!shed?.currentBatch?._id && !shed?.currentBatchId) {
+    const batchId = shed?.currentBatch?._id || shed?.currentBatchId;
+    if (!batchId) {
       Alert.alert(
         "Error",
         "Selected shed has no active batch to lift birds from.",
@@ -84,13 +125,17 @@ export default function SalesScreen() {
       const res = await apiFetch("/api/sales", {
         method: "POST",
         body: JSON.stringify({
-          batchId: shed.currentBatch?._id || shed.currentBatchId,
+          batchId,
           shedId: selectedShedId,
+          lotNumber: parseInt(lotNumber, 10) || 1,
           buyerName: buyerName.trim(),
           buyerPhone: buyerPhone.trim(),
           date: new Date().toISOString().split("T")[0],
-          birdsSold: parseInt(birdsSold, 10),
-          totalLiveWeightKg: parseFloat(totalLiveWeightKg),
+          totalLiveWeightKg: numTotalWeight,
+          averageWeightKg: numAvgWeight,
+          birdsSold: finalBirdsSold,
+          isManualBirdCountOverride: isManualOverride,
+          overrideReason: isManualOverride ? overrideReason.trim() : undefined,
           ratePerKg: parseFloat(ratePerKg),
           amountPaid: parseFloat(amountPaid) || 0,
           vehicleNo: vehicleNo.trim(),
@@ -100,10 +145,11 @@ export default function SalesScreen() {
       if (res.success) {
         Alert.alert(
           "Sale Invoiced",
-          "Bird sale recorded and buyer balance ledger updated.",
+          `Lot #${lotNumber} recorded for ${finalBirdsSold} birds (${numTotalWeight} kg).`,
         );
         setShowSaleForm(false);
         loadData();
+        fetchConsistency(batchId);
       } else {
         Alert.alert("Error", res.error || "Failed to save sale");
       }
@@ -174,7 +220,7 @@ export default function SalesScreen() {
               fontWeight: typography.weights.heavy,
             }}
           >
-            Bird Sales & Buyer Ledger (Murghi Farokht)
+            Bird Catching & Lifting Notes (Gari Bharai)
           </Text>
           <Text
             style={{
@@ -182,22 +228,79 @@ export default function SalesScreen() {
               fontSize: typography.sizes.sm,
             }}
           >
-            Invoicing with editable rate per kg, vehicle lifting, and
-            installment receivables
+            Partial lifting lots, auto-calculated bird counts, and consistency reconciliation
           </Text>
         </View>
 
         <Button
-          title={showSaleForm ? "Cancel" : "+ New Bird Sale"}
+          testID="new-sale-toggle-btn"
+          title={showSaleForm ? "Cancel" : "+ New Catching Lot"}
           size="sm"
           onPress={() => setShowSaleForm(!showSaleForm)}
         />
       </View>
 
-      {/* Sale Form */}
+      {/* Flock Reconciliation & Consistency Card */}
+      {consistencyData && (
+        <Card
+          elevated
+          testID="lifting-consistency-card"
+          style={{
+            marginVertical: spacing.sm,
+            borderColor: consistencyData.isConsistent ? colors.primary : colors.warning,
+            borderWidth: 1.5,
+          }}
+        >
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontWeight: "700", color: colors.text, fontSize: 14 }}>
+              Flock Lifting Reconciliation ({consistencyData.batchNumber})
+            </Text>
+            <Badge
+              testID="consistency-status-badge"
+              label={consistencyData.isConsistent ? "RECONCILED" : "DISCREPANCY"}
+              variant={consistencyData.isConsistent ? "success" : "warning"}
+              size="sm"
+            />
+          </View>
+
+          <View style={styles.reconGrid}>
+            <View style={styles.reconCell}>
+              <Text style={styles.reconVal}>{consistencyData.chicksPlaced?.toLocaleString()}</Text>
+              <Text style={styles.reconLbl}>Placed</Text>
+            </View>
+            <View style={styles.reconCell}>
+              <Text style={[styles.reconVal, { color: colors.danger }]}>
+                -{consistencyData.totalMortality}
+              </Text>
+              <Text style={styles.reconLbl}>Mortality</Text>
+            </View>
+            <View style={styles.reconCell}>
+              <Text style={[styles.reconVal, { color: colors.primary }]}>
+                -{consistencyData.totalLifted}
+              </Text>
+              <Text style={styles.reconLbl}>Total Lifted</Text>
+            </View>
+            <View style={styles.reconCell}>
+              <Text style={[styles.reconVal, { color: colors.text }]}>
+                ={consistencyData.reportedRemaining}
+              </Text>
+              <Text style={styles.reconLbl}>Remaining</Text>
+            </View>
+          </View>
+
+          {consistencyData.warning && (
+            <Text testID="lifting-warning-text" style={{ color: colors.warning, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>
+              {consistencyData.warning}
+            </Text>
+          )}
+        </Card>
+      )}
+
+      {/* Sale / Lifting Form */}
       {showSaleForm ? (
         <Card
           elevated
+          testID="lifting-sale-form"
           style={{ borderColor: colors.primary, marginVertical: 10 }}
         >
           <Text
@@ -208,7 +311,7 @@ export default function SalesScreen() {
               marginBottom: 8,
             }}
           >
-            Record Broiler Bird Sale
+            Record Catching (Lifting) Lot
           </Text>
 
           <Text
@@ -227,7 +330,8 @@ export default function SalesScreen() {
             {sheds.map((s) => (
               <TouchableOpacity
                 key={s._id}
-                onPress={() => setSelectedShedId(s._id)}
+                onPress={() => handleSelectShed(s._id)}
+                testID={`select-shed-${s._id}`}
                 style={[
                   styles.chip,
                   {
@@ -254,43 +358,110 @@ export default function SalesScreen() {
             ))}
           </View>
 
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <View style={{ flex: 0.3 }}>
+              <Input
+                testID="lot-number-input"
+                label="Lot #"
+                value={lotNumber}
+                onChangeText={setLotNumber}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 0.67 }}>
+              <Input
+                testID="buyer-name-input"
+                label="Buyer / Dealer Name"
+                placeholder="e.g. Haji Aslam Chicken Merchant"
+                value={buyerName}
+                onChangeText={setBuyerName}
+              />
+            </View>
+          </View>
+
           <Input
-            label="Buyer Name"
-            placeholder="e.g. Haji Aslam Chicken Merchant"
-            value={buyerName}
-            onChangeText={setBuyerName}
-          />
-          <Input
+            testID="buyer-phone-input"
             label="Buyer Phone"
             placeholder="0300-1234567"
             value={buyerPhone}
             onChangeText={setBuyerPhone}
+            keyboardType="phone-pad"
           />
 
+          {/* Catching Auto-computation Fields: Total Weight & Avg Weight */}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
             <View style={{ flex: 0.48 }}>
               <Input
-                label="Birds Count"
-                value={birdsSold}
-                onChangeText={setBirdsSold}
-                keyboardType="numeric"
-                suffix="birds"
-              />
-            </View>
-            <View style={{ flex: 0.48 }}>
-              <Input
-                label="Total Live Weight"
+                testID="total-weight-input"
+                label="Total Live Weight (kg)"
                 value={totalLiveWeightKg}
                 onChangeText={setTotalLiveWeightKg}
                 keyboardType="decimal-pad"
                 suffix="kg"
               />
             </View>
+            <View style={{ flex: 0.48 }}>
+              <Input
+                testID="avg-weight-input"
+                label="Average Weight (kg)"
+                value={averageWeightKg}
+                onChangeText={setAverageWeightKg}
+                keyboardType="decimal-pad"
+                suffix="kg/bird"
+              />
+            </View>
           </View>
 
+          {/* Auto Computed Birds Badge */}
+          <View style={[styles.autoBirdsCard, { backgroundColor: colors.surface }]}>
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Computed Birds = Total Weight / Avg Weight:
+            </Text>
+            <Text testID="computed-birds-text" style={{ color: colors.primary, fontSize: 20, fontWeight: "800", marginTop: 2 }}>
+              {liftingCalc.calculatedBirds} birds
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+              {numTotalWeight} kg ÷ {numAvgWeight} kg = {liftingCalc.calculatedBirds} birds
+            </Text>
+          </View>
+
+          {/* Manual Override Option */}
+          <View style={styles.overrideRow}>
+            <Text style={{ color: colors.text, fontWeight: "600", fontSize: 13 }}>
+              Manually override bird count?
+            </Text>
+            <Switch
+              testID="override-switch"
+              value={isManualOverride}
+              onValueChange={setIsManualOverride}
+            />
+          </View>
+
+          {isManualOverride && (
+            <View style={{ marginBottom: 6 }}>
+              <Input
+                testID="override-count-input"
+                label="Verified Bird Count"
+                placeholder={liftingCalc.calculatedBirds.toString()}
+                value={overrideBirdCount}
+                onChangeText={setOverrideBirdCount}
+                keyboardType="numeric"
+                suffix="birds"
+              />
+              <Input
+                testID="override-reason-input"
+                label="Reason for Override"
+                placeholder="e.g. Coop head count verified by weighbridge supervisor"
+                value={overrideReason}
+                onChangeText={setOverrideReason}
+              />
+            </View>
+          )}
+
           <Input
+            testID="rate-per-kg-input"
             label="Rate Per Kg (PKR - Manually Editable)"
             value={ratePerKg}
             onChangeText={setRatePerKg}
@@ -310,16 +481,18 @@ export default function SalesScreen() {
             ]}
           >
             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-              Total Invoiced Amount:
+              Total Invoiced Amount ({finalBirdsSold} birds @ Rs. {ratePerKg}/kg):
             </Text>
             <Text
+              testID="total-invoice-amount-text"
               style={{ color: colors.primary, fontSize: 20, fontWeight: "800" }}
             >
-              Rs. {totalCalculated.toLocaleString()}
+              Rs. {totalCalculatedAmount.toLocaleString()}
             </Text>
           </View>
 
           <Input
+            testID="amount-paid-input"
             label="Amount Paid Upfront"
             value={amountPaid}
             onChangeText={setAmountPaid}
@@ -327,6 +500,7 @@ export default function SalesScreen() {
             suffix="Rs."
           />
           <Input
+            testID="vehicle-no-input"
             label="Vehicle Number (Gaari No.)"
             placeholder="e.g. LES-1234"
             value={vehicleNo}
@@ -334,7 +508,8 @@ export default function SalesScreen() {
           />
 
           <Button
-            title="Confirm Bird Sale"
+            testID="submit-sale-btn"
+            title="Confirm Catching Lot Sale"
             onPress={handleCreateSale}
             loading={submittingSale}
           />
@@ -345,6 +520,7 @@ export default function SalesScreen() {
       {showPaymentModal ? (
         <Card
           elevated
+          testID="payment-modal"
           style={{ borderColor: colors.secondary, marginVertical: 10 }}
         >
           <Text
@@ -352,38 +528,38 @@ export default function SalesScreen() {
               color: colors.secondary,
               fontSize: 16,
               fontWeight: "700",
-              marginBottom: 4,
+              marginBottom: 8,
             }}
           >
-            Record Payment Installment from {payBuyerName}
+            Record Buyer Installment Payment
           </Text>
+          <Text style={{ color: colors.text, fontSize: 13, marginBottom: 8 }}>
+            Buyer: <Text style={{ fontWeight: "700" }}>{payBuyerName}</Text>
+          </Text>
+
           <Input
-            label="Installment Amount in PKR"
-            placeholder="500000"
+            label="Payment Amount (PKR)"
+            placeholder="e.g. 500000"
             value={payAmount}
             onChangeText={setPayAmount}
             keyboardType="decimal-pad"
             suffix="Rs."
           />
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginTop: 6,
-            }}
-          >
+
+          <View style={{ flexDirection: "row", marginTop: 8 }}>
             <Button
               title="Cancel"
               variant="outline"
+              size="sm"
               onPress={() => setShowPaymentModal(false)}
-              style={{ flex: 0.48 }}
+              style={{ flex: 1, marginRight: 6 }}
             />
             <Button
               title="Save Payment"
-              variant="secondary"
+              size="sm"
               onPress={handleRecordPayment}
               loading={submittingPay}
-              style={{ flex: 0.48 }}
+              style={{ flex: 1 }}
             />
           </View>
         </Card>
@@ -393,13 +569,12 @@ export default function SalesScreen() {
       <Text
         style={{
           color: colors.text,
-          fontSize: typography.sizes.lg,
+          fontSize: typography.sizes.md,
           fontWeight: typography.weights.bold,
-          marginTop: spacing.md,
-          marginBottom: 8,
+          marginVertical: 8,
         }}
       >
-        Sales Invoices ({sales.length})
+        Recent Catching Lots & Invoices ({sales.length})
       </Text>
 
       {sales.map((sale) => (
@@ -413,19 +588,21 @@ export default function SalesScreen() {
           >
             <View>
               <Text
-                style={{ color: colors.text, fontSize: 16, fontWeight: "700" }}
+                style={{
+                  color: colors.text,
+                  fontWeight: "700",
+                  fontSize: 15,
+                }}
               >
-                {sale.buyerName}
+                Lot #{sale.lotNumber || 1} • {sale.buyerName}
               </Text>
               <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                {sale.date} • {sale.birdsSold?.toLocaleString()} birds •{" "}
-                {sale.totalLiveWeightKg?.toLocaleString()} kg @ Rs.{" "}
-                {sale.ratePerKg}/kg
+                {sale.date} • Shed: {sale.shedId?.name || "Shed"}
               </Text>
             </View>
 
             <Badge
-              label={sale.paymentStatus.toUpperCase()}
+              label={(sale.paymentStatus || "pending").toUpperCase()}
               variant={
                 sale.paymentStatus === "paid"
                   ? "success"
@@ -433,73 +610,99 @@ export default function SalesScreen() {
                     ? "warning"
                     : "danger"
               }
-            />
-          </View>
-
-          <View
-            style={[
-              styles.invoiceMetrics,
-              {
-                backgroundColor: colors.surface,
-                borderRadius: 8,
-                padding: 8,
-                marginTop: 8,
-              },
-            ]}
-          >
-            <View style={styles.cell}>
-              <Text
-                style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}
-              >
-                Rs. {sale.totalAmount?.toLocaleString()}
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 10 }}>
-                Total Billed
-              </Text>
-            </View>
-            <View style={styles.cell}>
-              <Text
-                style={{
-                  color: colors.success,
-                  fontWeight: "700",
-                  fontSize: 14,
-                }}
-              >
-                Rs. {sale.amountPaid?.toLocaleString()}
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 10 }}>
-                Paid
-              </Text>
-            </View>
-            <View style={styles.cell}>
-              <Text
-                style={{
-                  color: colors.danger,
-                  fontWeight: "700",
-                  fontSize: 14,
-                }}
-              >
-                Rs. {sale.balanceAmount?.toLocaleString()}
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 10 }}>
-                Balance
-              </Text>
-            </View>
-          </View>
-
-          {sale.balanceAmount > 0 ? (
-            <Button
-              title="+ Receive Payment Installment"
-              variant="outline"
               size="sm"
-              onPress={() => {
-                setPaymentSaleId(sale._id);
-                setPayBuyerName(sale.buyerName);
-                setShowPaymentModal(true);
-              }}
-              style={{ marginTop: 8 }}
             />
-          ) : null}
+          </View>
+
+          <View style={styles.metricsRow}>
+            <View style={styles.metricItem}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                Birds Sold
+              </Text>
+              <Text
+                style={{
+                  color: colors.text,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
+                {sale.birdsSold?.toLocaleString()}
+                {sale.isManualBirdCountOverride && (
+                  <Text style={{ color: colors.warning, fontSize: 10 }}> (Overridden)</Text>
+                )}
+              </Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                Live Weight
+              </Text>
+              <Text
+                style={{
+                  color: colors.text,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
+                {sale.totalLiveWeightKg} kg
+              </Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                Rate / kg
+              </Text>
+              <Text
+                style={{
+                  color: colors.text,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
+                Rs. {sale.ratePerKg}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.invoiceDetails, { borderTopColor: colors.border }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                Invoiced: Rs. {sale.totalAmount?.toLocaleString()}
+              </Text>
+              <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>
+                Paid: Rs. {sale.amountPaid?.toLocaleString() || "0"}
+              </Text>
+            </View>
+
+            {sale.balanceAmount > 0 && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 4,
+                }}
+              >
+                <Text
+                  style={{ color: colors.danger, fontWeight: "700", fontSize: 13 }}
+                >
+                  Balance Due: Rs. {sale.balanceAmount?.toLocaleString()}
+                </Text>
+
+                <Button
+                  title="Receive Payment"
+                  variant="outline"
+                  size="sm"
+                  onPress={() => {
+                    setPaymentSaleId(sale._id);
+                    setPayBuyerName(sale.buyerName);
+                    setPayAmount(sale.balanceAmount.toString());
+                    setShowPaymentModal(true);
+                  }}
+                />
+              </View>
+            )}
+          </View>
         </Card>
       ))}
     </ScrollView>
@@ -508,29 +711,75 @@ export default function SalesScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    flexWrap: "wrap",
+    marginBottom: 8,
   },
-  chip: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginRight: 6,
-    marginBottom: 6,
-  },
-  invoicePreview: {},
-  invoiceMetrics: {
+  reconGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
   },
-  cell: {
+  reconCell: {
+    alignItems: "center",
+  },
+  reconVal: {
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  reconLbl: {
+    fontSize: 10,
+    color: "#6B7280",
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 8,
+    marginBottom: 6,
+  },
+  autoBirdsCard: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    marginVertical: 6,
+  },
+  overrideRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 6,
+    paddingHorizontal: 4,
+  },
+  invoicePreview: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+  },
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 8,
+  },
+  metricItem: {
     alignItems: "center",
     flex: 1,
+  },
+  invoiceDetails: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
   },
 });

@@ -17,3 +17,4 @@ export default async function globalSetup() {
   process.env.TEST_MONGODB_URI = mongoServer.getUri();
   (global as any).__MONGO_SERVER__ = mongoServer;
 }
+

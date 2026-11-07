@@ -16,29 +16,64 @@ import { OfflineStore } from "../../src/db/offlineStore";
 import { useSyncStore } from "../../src/store/useSyncStore";
 import { useTranslation } from "react-i18next";
 
+interface MedicineItem {
+  id: string;
+  name: string;
+  type: "water_medication" | "vitamin" | "antibiotic" | "respiratory" | "acidifier" | "vaccine";
+  isVaccine: boolean;
+  timeOfAdministration: "morning" | "noon" | "evening" | "continuous";
+  waterQuantityLiters?: string;
+  notes?: string;
+}
+
 export default function WorkerVaccinationsScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const { user, token } = useAuthStore();
   const { syncWithServer } = useSyncStore();
   const { t } = useTranslation();
 
+  const [activeTab, setActiveTab] = useState<"vaccines" | "water_medication">("vaccines");
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [batchId, setBatchId] = useState<string>("");
 
-  // Medicine logging modal/fields
-  const [showMedForm, setShowMedForm] = useState(false);
-  const [medName, setMedName] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [reason, setReason] = useState("");
-  const [withdrawalDays, setWithdrawalDays] = useState("3");
-  const [submittingMed, setSubmittingMed] = useState(false);
+  // Daily multi-item medicine sheet state
+  const [medItems, setMedItems] = useState<MedicineItem[]>([
+    {
+      id: "med-1",
+      name: "Electrolytes + Vit C",
+      type: "vitamin",
+      isVaccine: false,
+      timeOfAdministration: "morning",
+      waterQuantityLiters: "200",
+    },
+  ]);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemType, setNewItemType] = useState<any>("vitamin");
+  const [submittingSheet, setSubmittingSheet] = useState(false);
+
+  // Common medicine name chips for autocomplete
+  const commonMedicines = [
+    "Electrolytes + Vit C",
+    "Enrofloxacin 10%",
+    "Colistin Sulphate",
+    "Neomycin",
+    "Tylosin Tartrate",
+    "Acidifier",
+    "Liver Tonic",
+    "ND + IB Live",
+  ];
 
   const shedId = user?.assignedShedId || user?.shed?.id;
 
-  const loadTasks = async () => {
+  const loadData = async () => {
     try {
       if (shedId) {
+        const shedRes = await apiFetch(`/api/sheds/${shedId}`);
+        const activeBatchId = shedRes.data?.currentBatchId || shedRes.data?.activeBatch?._id;
+        if (activeBatchId) setBatchId(activeBatchId);
+
         const res = await apiFetch(`/api/vaccinations/tasks?shedId=${shedId}`);
         if (res.success && res.data) {
           setTasks(res.data);
@@ -53,7 +88,7 @@ export default function WorkerVaccinationsScreen() {
   };
 
   useEffect(() => {
-    loadTasks();
+    loadData();
   }, [shedId]);
 
   const handleMarkComplete = async (task: any) => {
@@ -66,7 +101,6 @@ export default function WorkerVaccinationsScreen() {
 
       await OfflineStore.enqueueMutation("VACCINATION_TASK", "UPDATE", payload);
 
-      // Optimistically update UI
       setTasks((prev) =>
         prev.map((t) =>
           t._id === task._id
@@ -90,46 +124,113 @@ export default function WorkerVaccinationsScreen() {
     }
   };
 
-  const handleSaveMedicine = async () => {
-    if (!medName.trim() || !dosage.trim() || !reason.trim()) {
-      Alert.alert("Required", "Please fill medicine name, dosage, and reason.");
+  // Copy yesterday's medicine list ("Ditto" feature)
+  const handleCopyYesterday = async () => {
+    try {
+      if (!batchId) {
+        Alert.alert("Notice", "Batch ID not loaded yet. Using standard morning vitamins template.");
+        setMedItems([
+          {
+            id: `med-${Date.now()}-1`,
+            name: "Electrolytes + Vit C",
+            type: "vitamin",
+            isVaccine: false,
+            timeOfAdministration: "morning",
+          },
+          {
+            id: `med-${Date.now()}-2`,
+            name: "Acidifier",
+            type: "acidifier",
+            isVaccine: false,
+            timeOfAdministration: "noon",
+          },
+        ]);
+        return;
+      }
+
+      const res = await apiFetch(
+        `/api/vaccinations/medicines/yesterday?batchId=${batchId}&date=${new Date().toISOString().split("T")[0]}`,
+      );
+
+      if (res.success && res.data && res.data.length > 0) {
+        setMedItems(
+          res.data.map((item: any, idx: number) => ({
+            id: `ditto-${Date.now()}-${idx}`,
+            name: item.name,
+            type: item.type || "water_medication",
+            isVaccine: Boolean(item.isVaccine),
+            timeOfAdministration: item.timeOfAdministration || "morning",
+            waterQuantityLiters: item.waterQuantityLiters ? item.waterQuantityLiters.toString() : "",
+            notes: item.notes || "",
+          })),
+        );
+        Alert.alert("Ditto Kamyab!", "Kal wali dawaiyan aaj ke list mein shamil ho gayin.");
+      } else {
+        Alert.alert("Info", "Kal ka koi purana medicine record nahi mila. Standard template shamil kar diya hai.");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Could not fetch yesterday's medicines");
+    }
+  };
+
+  const handleAddItem = (nameToAdd?: string) => {
+    const name = (nameToAdd || newItemName).trim();
+    if (!name) return;
+
+    setMedItems((prev) => [
+      ...prev,
+      {
+        id: `med-${Date.now()}`,
+        name,
+        type: newItemType,
+        isVaccine: false,
+        timeOfAdministration: "morning",
+      },
+    ]);
+    setNewItemName("");
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setMedItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleSaveDailyMedicineSheet = async () => {
+    if (medItems.length === 0) {
+      Alert.alert("Required", "Kam az kam aik dawai ya supplement darj karein.");
       return;
     }
 
-    setSubmittingMed(true);
+    setSubmittingSheet(true);
     try {
       const todayStr = new Date().toISOString().split("T")[0];
       const payload = {
-        batchId: user?.shed?.currentBatchId || "batch-active",
+        batchId: batchId || "batch-active",
         shedId,
         date: todayStr,
-        medicineName: medName.trim(),
-        dosage: dosage.trim(),
-        route: "drinking_water",
-        reason: reason.trim(),
-        withdrawalPeriodDays: parseInt(withdrawalDays, 10) || 0,
+        items: medItems.map((item) => ({
+          name: item.name,
+          type: item.type,
+          isVaccine: item.isVaccine,
+          timeOfAdministration: item.timeOfAdministration,
+          waterQuantityLiters: item.waterQuantityLiters ? parseFloat(item.waterQuantityLiters) : undefined,
+          notes: item.notes,
+        })),
       };
 
-      await OfflineStore.enqueueMutation("MEDICINE_RECORD", "CREATE", payload);
+      await OfflineStore.enqueueMutation("DAILY_MEDICINE", "CREATE", payload);
 
       if (token && user) {
-        syncWithServer(API_BASE_URL, token, user.id).catch((e) =>
-          console.warn(e),
-        );
+        syncWithServer(API_BASE_URL, token, user.id).catch((e) => console.warn(e));
       }
 
       Alert.alert(
-        "Dawai Darj Ho Gayi",
-        "Medicine treatment logged successfully.",
+        "Dawai Darj Ho Gayi!",
+        "Aaj ka medicine khata kamyabi se phone mein mehfooz ho gaya hai.",
       );
-      setShowMedForm(false);
-      setMedName("");
-      setDosage("");
-      setReason("");
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to save medicine record");
+      Alert.alert("Error", err.message || "Failed to save medicine sheet");
     } finally {
-      setSubmittingMed(false);
+      setSubmittingSheet(false);
     }
   };
 
@@ -144,12 +245,30 @@ export default function WorkerVaccinationsScreen() {
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            loadTasks();
+            loadData();
           }}
           colors={[colors.primary]}
         />
       }
     >
+      {/* Veterinary Verification Mandatory Disclaimer Banner */}
+      <Card
+        style={{
+          backgroundColor: "#FFFBEB",
+          borderColor: "#F59E0B",
+          marginBottom: spacing.md,
+          borderWidth: 1.5,
+        }}
+      >
+        <Text style={{ color: "#B45309", fontWeight: "700", fontSize: 13 }}>
+          ⚕️ Veterinary Notice
+        </Text>
+        <Text style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
+          Vaccination schedules and Cobb 500 target curves must be verified and approved by a registered poultry veterinarian.
+        </Text>
+      </Card>
+
+      {/* Screen Title */}
       <View style={styles.headerRow}>
         <Text
           style={[
@@ -161,234 +280,327 @@ export default function WorkerVaccinationsScreen() {
             },
           ]}
         >
-          {t("nav.vaccinations")}
+          {t("nav.vaccinations")} (Teekay Aur Dawaiyan)
         </Text>
+      </View>
+
+      {/* Segmented Switcher */}
+      <View style={styles.tabBar}>
         <TouchableOpacity
-          onPress={() => setShowMedForm(!showMedForm)}
-          style={[styles.addMedButton, { backgroundColor: colors.secondary }]}
+          onPress={() => setActiveTab("vaccines")}
+          testID="tab-vaccines"
+          style={[
+            styles.tabItem,
+            {
+              backgroundColor: activeTab === "vaccines" ? colors.primary : colors.surface,
+              borderColor: activeTab === "vaccines" ? colors.primary : colors.border,
+            },
+          ]}
         >
           <Text
             style={{
-              color: colors.white,
-              fontSize: typography.sizes.xs,
-              fontWeight: typography.weights.bold,
+              color: activeTab === "vaccines" ? "#fff" : colors.text,
+              fontWeight: "700",
+              fontSize: 13,
             }}
           >
-            {showMedForm ? "Hide Form" : "+ Log Medicine"}
+            💉 Scheduled Vaccines ({pendingTasks.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveTab("water_medication")}
+          testID="tab-water-medication"
+          style={[
+            styles.tabItem,
+            {
+              backgroundColor: activeTab === "water_medication" ? colors.secondary : colors.surface,
+              borderColor: activeTab === "water_medication" ? colors.secondary : colors.border,
+            },
+          ]}
+        >
+          <Text
+            style={{
+              color: activeTab === "water_medication" ? "#fff" : colors.text,
+              fontWeight: "700",
+              fontSize: 13,
+            }}
+          >
+            💊 Water Medicines ({medItems.length})
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Medicine Form Card */}
-      {showMedForm ? (
-        <Card
-          elevated
-          style={{ borderColor: colors.secondary, marginBottom: spacing.md }}
-        >
+      {/* TAB 1: SCHEDULED VACCINES */}
+      {activeTab === "vaccines" ? (
+        <View>
           <Text
-            style={{
-              color: colors.secondary,
-              fontSize: typography.sizes.md,
-              fontWeight: typography.weights.bold,
-              marginBottom: 8,
-            }}
+            style={[
+              styles.sectionHeader,
+              {
+                color: colors.text,
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.bold,
+                marginTop: spacing.sm,
+              },
+            ]}
           >
-            💊 Record Medicine Treatment
+            Pending Vaccines ({pendingTasks.length})
           </Text>
-          <Input
-            label="Medicine Name (Dawai Ka Naam)"
-            placeholder="e.g. Enrofloxacin / Colistin"
-            value={medName}
-            onChangeText={setMedName}
-          />
-          <Input
-            label="Dosage (Miqdar)"
-            placeholder="e.g. 1g per 2L water"
-            value={dosage}
-            onChangeText={setDosage}
-          />
-          <Input
-            label="Reason / Diagnosis (Wajah)"
-            placeholder="e.g. Mild coughing / CRD"
-            value={reason}
-            onChangeText={setReason}
-          />
-          <Input
-            label="Withdrawal Period (Days - Asar Khatam Hone Ke Din)"
-            placeholder="3"
-            value={withdrawalDays}
-            onChangeText={setWithdrawalDays}
-            keyboardType="numeric"
-            suffix="days"
-          />
-          <Button
-            title="Save Medicine Record"
-            onPress={handleSaveMedicine}
-            loading={submittingMed}
-            variant="secondary"
-          />
-        </Card>
-      ) : null}
 
-      {/* Pending Tasks */}
-      <Text
-        style={[
-          styles.sectionHeader,
-          {
-            color: colors.text,
-            fontSize: typography.sizes.md,
-            fontWeight: typography.weights.bold,
-            marginTop: spacing.sm,
-          },
-        ]}
-      >
-        Pending Tasks ({pendingTasks.length})
-      </Text>
-
-      {pendingTasks.length === 0 ? (
-        <Card style={{ padding: 16, alignItems: "center" }}>
-          <Text style={{ fontSize: 24, marginBottom: 6 }}>🎉</Text>
-          <Text style={{ color: colors.text, fontWeight: "600" }}>
-            {t("worker.allVaccinesCompleted")}
-          </Text>
-        </Card>
-      ) : (
-        pendingTasks.map((task) => {
-          const todayStr = new Date().toISOString().split("T")[0];
-          const isOverdue = task.dueDate < todayStr;
-          return (
-            <Card
-              key={task._id}
-              elevated
-              style={{
-                borderColor: isOverdue ? colors.danger : colors.warning,
-              }}
-            >
-              <View
+          {pendingTasks.length === 0 ? (
+            <Card style={{ padding: 16, alignItems: "center" }}>
+              <Text style={{ fontSize: 24, marginBottom: 6 }}>🎉</Text>
+              <Text style={{ color: colors.text, fontWeight: "600" }}>
+                {t("worker.allVaccinesCompleted")}
+              </Text>
+            </Card>
+          ) : (
+            pendingTasks.map((task) => (
+              <Card
+                key={task._id}
+                elevated
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  marginVertical: 6,
+                  borderColor: colors.warning,
+                  borderLeftWidth: 4,
                 }}
               >
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: typography.sizes.base,
+                <View style={styles.taskCardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontWeight: "700",
+                        fontSize: 15,
+                      }}
+                    >
+                      {task.vaccineName}
+                    </Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                      Day {task.ageInDays} • Due: {task.dueDate}
+                    </Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                      Route: {task.route}
+                    </Text>
+                  </View>
+
+                  <Badge label="DUE" variant="warning" size="sm" />
+                </View>
+
+                <View style={{ marginTop: 10 }}>
+                  <Button
+                    title="✓ Mark Administered"
+                    size="sm"
+                    onPress={() => handleMarkComplete(task)}
+                  />
+                </View>
+              </Card>
+            ))
+          )}
+
+          {completedTasks.length > 0 && (
+            <View style={{ marginTop: spacing.md }}>
+              <Text
+                style={[
+                  styles.sectionHeader,
+                  {
+                    color: colors.textSecondary,
+                    fontSize: typography.sizes.sm,
                     fontWeight: typography.weights.bold,
-                    flex: 1,
-                  }}
+                  },
+                ]}
+              >
+                Completed Vaccines ({completedTasks.length})
+              </Text>
+              {completedTasks.map((task) => (
+                <Card
+                  key={task._id}
+                  style={{ marginVertical: 4, opacity: 0.8 }}
                 >
-                  {task.vaccineName}
+                  <View style={styles.taskCardHeader}>
+                    <View>
+                      <Text
+                        style={{
+                          color: colors.text,
+                          fontWeight: "600",
+                          textDecorationLine: "line-through",
+                        }}
+                      >
+                        {task.vaccineName}
+                      </Text>
+                      <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                        Completed: {task.completedAt}
+                      </Text>
+                    </View>
+                    <Badge label="COMPLETED" variant="success" size="sm" />
+                  </View>
+                </Card>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : (
+        /* TAB 2: WATER MEDICATION & SUPPLEMENTS (DAILY SHEET) */
+        <View>
+          {/* Ditto Action Header */}
+          <View style={styles.dittoHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 15 }}>
+                Rozana Dawai Ka Khata
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                4-8 items rozana (Vitamins, Electrolytes, Antibiotics)
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleCopyYesterday}
+              testID="copy-yesterday-btn"
+              style={[styles.dittoBtn, { backgroundColor: colors.surface, borderColor: colors.secondary }]}
+            >
+              <Text style={{ color: colors.secondary, fontWeight: "800", fontSize: 13 }}>
+                📋 Copy Yesterday (Ditto)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Autocomplete Quick Chips */}
+          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8, marginBottom: 4 }}>
+            Jaldi Select Karein (Frequent Medicines):
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+            {commonMedicines.map((m) => (
+              <TouchableOpacity
+                key={m}
+                onPress={() => handleAddItem(m)}
+                testID={`autocomplete-chip-${m.replace(/[^a-zA-Z0-9]/g, "")}`}
+                style={[styles.medChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Text style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>
+                  + {m}
                 </Text>
-                <Badge
-                  label={isOverdue ? "OVERDUE" : "DUE"}
-                  variant={isOverdue ? "danger" : "warning"}
-                  size="sm"
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Add Medicine Input */}
+          <Card elevated style={{ marginVertical: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Input
+                  testID="new-med-input"
+                  placeholder="Dawai Ka Naam (e.g. Enrofloxacin)"
+                  value={newItemName}
+                  onChangeText={setNewItemName}
                 />
               </View>
-
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: typography.sizes.xs,
-                  marginTop: 4,
-                }}
-              >
-                Route: {task.route} • Age: Day {task.ageInDays} • Due:{" "}
-                {task.dueDate}
-              </Text>
-              {task.notes ? (
-                <Text
-                  style={{
-                    color: colors.textMuted,
-                    fontSize: typography.sizes.xs,
-                    marginTop: 4,
-                    fontStyle: "italic",
-                  }}
-                >
-                  {task.notes}
-                </Text>
-              ) : null}
-
               <Button
-                title="Mark Done (Teeka Lag Gaya)"
+                testID="add-med-item-btn"
+                title="+ Add"
                 size="sm"
-                onPress={() => handleMarkComplete(task)}
-                style={{ marginTop: spacing.md }}
+                onPress={() => handleAddItem()}
               />
-            </Card>
-          );
-        })
-      )}
+            </View>
+          </Card>
 
-      {/* Completed Tasks History */}
-      <Text
-        style={[
-          styles.sectionHeader,
-          {
-            color: colors.text,
-            fontSize: typography.sizes.md,
-            fontWeight: typography.weights.bold,
-            marginTop: spacing.lg,
-          },
-        ]}
-      >
-        Completed History ({completedTasks.length})
-      </Text>
-
-      {completedTasks.map((task) => (
-        <Card key={task._id} style={{ opacity: 0.85, marginVertical: 4 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                color: colors.text,
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.semibold,
-              }}
-            >
-              {task.vaccineName}
-            </Text>
-            <Badge label="DONE" variant="success" size="sm" />
-          </View>
-          <Text
-            style={{
-              color: colors.textMuted,
-              fontSize: typography.sizes.xs,
-              marginTop: 2,
-            }}
-          >
-            Administered on {task.completedAt}
+          {/* Current Day's Items List */}
+          <Text style={{ fontWeight: "700", color: colors.text, marginVertical: 6 }}>
+            Aaj Di Jane Wali Dawaiyan ({medItems.length} Items):
           </Text>
-        </Card>
-      ))}
+
+          {medItems.map((item, idx) => (
+            <Card key={item.id} style={{ marginVertical: 4 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
+                    {idx + 1}. {item.name}
+                  </Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 11, textTransform: "capitalize" }}>
+                    Waqt: {item.timeOfAdministration} • Qisam: {item.type.replace("_", " ")}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => handleRemoveItem(item.id)}
+                  testID={`remove-med-${idx}`}
+                  style={{ padding: 6 }}
+                >
+                  <Text style={{ color: colors.danger, fontWeight: "700", fontSize: 14 }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          ))}
+
+          {/* Save Sheet Button */}
+          <View style={{ marginTop: spacing.md }}>
+            <Button
+              testID="save-medicine-sheet-btn"
+              title="✓ Save Today's Medicine List (Khata Mehfooz Karein)"
+              onPress={handleSaveDailyMedicineSheet}
+              loading={submittingSheet}
+              variant="secondary"
+              size="lg"
+            />
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   title: {},
-  addMedButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  tabBar: {
+    flexDirection: "row",
+    marginVertical: 8,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
     borderRadius: 8,
+    borderWidth: 1,
+    marginHorizontal: 3,
   },
   sectionHeader: {
+    marginBottom: 6,
+  },
+  taskCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dittoHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  dittoBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  chipsScroll: {
+    flexDirection: "row",
     marginBottom: 8,
+  },
+  medChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 6,
   },
 });

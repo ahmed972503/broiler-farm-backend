@@ -13,6 +13,7 @@ export interface CardProps {
   style?: StyleProp<ViewStyle>;
   elevated?: boolean;
   onPress?: () => void;
+  testID?: string;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -20,6 +21,7 @@ export const Card: React.FC<CardProps> = ({
   style,
   elevated = false,
   onPress,
+  testID,
 }) => {
   const { colors, spacing, borderRadius } = useTheme();
 
@@ -37,13 +39,13 @@ export const Card: React.FC<CardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.8} onPress={onPress} style={cardStyle}>
+      <TouchableOpacity testID={testID} activeOpacity={0.8} onPress={onPress} style={cardStyle}>
         {children}
       </TouchableOpacity>
     );
   }
 
-  return <View style={cardStyle}>{children}</View>;
+  return <View testID={testID} style={cardStyle}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

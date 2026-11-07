@@ -13,6 +13,11 @@ export default function SettingsScreen() {
   const [phone, setPhone] = useState("0300-1234567");
   const [bagWeight, setBagWeight] = useState("50.0");
 
+  // Paper Register & Architecture Customizations
+  const [customColumnLabel, setCustomColumnLabel] = useState("E.S");
+  const [customColumnEnabled, setCustomColumnEnabled] = useState(true);
+  const [batchScope, setBatchScope] = useState<"multi_shed" | "per_shed">("multi_shed");
+
   // Alert Thresholds
   const [mortalitySpike, setMortalitySpike] = useState("0.8");
   const [lowFeedBags, setLowFeedBags] = useState("20");
@@ -34,6 +39,9 @@ export default function SettingsScreen() {
         if (d.phone) setPhone(d.phone);
         if (d.defaultFeedBagWeightKg)
           setBagWeight(d.defaultFeedBagWeightKg.toString());
+        if (d.customDailyColumnLabel) setCustomColumnLabel(d.customDailyColumnLabel);
+        if (d.customDailyColumnEnabled !== undefined) setCustomColumnEnabled(d.customDailyColumnEnabled);
+        if (d.batchScope) setBatchScope(d.batchScope);
 
         if (d.alertThresholds) {
           const t = d.alertThresholds;
@@ -63,6 +71,9 @@ export default function SettingsScreen() {
           location: location.trim(),
           phone: phone.trim(),
           defaultFeedBagWeightKg: parseFloat(bagWeight) || 50,
+          customDailyColumnLabel: customColumnLabel.trim() || "E.S",
+          customDailyColumnEnabled: customColumnEnabled,
+          batchScope: batchScope,
           alertThresholds: {
             mortalitySpikePercentDaily: parseFloat(mortalitySpike) || 0.8,
             lowFeedStockBags: parseInt(lowFeedBags, 10) || 20,
@@ -170,6 +181,59 @@ export default function SettingsScreen() {
           suffix="kg/bag"
           helperText="Pakistan poultry standard is 50.0 kg"
         />
+      </Card>
+
+      {/* Paper Register & Shed Customizations */}
+      <Card elevated style={{ marginTop: spacing.md }}>
+        <Text
+          style={{
+            color: colors.primary,
+            fontSize: 16,
+            fontWeight: "700",
+            marginBottom: 8,
+          }}
+        >
+          Paper Register & Shed Structure
+        </Text>
+
+        <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>
+          Batch & Shed Architecture:
+        </Text>
+        <View style={{ flexDirection: "row", marginBottom: 12 }}>
+          <Button
+            title="Multi-Shed Flock (Combined)"
+            variant={batchScope === "multi_shed" ? "primary" : "outline"}
+            size="sm"
+            onPress={() => setBatchScope("multi_shed")}
+            style={{ marginRight: 8, flex: 1 }}
+          />
+          <Button
+            title="Per-Shed Batches (Isolated)"
+            variant={batchScope === "per_shed" ? "primary" : "outline"}
+            size="sm"
+            onPress={() => setBatchScope("per_shed")}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        <Input
+          label="Custom Daily Column Header"
+          value={customColumnLabel}
+          onChangeText={setCustomColumnLabel}
+          helperText="Default 'E.S' column from paper register. Excluded from automated formulas until assigned."
+        />
+
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <Text style={{ color: colors.text, fontSize: 14 }}>
+            Enable Custom Daily Column in Register:
+          </Text>
+          <Button
+            title={customColumnEnabled ? "Enabled" : "Disabled"}
+            variant={customColumnEnabled ? "secondary" : "outline"}
+            size="sm"
+            onPress={() => setCustomColumnEnabled(!customColumnEnabled)}
+          />
+        </View>
       </Card>
 
       {/* Automated Alert Thresholds */}
