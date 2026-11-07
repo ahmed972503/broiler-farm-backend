@@ -10,10 +10,22 @@ router.use(authenticate, requireAdmin);
 router.get("/batch/:id", ReportController.getBatchReport);
 router.get("/batch/:id/csv", ReportController.getBatchCSV);
 router.get("/weekly-summary/:batchId", ReportController.getWeeklySummary);
-router.get("/daily-register/:batchId/csv", ReportController.exportDailyRegisterCSV);
-router.get("/weekly-summary/:batchId/csv", ReportController.exportWeeklySummaryCSV);
-router.get("/daily-register/:batchId/html", ReportController.exportDailyRegisterHTML);
-router.get("/weekly-summary/:batchId/html", ReportController.exportWeeklySummaryHTML);
+router.get(
+  "/daily-register/:batchId/csv",
+  ReportController.exportDailyRegisterCSV,
+);
+router.get(
+  "/weekly-summary/:batchId/csv",
+  ReportController.exportWeeklySummaryCSV,
+);
+router.get(
+  "/daily-register/:batchId/html",
+  ReportController.exportDailyRegisterHTML,
+);
+router.get(
+  "/weekly-summary/:batchId/html",
+  ReportController.exportWeeklySummaryHTML,
+);
 router.get("/feed-party-ledger", ReportController.getFeedPartyLedger);
 router.get("/sheds", ReportController.getShedComparison);
 router.get("/feed", ReportController.getFeedReport);

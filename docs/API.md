@@ -12,13 +12,7 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ### `POST /api/auth/login`
 
 - **Access**: Public
-- **Body**:
-  ```json
-  {
-    "username": "admin",
-    "password": "password123"
-  }
-  ```
+- **Body**: `{ "username": "admin", "password": "password123" }`
 - **Response `200 OK`**:
   ```json
   {
@@ -30,7 +24,8 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
         "id": "65f0a...",
         "username": "admin",
         "name": "Haji Muhammad Ahmed",
-        "role": "admin"
+        "role": "admin",
+        "mustChangePassword": true
       }
     }
   }
@@ -40,7 +35,6 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 
 - **Access**: Public
 - **Body**: `{ "refreshToken": "eyJhbGciOi..." }`
-- **Response `200 OK`**: `{ "success": true, "data": { "accessToken": "...", "refreshToken": "..." } }`
 
 ### `POST /api/auth/logout`
 
@@ -54,229 +48,101 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 ### `POST /api/auth/users`
 
 - **Access**: Admin only
-- **Body**:
-  ```json
-  {
-    "username": "worker2",
-    "password": "workerPassword123",
-    "name": "Rashid Khan",
-    "phone": "03021234567",
-    "role": "worker",
-    "assignedShedId": "65f0a..."
-  }
-  ```
-
-### `POST /api/auth/reset-password`
-
-- **Access**: Admin only
-- **Body**: `{ "userId": "...", "newPassword": "newSecretPassword" }`
+- **Body**: `{ "username": "worker2", "password": "...", "name": "...", "phone": "...", "role": "worker", "assignedShedId": "..." }`
+- Note: New users are always created with `mustChangePassword: true`.
 
 ---
 
-## 2. Sheds (`/api/sheds`)
-
-### `GET /api/sheds`
-
-- **Access**: Authenticated (Workers only see their assigned shed)
-- **Returns**: Array of sheds with assigned worker and active batch stats.
-
-### `GET /api/sheds/:id`
-
-- **Access**: Authenticated (Workers restricted to assigned shed)
-
-### `POST /api/sheds`
-
-- **Access**: Admin only
-- **Body**: `{ "name": "Shed 1", "shedNumber": 1, "capacity": 5000, "status": "active" }`
-
-### `PUT /api/sheds/:id`
-
-- **Access**: Admin only
-
----
-
-## 3. Batches / Flocks (`/api/batches`)
-
-### `GET /api/batches`
-
-- **Query Params**: `status=active|closed`, `shedId=...`
-- **Access**: Authenticated
-
-### `GET /api/batches/:id`
-
-- **Access**: Authenticated (Workers restricted to their shed's flock)
-
-### `POST /api/batches`
-
-- **Access**: Admin only
-- **Description**: Places a new flock in an empty shed. Computes initial chick cost and auto-instantiates vaccination tasks.
-- **Body**:
-  ```json
-  {
-    "batchNumber": "FLOCK-S1-2026-02",
-    "shedId": "65f0a...",
-    "chicksPlaced": 5000,
-    "placementDate": "2026-03-01",
-    "expectedCloseDate": "2026-04-08",
-    "supplier": "Jadeed Chicks",
-    "breed": "Cobb 500",
-    "chickRate": 115
-  }
-  ```
-
-### `POST /api/batches/:id/close`
-
-- **Access**: Admin only
-- **Description**: Harvests flock, computes FCR, mortality %, net profit, cost per kg, and sets shed to `cleaning`.
-- **Body**:
-  ```json
-  {
-    "closedAt": "2026-04-05",
-    "finalMortalityAdjustment": 10,
-    "finalCullsAdjustment": 2,
-    "notes": "Flock lifted successfully"
-  }
-  ```
-
----
-
-## 4. Daily Records (`/api/daily-records`)
-
-### `GET /api/daily-records`
-
-- **Query Params**: `batchId=...`, `shedId=...`, `date=YYYY-MM-DD`
-
-### `GET /api/daily-records/today/:shedId?`
-
-- **Access**: Authenticated (Worker receives today's record for their shed)
+## 2. Daily Records & Shift Merging (`/api/daily-records`)
 
 ### `POST /api/daily-records`
 
-- **Access**: Authenticated (Workers can only submit for their assigned shed)
+- **Access**: Authenticated (Workers for assigned shed, Admin for all sheds)
 - **Body**:
   ```json
   {
-    "batchId": "65f0a...",
+    "batchId": "65f0b...",
     "shedId": "65f0a...",
-    "date": "2026-03-15",
-    "mortalityCount": 4,
-    "mortalityCause": "Heat stress",
-    "culls": 1,
-    "feedUsedBags": 8.5,
-    "feedType": "grower",
-    "waterLiters": 650,
+    "date": "2026-03-01",
+    "shift": "day",
+    "feedUsedDayShiftBags": 4,
+    "feedUsedNightShiftBags": 0,
+    "openingFeedStockBags": 50,
+    "feedReceivedBags": 0,
+    "feedTransferredOutBags": 0,
+    "closingFeedStockBags": 46,
+    "feedRemarks": "Day shift normal",
+    "mortalityDayShift": 2,
+    "mortalityDayCause": "Heat stress",
+    "mortalityNightShift": 0,
+    "mortalityNightCause": "",
+    "culls": 0,
+    "customColumnES": 12,
+    "waterLiters": 600,
     "minTemp": 24.5,
     "maxTemp": 31.0,
-    "litterCondition": "normal",
-    "notes": "Birds active, drinking well"
+    "litterCondition": "dry"
   }
   ```
+- **Shift Merging**: When a record for this batch, shed, and date already exists, submitting a `"night"` shift atomically updates nighttime metrics without overwriting daytime metrics, and updates 24h totals and cumulative balances.
 
-### `PUT /api/daily-records/:id`
+### `GET /api/daily-records`
 
-- **Access**: Authenticated (Only allowed for same-day unless unlocked by admin)
+- **Access**: Authenticated (Workers see only their shed)
+- **Query Params**: `batchId`, `shedId`, `startDate`, `endDate`
 
 ### `POST /api/daily-records/:id/unlock`
 
 - **Access**: Admin only
-- **Body**: `{ "reason": "Worker corrected counting error" }`
+- **Body**: `{ "reason": "Admin approved correction" }`
 
 ---
 
-## 5. Weight Growth Tracking (`/api/weights`)
+## 3. Feed Lending & Transfers (`/api/transfers`)
 
-### `GET /api/weights`
+### `POST /api/transfers`
 
-- **Query Params**: `batchId=...`, `shedId=...`
-
-### `POST /api/weights`
-
+- **Access**: Authenticated
 - **Body**:
   ```json
   {
-    "batchId": "65f0a...",
-    "shedId": "65f0a...",
-    "date": "2026-03-21",
-    "ageInDays": 21,
-    "sampleSize": 50,
-    "averageWeightGrams": 1060,
-    "notes": "Sample weighed randomly across shed"
+    "date": "2026-03-01",
+    "partyName": "Star Feed Dealers",
+    "transferType": "received",
+    "feedBrand": "Star Feed",
+    "feedType": "starter",
+    "bagCount": 100,
+    "notes": "100 bags borrowed until harvest"
+  }
+  ```
+- `transferType`: `"received"` (borrowed from party) | `"given"` (lent to party).
+
+### `GET /api/transfers`
+
+- **Access**: Authenticated
+- **Query Params**: `partyName`, `transferType`, `startDate`, `endDate`
+
+### `GET /api/party-ledger`
+
+- **Access**: Authenticated
+- **Returns**: Running balance per party in bags:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "partyName": "Star Feed Dealers",
+        "bagsReceived": 200,
+        "bagsGiven": 50,
+        "netBalanceBags": 150
+      }
+    ]
   }
   ```
 
 ---
 
-## 6. Vaccinations & Medicines (`/api/vaccinations`)
-
-### `GET /api/vaccinations/templates`
-
-### `GET /api/vaccinations/tasks`
-
-- **Query Params**: `batchId=...`, `shedId=...`, `status=pending|completed`
-
-### `POST /api/vaccinations/tasks/:id/complete`
-
-- **Body**: `{ "completedAt": "2026-03-08", "notes": "Administered in cool morning water" }`
-
-### `POST /api/vaccinations/medicines`
-
-- **Body**:
-  ```json
-  {
-    "batchId": "...",
-    "shedId": "...",
-    "date": "2026-03-10",
-    "medicineName": "Colistin Sulfate",
-    "dosage": "1g per 2L water",
-    "reason": "Enteritis",
-    "withdrawalPeriodDays": 3
-  }
-  ```
-
----
-
-## 7. Feed Management (`/api/feed`)
-
-### `GET /api/feed/stock`
-
-- Returns warehouse bags and kg live stock for Starter, Grower, and Finisher.
-
-### `POST /api/feed/purchases`
-
-- **Access**: Admin only
-- **Body**: `{ "supplier": "National Feeds", "date": "2026-03-01", "feedType": "starter", "bags": 100, "ratePerBag": 4200, "amountPaid": 420000 }`
-
-### `POST /api/feed/issues`
-
-- **Access**: Admin only
-- **Body**: `{ "date": "2026-03-02", "shedId": "...", "batchId": "...", "feedType": "starter", "bags": 10 }`
-
-### `GET /api/feed/reconciliation`
-
-- **Access**: Admin only
-- Returns issued bags vs consumed bags with discrepancy variance.
-
----
-
-## 8. Expenses (`/api/expenses`)
-
-### `GET /api/expenses`
-
-- **Access**: Admin only (Workers return 403 Forbidden)
-- **Query Params**: `batchId=...`, `category=...`, `startDate=...`, `endDate=...`
-
-### `POST /api/expenses`
-
-- **Access**: Admin only
-- **Body**: `{ "category": "electricity", "amount": 45000, "date": "2026-03-10", "description": "WAPDA Bill" }`
-
----
-
-## 9. Sales & Buyers (`/api/sales`)
-
-### `GET /api/sales`
-
-- **Access**: Admin only (Workers return 403 Forbidden)
+## 4. Catching (Lifting) & Sales (`/api/sales`)
 
 ### `POST /api/sales`
 
@@ -284,82 +150,151 @@ Protected routes require the `Authorization: Bearer <accessToken>` header.
 - **Body**:
   ```json
   {
-    "batchId": "...",
-    "shedId": "...",
+    "batchId": "65f0b...",
+    "shedId": "65f0a...",
+    "lotNumber": 1,
     "buyerName": "Haji Aslam Chicken Merchant",
-    "date": "2026-04-05",
-    "birdsSold": 2500,
-    "totalLiveWeightKg": 5500,
-    "ratePerKg": 385,
-    "amountPaid": 1500000
+    "buyerPhone": "0300-1234567",
+    "date": "2026-04-12",
+    "totalLiveWeightKg": 3475,
+    "averageWeightKg": 2.25,
+    "birdsSold": 1544,
+    "isManualBirdCountOverride": false,
+    "overrideReason": null,
+    "ratePerKg": 420,
+    "amountPaid": 1000000,
+    "vehicleNo": "LES-1234"
+  }
+  ```
+- **Auto Bird Computation**: `birdsSold` = `round(totalLiveWeightKg / averageWeightKg)`.
+- If `isManualBirdCountOverride` is `true`, `overrideReason` is mandatory.
+
+### `GET /api/sales/consistency/:batchId`
+
+- **Access**: Authenticated
+- **Returns**: Live reconciliation: `Placed - Cumulative Mortality - Lifted = Remaining Birds`:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "chicksPlaced": 19888,
+      "totalMortality": 1894,
+      "totalLifted": 2759,
+      "expectedRemaining": 15235,
+      "reportedRemaining": 15235,
+      "difference": 0,
+      "isConsistent": true,
+      "warning": null
+    }
   }
   ```
 
 ### `POST /api/sales/payment`
 
 - **Access**: Admin only
-- Records installment payment from buyer and reduces balance.
+- **Body**: `{ "saleId": "...", "amount": 459500, "date": "2026-04-15", "paymentMethod": "cash" }`
 
 ---
 
-## 10. Offline Synchronization (`/api/sync`)
+## 5. Daily Medicine & Vaccination Sheet (`/api/medicines`)
 
-### `POST /api/sync`
+### `GET /api/medicines/autocomplete-names`
 
 - **Access**: Authenticated
-- **Description**: Idempotent batch ingestion endpoint for offline client mutations.
+- **Returns**: Distinct previously logged medicine and supplement names for search and chip autocomplete.
+
+### `GET /api/medicines/yesterday/:shedId`
+
+- **Access**: Authenticated
+- **Returns**: Yesterday's logged medicines for 1-tap pre-fill ("Copy yesterday's list / Ditto").
+
+### `POST /api/medicines/daily-sheet`
+
+- **Access**: Authenticated
 - **Body**:
   ```json
   {
-    "deviceId": "android-worker-phone-1",
-    "userId": "65f0a...",
+    "batchId": "65f0b...",
+    "shedId": "65f0a...",
+    "date": "2026-03-05",
     "items": [
       {
-        "clientMutationId": "c8d62638-3482-4f3a-9e12-b1b51db8f801",
-        "entityType": "DAILY_RECORD",
-        "action": "CREATE",
-        "payload": { "mortalityCount": 4, "feedUsedBags": 8 },
-        "clientTimestamp": "2026-03-15T18:00:00.000Z"
+        "name": "Vitamin AD3E",
+        "category": "vitamins",
+        "quantity": "200",
+        "unit": "ml",
+        "cost": 850
+      },
+      {
+        "name": "Electrolyte Power",
+        "category": "electrolytes"
       }
     ]
   }
   ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "success": true,
-    "processedCount": 1,
-    "results": [
-      {
-        "clientMutationId": "c8d62638-3482-4f3a-9e12-b1b51db8f801",
-        "serverId": "65f0b...",
-        "status": "synced"
-      }
-    ],
-    "serverTimestamp": "2026-03-15T18:00:02.124Z"
-  }
-  ```
 
 ---
 
-## 11. Reports & Exports (`/api/reports`)
+## 6. Reports & Paper Register Exports (`/api/reports`)
 
-### `GET /api/reports/batch/:id`
+### `GET /api/reports/weekly-summary/:batchId`
 
-- Returns full performance metrics, FCR, cost per kg, and daily tables.
+- **Access**: Authenticated
+- **Returns**: Weeks 1–6 flock performance table matching notebook layout, with TRUE FCR and Farm method clearly separated:
+  - `totalChicks`, `remainingChicks`, `weeklyFeedBags`, `totalFeedBags`, `weeklyMortality`, `totalMortality`, `averageWeightGrams`, `totalWeightKg`
+  - `trueFCR`: `totalFeedKg / totalLiveWeightKg` (e.g. 1.45 at Week 5)
+  - `farmMethodWeightPerBag`: `totalLiveWeightKg / totalFeedBags` (e.g. 62.68 at Week 1).
 
-### `GET /api/reports/batch/:id/csv`
+### `GET /api/reports/weekly-summary/csv?batchId=...`
 
-- Returns downloadable CSV attachment containing all daily logs.
+- **Access**: Authenticated
+- **Returns**: Downloadable CSV of the Weekly Flock Summary in paper register columns.
 
-### `GET /api/reports/sheds`
+### `GET /api/reports/daily-register/:batchId`
 
-- Comparative performance across all 5 sheds.
+- **Access**: Authenticated
+- **Returns**: 45-day daily sheet in the exact 16-column paper register order including custom "E.S" column.
 
-### `GET /api/reports/feed`
+### `GET /api/reports/daily-register/csv?batchId=...`
 
-### `GET /api/reports/expenses`
+- **Access**: Authenticated
+- **Returns**: Downloadable CSV of the Daily Register.
 
-### `GET /api/reports/sales`
+---
 
-### `GET /api/reports/wages?month=YYYY-MM`
+## 7. Historical CSV Import (`/api/import-history`)
+
+### `POST /api/import-history`
+
+- **Access**: Admin only
+- **Body**:
+  ```json
+  {
+    "csvText": "date,dayNumber,openingFeedStockBags,feedUsedDayBags,feedUsedNightBags,closingFeedStockBags,openingBirds,mortalityDay,mortalityNight,closingBirds,esColumnValue\n2026-03-01,1,100,4,4,92,19888,10,8,19870,5"
+  }
+  ```
+- **Returns**: `{ "totalRows": 1, "importedRecords": 1, "errors": [] }`.
+
+---
+
+## 8. Offline Synchronization (`/api/sync`)
+
+### `POST /api/sync`
+
+- **Access**: Authenticated
+- **Body**:
+  ```json
+  {
+    "clientTimestamp": "2026-03-01T12:00:00.000Z",
+    "mutations": [
+      {
+        "clientMutationId": "mut-uuid-1",
+        "entityType": "DAILY_RECORD",
+        "action": "CREATE",
+        "payload": { ... },
+        "clientTimestamp": "2026-03-01T12:00:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Response**: `{ "processedMutations": ["mut-uuid-1"], "failedMutations": [], "conflicts": [] }`.

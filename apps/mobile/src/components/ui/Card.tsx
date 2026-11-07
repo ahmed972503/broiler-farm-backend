@@ -39,13 +39,22 @@ export const Card: React.FC<CardProps> = ({
 
   if (onPress) {
     return (
-      <TouchableOpacity testID={testID} activeOpacity={0.8} onPress={onPress} style={cardStyle}>
+      <TouchableOpacity
+        testID={testID}
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={cardStyle}
+      >
         {children}
       </TouchableOpacity>
     );
   }
 
-  return <View testID={testID} style={cardStyle}>{children}</View>;
+  return (
+    <View testID={testID} style={cardStyle}>
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

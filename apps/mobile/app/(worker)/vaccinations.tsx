@@ -19,7 +19,13 @@ import { useTranslation } from "react-i18next";
 interface MedicineItem {
   id: string;
   name: string;
-  type: "water_medication" | "vitamin" | "antibiotic" | "respiratory" | "acidifier" | "vaccine";
+  type:
+    | "water_medication"
+    | "vitamin"
+    | "antibiotic"
+    | "respiratory"
+    | "acidifier"
+    | "vaccine";
   isVaccine: boolean;
   timeOfAdministration: "morning" | "noon" | "evening" | "continuous";
   waterQuantityLiters?: string;
@@ -32,7 +38,9 @@ export default function WorkerVaccinationsScreen() {
   const { syncWithServer } = useSyncStore();
   const { t } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<"vaccines" | "water_medication">("vaccines");
+  const [activeTab, setActiveTab] = useState<"vaccines" | "water_medication">(
+    "vaccines",
+  );
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +79,8 @@ export default function WorkerVaccinationsScreen() {
     try {
       if (shedId) {
         const shedRes = await apiFetch(`/api/sheds/${shedId}`);
-        const activeBatchId = shedRes.data?.currentBatchId || shedRes.data?.activeBatch?._id;
+        const activeBatchId =
+          shedRes.data?.currentBatchId || shedRes.data?.activeBatch?._id;
         if (activeBatchId) setBatchId(activeBatchId);
 
         const res = await apiFetch(`/api/vaccinations/tasks?shedId=${shedId}`);
@@ -128,7 +137,10 @@ export default function WorkerVaccinationsScreen() {
   const handleCopyYesterday = async () => {
     try {
       if (!batchId) {
-        Alert.alert("Notice", "Batch ID not loaded yet. Using standard morning vitamins template.");
+        Alert.alert(
+          "Notice",
+          "Batch ID not loaded yet. Using standard morning vitamins template.",
+        );
         setMedItems([
           {
             id: `med-${Date.now()}-1`,
@@ -160,16 +172,27 @@ export default function WorkerVaccinationsScreen() {
             type: item.type || "water_medication",
             isVaccine: Boolean(item.isVaccine),
             timeOfAdministration: item.timeOfAdministration || "morning",
-            waterQuantityLiters: item.waterQuantityLiters ? item.waterQuantityLiters.toString() : "",
+            waterQuantityLiters: item.waterQuantityLiters
+              ? item.waterQuantityLiters.toString()
+              : "",
             notes: item.notes || "",
           })),
         );
-        Alert.alert("Ditto Kamyab!", "Kal wali dawaiyan aaj ke list mein shamil ho gayin.");
+        Alert.alert(
+          "Ditto Kamyab!",
+          "Kal wali dawaiyan aaj ke list mein shamil ho gayin.",
+        );
       } else {
-        Alert.alert("Info", "Kal ka koi purana medicine record nahi mila. Standard template shamil kar diya hai.");
+        Alert.alert(
+          "Info",
+          "Kal ka koi purana medicine record nahi mila. Standard template shamil kar diya hai.",
+        );
       }
     } catch (e: any) {
-      Alert.alert("Error", e.message || "Could not fetch yesterday's medicines");
+      Alert.alert(
+        "Error",
+        e.message || "Could not fetch yesterday's medicines",
+      );
     }
   };
 
@@ -196,7 +219,10 @@ export default function WorkerVaccinationsScreen() {
 
   const handleSaveDailyMedicineSheet = async () => {
     if (medItems.length === 0) {
-      Alert.alert("Required", "Kam az kam aik dawai ya supplement darj karein.");
+      Alert.alert(
+        "Required",
+        "Kam az kam aik dawai ya supplement darj karein.",
+      );
       return;
     }
 
@@ -212,7 +238,9 @@ export default function WorkerVaccinationsScreen() {
           type: item.type,
           isVaccine: item.isVaccine,
           timeOfAdministration: item.timeOfAdministration,
-          waterQuantityLiters: item.waterQuantityLiters ? parseFloat(item.waterQuantityLiters) : undefined,
+          waterQuantityLiters: item.waterQuantityLiters
+            ? parseFloat(item.waterQuantityLiters)
+            : undefined,
           notes: item.notes,
         })),
       };
@@ -220,7 +248,9 @@ export default function WorkerVaccinationsScreen() {
       await OfflineStore.enqueueMutation("DAILY_MEDICINE", "CREATE", payload);
 
       if (token && user) {
-        syncWithServer(API_BASE_URL, token, user.id).catch((e) => console.warn(e));
+        syncWithServer(API_BASE_URL, token, user.id).catch((e) =>
+          console.warn(e),
+        );
       }
 
       Alert.alert(
@@ -264,7 +294,8 @@ export default function WorkerVaccinationsScreen() {
           ⚕️ Veterinary Notice
         </Text>
         <Text style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
-          Vaccination schedules and Cobb 500 target curves must be verified and approved by a registered poultry veterinarian.
+          Vaccination schedules and Cobb 500 target curves must be verified and
+          approved by a registered poultry veterinarian.
         </Text>
       </Card>
 
@@ -292,8 +323,10 @@ export default function WorkerVaccinationsScreen() {
           style={[
             styles.tabItem,
             {
-              backgroundColor: activeTab === "vaccines" ? colors.primary : colors.surface,
-              borderColor: activeTab === "vaccines" ? colors.primary : colors.border,
+              backgroundColor:
+                activeTab === "vaccines" ? colors.primary : colors.surface,
+              borderColor:
+                activeTab === "vaccines" ? colors.primary : colors.border,
             },
           ]}
         >
@@ -314,8 +347,14 @@ export default function WorkerVaccinationsScreen() {
           style={[
             styles.tabItem,
             {
-              backgroundColor: activeTab === "water_medication" ? colors.secondary : colors.surface,
-              borderColor: activeTab === "water_medication" ? colors.secondary : colors.border,
+              backgroundColor:
+                activeTab === "water_medication"
+                  ? colors.secondary
+                  : colors.surface,
+              borderColor:
+                activeTab === "water_medication"
+                  ? colors.secondary
+                  : colors.border,
             },
           ]}
         >
@@ -446,7 +485,9 @@ export default function WorkerVaccinationsScreen() {
           {/* Ditto Action Header */}
           <View style={styles.dittoHeaderRow}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 15 }}>
+              <Text
+                style={{ color: colors.text, fontWeight: "700", fontSize: 15 }}
+              >
                 Rozana Dawai Ka Khata
               </Text>
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
@@ -457,27 +498,62 @@ export default function WorkerVaccinationsScreen() {
             <TouchableOpacity
               onPress={handleCopyYesterday}
               testID="copy-yesterday-btn"
-              style={[styles.dittoBtn, { backgroundColor: colors.surface, borderColor: colors.secondary }]}
+              style={[
+                styles.dittoBtn,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.secondary,
+                },
+              ]}
             >
-              <Text style={{ color: colors.secondary, fontWeight: "800", fontSize: 13 }}>
+              <Text
+                style={{
+                  color: colors.secondary,
+                  fontWeight: "800",
+                  fontSize: 13,
+                }}
+              >
                 📋 Copy Yesterday (Ditto)
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Autocomplete Quick Chips */}
-          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 8, marginBottom: 4 }}>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 12,
+              marginTop: 8,
+              marginBottom: 4,
+            }}
+          >
             Jaldi Select Karein (Frequent Medicines):
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsScroll}
+          >
             {commonMedicines.map((m) => (
               <TouchableOpacity
                 key={m}
                 onPress={() => handleAddItem(m)}
                 testID={`autocomplete-chip-${m.replace(/[^a-zA-Z0-9]/g, "")}`}
-                style={[styles.medChip, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[
+                  styles.medChip,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
               >
-                <Text style={{ color: colors.text, fontSize: 12, fontWeight: "600" }}>
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
                   + {m}
                 </Text>
               </TouchableOpacity>
@@ -505,19 +581,40 @@ export default function WorkerVaccinationsScreen() {
           </Card>
 
           {/* Current Day's Items List */}
-          <Text style={{ fontWeight: "700", color: colors.text, marginVertical: 6 }}>
+          <Text
+            style={{ fontWeight: "700", color: colors.text, marginVertical: 6 }}
+          >
             Aaj Di Jane Wali Dawaiyan ({medItems.length} Items):
           </Text>
 
           {medItems.map((item, idx) => (
             <Card key={item.id} style={{ marginVertical: 4 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontWeight: "700",
+                      fontSize: 14,
+                    }}
+                  >
                     {idx + 1}. {item.name}
                   </Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 11, textTransform: "capitalize" }}>
-                    Waqt: {item.timeOfAdministration} • Qisam: {item.type.replace("_", " ")}
+                  <Text
+                    style={{
+                      color: colors.textMuted,
+                      fontSize: 11,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    Waqt: {item.timeOfAdministration} • Qisam:{" "}
+                    {item.type.replace("_", " ")}
                   </Text>
                 </View>
 
@@ -526,7 +623,15 @@ export default function WorkerVaccinationsScreen() {
                   testID={`remove-med-${idx}`}
                   style={{ padding: 6 }}
                 >
-                  <Text style={{ color: colors.danger, fontWeight: "700", fontSize: 14 }}>✕</Text>
+                  <Text
+                    style={{
+                      color: colors.danger,
+                      fontWeight: "700",
+                      fontSize: 14,
+                    }}
+                  >
+                    ✕
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Card>

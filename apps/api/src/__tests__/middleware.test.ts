@@ -3,7 +3,11 @@ import { z } from "zod";
 import { errorHandler } from "../middleware/errorHandler";
 import { validateBody, validateQuery } from "../middleware/validate";
 import { requestLogger } from "../middleware/requestLogger";
-import { requireAdmin, requireWorker, requireShedAccess } from "../middleware/rbac";
+import {
+  requireAdmin,
+  requireWorker,
+  requireShedAccess,
+} from "../middleware/rbac";
 
 describe("Middleware Unit & Branch Coverage Tests", () => {
   let mockReq: Partial<Request>;
@@ -327,4 +331,3 @@ describe("Middleware Unit & Branch Coverage Tests", () => {
     });
   });
 });
-

@@ -120,7 +120,9 @@ describe("Design System UI Components", () => {
         syncError: null,
       });
       const { getByText } = render(<SyncStatusBanner />);
-      expect(getByText(/Tamam record server par sync|worker\.syncedNotice/i)).toBeTruthy();
+      expect(
+        getByText(/Tamam record server par sync|worker\.syncedNotice/i),
+      ).toBeTruthy();
     });
 
     it("renders pending changes banner when items are queued", () => {

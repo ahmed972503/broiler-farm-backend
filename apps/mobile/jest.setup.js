@@ -92,7 +92,8 @@ function mockResolveTranslation(dict, key) {
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (str) => {
-      const activeDict = mockCurrentLang === "ur" ? mockUrTranslations : mockEnTranslations;
+      const activeDict =
+        mockCurrentLang === "ur" ? mockUrTranslations : mockEnTranslations;
       const translated = mockResolveTranslation(activeDict, str);
       if (translated) return translated;
       const fallback = mockResolveTranslation(mockEnTranslations, str);

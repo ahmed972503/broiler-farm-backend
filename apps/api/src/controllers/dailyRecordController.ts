@@ -107,42 +107,68 @@ export class DailyRecordController {
       if (existing) {
         const isShiftMerge =
           (req.body.shift === "night" && existing.feedUsedDayShiftBags > 0) ||
-          (req.body.feedUsedNightShiftBags && req.body.feedUsedNightShiftBags > 0 && !existing.feedUsedNightShiftBags) ||
+          (req.body.feedUsedNightShiftBags &&
+            req.body.feedUsedNightShiftBags > 0 &&
+            !existing.feedUsedNightShiftBags) ||
           (req.body.shift === "day" && existing.feedUsedNightShiftBags > 0);
 
         if (isShiftMerge) {
           const mergedDayFeed =
-            req.body.feedUsedDayShiftBags !== undefined && req.body.feedUsedDayShiftBags > 0
+            req.body.feedUsedDayShiftBags !== undefined &&
+            req.body.feedUsedDayShiftBags > 0
               ? req.body.feedUsedDayShiftBags
               : existing.feedUsedDayShiftBags;
 
           const mergedNightFeed =
-            req.body.feedUsedNightShiftBags !== undefined && req.body.feedUsedNightShiftBags > 0
+            req.body.feedUsedNightShiftBags !== undefined &&
+            req.body.feedUsedNightShiftBags > 0
               ? req.body.feedUsedNightShiftBags
-              : (req.body.shift === "night" && req.body.feedUsedBags ? req.body.feedUsedBags : existing.feedUsedNightShiftBags);
+              : req.body.shift === "night" && req.body.feedUsedBags
+                ? req.body.feedUsedBags
+                : existing.feedUsedNightShiftBags;
 
           const mergedDayMort =
-            req.body.mortalityDayShift !== undefined && req.body.mortalityDayShift > 0
+            req.body.mortalityDayShift !== undefined &&
+            req.body.mortalityDayShift > 0
               ? req.body.mortalityDayShift
               : existing.mortalityDayShift;
 
           const mergedNightMort =
-            req.body.mortalityNightShift !== undefined && req.body.mortalityNightShift > 0
+            req.body.mortalityNightShift !== undefined &&
+            req.body.mortalityNightShift > 0
               ? req.body.mortalityNightShift
-              : (req.body.shift === "night" && req.body.mortalityCount ? req.body.mortalityCount : existing.mortalityNightShift);
+              : req.body.shift === "night" && req.body.mortalityCount
+                ? req.body.mortalityCount
+                : existing.mortalityNightShift;
 
           const summary = calculateDailyRecordSummary({
-            openingFeedStockBags: req.body.openingFeedStockBags !== undefined ? req.body.openingFeedStockBags : existing.openingFeedStockBags,
+            openingFeedStockBags:
+              req.body.openingFeedStockBags !== undefined
+                ? req.body.openingFeedStockBags
+                : existing.openingFeedStockBags,
             feedUsedDayShiftBags: mergedDayFeed,
             feedUsedNightShiftBags: mergedNightFeed,
-            feedReceivedBags: req.body.feedReceivedBags !== undefined ? req.body.feedReceivedBags : existing.feedReceivedBags,
-            feedTransferredOutBags: req.body.feedTransferredOutBags !== undefined ? req.body.feedTransferredOutBags : existing.feedTransferredOutBags,
-            reportedClosingFeedStockBags: req.body.closingFeedStockBags !== undefined ? req.body.closingFeedStockBags : existing.closingFeedStockBags,
+            feedReceivedBags:
+              req.body.feedReceivedBags !== undefined
+                ? req.body.feedReceivedBags
+                : existing.feedReceivedBags,
+            feedTransferredOutBags:
+              req.body.feedTransferredOutBags !== undefined
+                ? req.body.feedTransferredOutBags
+                : existing.feedTransferredOutBags,
+            reportedClosingFeedStockBags:
+              req.body.closingFeedStockBags !== undefined
+                ? req.body.closingFeedStockBags
+                : existing.closingFeedStockBags,
             openingBirds: existing.openingBirds || batch.chicksPlaced,
             mortalityDayShift: mergedDayMort,
             mortalityNightShift: mergedNightMort,
-            culls: req.body.culls !== undefined ? req.body.culls : existing.culls,
-            liftedBirds: req.body.liftedBirds !== undefined ? req.body.liftedBirds : existing.liftedBirds,
+            culls:
+              req.body.culls !== undefined ? req.body.culls : existing.culls,
+            liftedBirds:
+              req.body.liftedBirds !== undefined
+                ? req.body.liftedBirds
+                : existing.liftedBirds,
           });
 
           existing.feedUsedDayShiftBags = mergedDayFeed;
@@ -161,10 +187,13 @@ export class DailyRecordController {
           existing.shift = "full";
           existing.updatedBy = req.user!._id;
 
-          if (req.body.mortalityDayCause) existing.mortalityDayCause = req.body.mortalityDayCause;
-          if (req.body.mortalityNightCause) existing.mortalityNightCause = req.body.mortalityNightCause;
+          if (req.body.mortalityDayCause)
+            existing.mortalityDayCause = req.body.mortalityDayCause;
+          if (req.body.mortalityNightCause)
+            existing.mortalityNightCause = req.body.mortalityNightCause;
           if (req.body.feedRemarks) existing.feedRemarks = req.body.feedRemarks;
-          if (req.body.customColumnES !== undefined) existing.customColumnES = req.body.customColumnES;
+          if (req.body.customColumnES !== undefined)
+            existing.customColumnES = req.body.customColumnES;
 
           await existing.save();
 
@@ -209,14 +238,22 @@ export class DailyRecordController {
 
       const prevCumFeed = priorDayRecord?.cumulativeFeedBags || 0;
       const prevCumMort = priorDayRecord?.cumulativeMortality || 0;
-      const openingBirds = priorDayRecord?.closingBirds || req.body.openingBirds || batch.chicksPlaced;
+      const openingBirds =
+        priorDayRecord?.closingBirds ||
+        req.body.openingBirds ||
+        batch.chicksPlaced;
 
       let feedDay = req.body.feedUsedDayShiftBags || 0;
       let feedNight = req.body.feedUsedNightShiftBags || 0;
       let mortDay = req.body.mortalityDayShift || 0;
       let mortNight = req.body.mortalityNightShift || 0;
 
-      if (feedDay === 0 && feedNight === 0 && req.body.feedUsedBags && req.body.feedUsedBags > 0) {
+      if (
+        feedDay === 0 &&
+        feedNight === 0 &&
+        req.body.feedUsedBags &&
+        req.body.feedUsedBags > 0
+      ) {
         if (req.body.shift === "night") {
           feedNight = req.body.feedUsedBags;
         } else {
@@ -224,7 +261,12 @@ export class DailyRecordController {
         }
       }
 
-      if (mortDay === 0 && mortNight === 0 && req.body.mortalityCount && req.body.mortalityCount > 0) {
+      if (
+        mortDay === 0 &&
+        mortNight === 0 &&
+        req.body.mortalityCount &&
+        req.body.mortalityCount > 0
+      ) {
         if (req.body.shift === "night") {
           mortNight = req.body.mortalityCount;
         } else {
@@ -261,7 +303,10 @@ export class DailyRecordController {
         feedUsedNightShiftBags: feedNight,
         feedUsed24hBags: summary.feedUsed24hBags,
         feedUsedBags: summary.feedUsed24hBags,
-        feedUsedKg: req.body.feedUsedKg !== undefined ? req.body.feedUsedKg : summary.feedUsedKg,
+        feedUsedKg:
+          req.body.feedUsedKg !== undefined
+            ? req.body.feedUsedKg
+            : summary.feedUsedKg,
         cumulativeFeedBags: summary.cumulativeFeedBags,
         closingFeedStockBags: summary.closingFeedStockBags,
         feedStockDiscrepancyBags: summary.feedStockDiscrepancyBags,
@@ -272,7 +317,10 @@ export class DailyRecordController {
         mortalityCount: summary.mortality24h,
         cumulativeMortality: summary.cumulativeMortality,
         closingBirds: summary.closingBirds,
-        customColumnES: req.body.customColumnES !== undefined ? req.body.customColumnES : null,
+        customColumnES:
+          req.body.customColumnES !== undefined
+            ? req.body.customColumnES
+            : null,
         isLocked,
         createdBy: req.user!._id,
       });
@@ -287,7 +335,8 @@ export class DailyRecordController {
 
       // Background alert sweep trigger
       AlertService.runAlertSweep().catch((e) => {
-        if (process.env.NODE_ENV !== "test") console.error("Alert sweep error", e);
+        if (process.env.NODE_ENV !== "test")
+          console.error("Alert sweep error", e);
       });
 
       res.status(201).json({ success: true, data: record });
@@ -332,7 +381,10 @@ export class DailyRecordController {
         feedDay = req.body.feedUsedBags || 0;
       } else if (req.body.shift === "night") {
         // do not overwrite day
-      } else if (req.body.feedUsedBags !== undefined && req.body.feedUsedNightShiftBags === undefined) {
+      } else if (
+        req.body.feedUsedBags !== undefined &&
+        req.body.feedUsedNightShiftBags === undefined
+      ) {
         if (feedNight === 0) {
           feedDay = req.body.feedUsedBags;
         } else {
@@ -352,7 +404,10 @@ export class DailyRecordController {
         mortDay = req.body.mortalityCount || 0;
       } else if (req.body.shift === "night") {
         // do not overwrite day
-      } else if (req.body.mortalityCount !== undefined && req.body.mortalityNightShift === undefined) {
+      } else if (
+        req.body.mortalityCount !== undefined &&
+        req.body.mortalityNightShift === undefined
+      ) {
         if (mortNight === 0) {
           mortDay = req.body.mortalityCount;
         } else {
@@ -367,17 +422,32 @@ export class DailyRecordController {
       }
 
       const summary = calculateDailyRecordSummary({
-        openingFeedStockBags: req.body.openingFeedStockBags !== undefined ? req.body.openingFeedStockBags : record.openingFeedStockBags,
+        openingFeedStockBags:
+          req.body.openingFeedStockBags !== undefined
+            ? req.body.openingFeedStockBags
+            : record.openingFeedStockBags,
         feedUsedDayShiftBags: feedDay,
         feedUsedNightShiftBags: feedNight,
-        feedReceivedBags: req.body.feedReceivedBags !== undefined ? req.body.feedReceivedBags : record.feedReceivedBags,
-        feedTransferredOutBags: req.body.feedTransferredOutBags !== undefined ? req.body.feedTransferredOutBags : record.feedTransferredOutBags,
-        reportedClosingFeedStockBags: req.body.closingFeedStockBags !== undefined ? req.body.closingFeedStockBags : record.closingFeedStockBags,
+        feedReceivedBags:
+          req.body.feedReceivedBags !== undefined
+            ? req.body.feedReceivedBags
+            : record.feedReceivedBags,
+        feedTransferredOutBags:
+          req.body.feedTransferredOutBags !== undefined
+            ? req.body.feedTransferredOutBags
+            : record.feedTransferredOutBags,
+        reportedClosingFeedStockBags:
+          req.body.closingFeedStockBags !== undefined
+            ? req.body.closingFeedStockBags
+            : record.closingFeedStockBags,
         openingBirds: record.openingBirds || 0,
         mortalityDayShift: mortDay,
         mortalityNightShift: mortNight,
         culls: req.body.culls !== undefined ? req.body.culls : record.culls,
-        liftedBirds: req.body.liftedBirds !== undefined ? req.body.liftedBirds : record.liftedBirds,
+        liftedBirds:
+          req.body.liftedBirds !== undefined
+            ? req.body.liftedBirds
+            : record.liftedBirds,
       });
 
       Object.assign(record, req.body, {
@@ -385,7 +455,10 @@ export class DailyRecordController {
         feedUsedNightShiftBags: feedNight,
         feedUsed24hBags: summary.feedUsed24hBags,
         feedUsedBags: summary.feedUsed24hBags,
-        feedUsedKg: req.body.feedUsedKg !== undefined ? req.body.feedUsedKg : summary.feedUsedKg,
+        feedUsedKg:
+          req.body.feedUsedKg !== undefined
+            ? req.body.feedUsedKg
+            : summary.feedUsedKg,
         closingFeedStockBags: summary.closingFeedStockBags,
         feedStockDiscrepancyBags: summary.feedStockDiscrepancyBags,
         hasFeedStockShortage: summary.hasFeedStockShortage,
@@ -492,7 +565,10 @@ export class DailyRecordController {
           const mort24h = row.mortalityDayShift + row.mortalityNightShift;
           runningCumFeed = roundTo(runningCumFeed + feed24h, 2);
           runningCumMort += mort24h;
-          currentBirds = Math.max(0, currentBirds - mort24h - (row.culls || 0) - (row.liftedBirds || 0));
+          currentBirds = Math.max(
+            0,
+            currentBirds - mort24h - (row.culls || 0) - (row.liftedBirds || 0),
+          );
 
           const summary = calculateDailyRecordSummary({
             openingFeedStockBags: row.openingFeedStockBags,
@@ -537,7 +613,8 @@ export class DailyRecordController {
               closingBirds: currentBirds,
               culls: row.culls || 0,
               liftedBirds: row.liftedBirds || 0,
-              customColumnES: row.customColumnES !== undefined ? row.customColumnES : null,
+              customColumnES:
+                row.customColumnES !== undefined ? row.customColumnES : null,
               createdBy: req.user!._id,
               isLocked: true, // past historical imports lock automatically
             },

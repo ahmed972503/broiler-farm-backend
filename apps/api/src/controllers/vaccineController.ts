@@ -212,7 +212,9 @@ export class VaccineController {
 
       if (priorRecords.length > 0) {
         const latestDate = priorRecords[0].date;
-        const latestDayRecords = priorRecords.filter((r) => r.date === latestDate);
+        const latestDayRecords = priorRecords.filter(
+          (r) => r.date === latestDate,
+        );
         const items = latestDayRecords.map((r) => ({
           name: r.medicineName,
           category: r.category || (r.isVaccine ? "vaccine" : "supplement"),
@@ -345,10 +347,10 @@ export class VaccineController {
   ): Promise<void> {
     try {
       const { batchId, date } = req.query as { batchId: string; date: string };
-      const sheet = await DailyMedicineSheet.findOne({ batchId, date }).populate(
-        "recordedBy",
-        "name username",
-      );
+      const sheet = await DailyMedicineSheet.findOne({
+        batchId,
+        date,
+      }).populate("recordedBy", "name username");
       res.json({ success: true, data: sheet });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

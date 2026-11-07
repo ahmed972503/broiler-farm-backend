@@ -72,12 +72,11 @@ describe("Catching (Lifting) & Sales Screen Component Tests", () => {
     jest.clearAllMocks();
     useAuthStore.setState({
       user: {
-        _id: "admin-1",
         id: "admin-1",
         username: "admin_haji",
-        fullName: "Haji Ahmed",
+        name: "Haji Ahmed",
+        phone: "0300-1234567",
         role: "admin",
-        mustChangePassword: false,
       },
       token: "mock-admin-token",
       isAuthenticated: true,
@@ -126,16 +125,23 @@ describe("Catching (Lifting) & Sales Screen Component Tests", () => {
   });
 
   it("allows manual override of bird count with mandatory reason and submits sale", async () => {
-    const { getByTestId, getByText, getAllByText } = render(<AdminSalesScreen />);
+    const { getByTestId, getByText, getAllByText } = render(
+      <AdminSalesScreen />,
+    );
 
     // Wait for initial data load so selectedShedId is populated
-    await waitFor(() => expect(getByTestId("lifting-consistency-card")).toBeTruthy());
+    await waitFor(() =>
+      expect(getByTestId("lifting-consistency-card")).toBeTruthy(),
+    );
 
     // Open form
     fireEvent.press(getByTestId("new-sale-toggle-btn"));
 
     // Enter buyer info
-    fireEvent.changeText(getByTestId("buyer-name-input"), "Malik Poultry Traders");
+    fireEvent.changeText(
+      getByTestId("buyer-name-input"),
+      "Malik Poultry Traders",
+    );
     fireEvent.changeText(getByTestId("total-weight-input"), "3111");
     fireEvent.changeText(getByTestId("avg-weight-input"), "2.56");
     fireEvent.changeText(getByTestId("rate-per-kg-input"), "400");
@@ -152,7 +158,10 @@ describe("Catching (Lifting) & Sales Screen Component Tests", () => {
     const overrideCountInput = getByTestId("override-count-input");
     const overrideReasonInput = getByTestId("override-reason-input");
     fireEvent.changeText(overrideCountInput, "1220");
-    fireEvent.changeText(overrideReasonInput, "Physical cage count verified at weighbridge");
+    fireEvent.changeText(
+      overrideReasonInput,
+      "Physical cage count verified at weighbridge",
+    );
 
     // Submit sale
     const submitBtn = getByTestId("submit-sale-btn");
@@ -164,7 +173,7 @@ describe("Catching (Lifting) & Sales Screen Component Tests", () => {
         expect.objectContaining({
           method: "POST",
           body: expect.stringContaining('"birdsSold":1220'),
-        })
+        }),
       );
     });
   });

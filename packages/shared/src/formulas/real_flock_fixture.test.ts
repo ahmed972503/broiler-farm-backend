@@ -190,7 +190,8 @@ describe("Real Flock Test Fixture & Pakistan Paper Register Formula Verification
     it("reconciles flock consistency: placed - cumulative mortality - lifted = remaining birds", () => {
       const finalMortality = 2555; // Cumulative mortality at end of 45 days
       const totalLifted = 1544 + 1215 + 1500; // 4259 birds lifted in partial lots
-      const expectedRemaining = FLOCK_INITIAL_PLACED - finalMortality - totalLifted;
+      const expectedRemaining =
+        FLOCK_INITIAL_PLACED - finalMortality - totalLifted;
       // 19888 - 2555 - 4259 = 13074 birds
 
       const reconciliation = reconcileLiftingConsistency(
@@ -294,7 +295,9 @@ describe("Real Flock Test Fixture & Pakistan Paper Register Formula Verification
       expect(chenab.totalBagsOut).toBe(10);
       expect(chenab.netBalanceBags).toBe(-20);
       expect(chenab.status).toBe("we_owe_them");
-      expect(chenab.summaryText).toContain("We owe Chenab Poultry Farm 20 bags");
+      expect(chenab.summaryText).toContain(
+        "We owe Chenab Poultry Farm 20 bags",
+      );
 
       const haji = ledger.find((p) => p.partyName === "Haji Aslam Farm")!;
       expect(haji.totalBagsIn).toBe(0);
@@ -310,7 +313,9 @@ describe("Real Flock Test Fixture & Pakistan Paper Register Formula Verification
       ]);
       expect(settledLedger[0].partyName).toBe("Unknown Party");
       expect(settledLedger[0].status).toBe("settled");
-      expect(settledLedger[0].summaryText).toContain("All feed accounts settled");
+      expect(settledLedger[0].summaryText).toContain(
+        "All feed accounts settled",
+      );
     });
   });
 

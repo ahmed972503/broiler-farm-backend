@@ -23,7 +23,8 @@ jest.mock("../api/client", () => ({
               {
                 _id: "alert-1",
                 title: "Mortality Spike Alert",
-                message: "Shed 1 daily mortality exceeded 1.0% threshold (215 birds)",
+                message:
+                  "Shed 1 daily mortality exceeded 1.0% threshold (215 birds)",
                 severity: "critical",
               },
             ],
@@ -189,12 +190,11 @@ describe("Admin Dashboard & Paper Register Screens Component Tests", () => {
     jest.clearAllMocks();
     useAuthStore.setState({
       user: {
-        _id: "admin-1",
         id: "admin-1",
         username: "admin_haji",
-        fullName: "Haji Ahmed",
+        name: "Haji Ahmed",
+        phone: "0300-1234567",
         role: "admin",
-        mustChangePassword: false,
       },
       token: "mock-admin-token",
       isAuthenticated: true,
@@ -254,7 +254,9 @@ describe("Admin Dashboard & Paper Register Screens Component Tests", () => {
       fireEvent.press(dailyTab);
 
       await waitFor(() => {
-        expect(getByText(/DAILY REGISTER \(Rozana Register - 45 Days\)/i)).toBeTruthy();
+        expect(
+          getByText(/DAILY REGISTER \(Rozana Register - 45 Days\)/i),
+        ).toBeTruthy();
         // Column headers
         expect(getByText("Op Feed")).toBeTruthy();
         expect(getByText("Feed Day")).toBeTruthy();
@@ -277,14 +279,18 @@ describe("Admin Dashboard & Paper Register Screens Component Tests", () => {
     });
 
     it("renders Feed Party Ledger with running bag balances and debt status badges", async () => {
-      const { getByTestId, getByText, getAllByText } = render(<ReportsScreen />);
+      const { getByTestId, getByText, getAllByText } = render(
+        <ReportsScreen />,
+      );
 
       // Switch to Feed Party Ledger tab
       const partyTab = getByTestId("report-tab-party_ledger");
       fireEvent.press(partyTab);
 
       await waitFor(() => {
-        expect(getAllByText(/FEED PARTY LEDGER/i).length).toBeGreaterThanOrEqual(1);
+        expect(
+          getAllByText(/FEED PARTY LEDGER/i).length,
+        ).toBeGreaterThanOrEqual(1);
         expect(getByText("Star Feed Dealers")).toBeTruthy();
         expect(getByText("+150 Bags")).toBeTruthy();
         expect(getByText("Owes Us")).toBeTruthy();
@@ -307,7 +313,7 @@ describe("Admin Dashboard & Paper Register Screens Component Tests", () => {
       const csvInput = getByTestId("csv-import-input");
       fireEvent.changeText(
         csvInput,
-        "date,dayNumber,openingFeedStockBags,feedUsedDayBags,feedUsedNightBags,closingFeedStockBags,openingBirds,mortalityDay,mortalityNight,closingBirds\n2026-03-01,1,100,5,4,91,19888,10,12,19866"
+        "date,dayNumber,openingFeedStockBags,feedUsedDayBags,feedUsedNightBags,closingFeedStockBags,openingBirds,mortalityDay,mortalityNight,closingBirds\n2026-03-01,1,100,5,4,91,19888,10,12,19866",
       );
 
       const submitBtn = getByTestId("submit-csv-import-btn");
@@ -318,7 +324,7 @@ describe("Admin Dashboard & Paper Register Screens Component Tests", () => {
           "/api/import-history",
           expect.objectContaining({
             method: "POST",
-          })
+          }),
         );
         expect(getByTestId("import-result-card")).toBeTruthy();
         expect(getByText(/Successfully imported 2 of 2 rows/i)).toBeTruthy();

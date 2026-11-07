@@ -28,7 +28,10 @@ router.post(
 // Medicine Records & Daily Sheets
 router.get("/medicines", VaccineController.getMedicineRecords);
 router.get("/medicines/yesterday", VaccineController.getYesterdayMedicines);
-router.get("/medicines/autocomplete-names", VaccineController.getAutocompleteNames);
+router.get(
+  "/medicines/autocomplete-names",
+  VaccineController.getAutocompleteNames,
+);
 router.get("/medicines/daily-sheet", VaccineController.getDailyMedicineSheet);
 router.post(
   "/medicines/daily-sheet",

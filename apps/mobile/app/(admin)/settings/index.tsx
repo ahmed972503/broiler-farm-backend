@@ -16,7 +16,9 @@ export default function SettingsScreen() {
   // Paper Register & Architecture Customizations
   const [customColumnLabel, setCustomColumnLabel] = useState("E.S");
   const [customColumnEnabled, setCustomColumnEnabled] = useState(true);
-  const [batchScope, setBatchScope] = useState<"multi_shed" | "per_shed">("multi_shed");
+  const [batchScope, setBatchScope] = useState<"multi_shed" | "per_shed">(
+    "multi_shed",
+  );
 
   // Alert Thresholds
   const [mortalitySpike, setMortalitySpike] = useState("0.8");
@@ -39,8 +41,10 @@ export default function SettingsScreen() {
         if (d.phone) setPhone(d.phone);
         if (d.defaultFeedBagWeightKg)
           setBagWeight(d.defaultFeedBagWeightKg.toString());
-        if (d.customDailyColumnLabel) setCustomColumnLabel(d.customDailyColumnLabel);
-        if (d.customDailyColumnEnabled !== undefined) setCustomColumnEnabled(d.customDailyColumnEnabled);
+        if (d.customDailyColumnLabel)
+          setCustomColumnLabel(d.customDailyColumnLabel);
+        if (d.customDailyColumnEnabled !== undefined)
+          setCustomColumnEnabled(d.customDailyColumnEnabled);
         if (d.batchScope) setBatchScope(d.batchScope);
 
         if (d.alertThresholds) {
@@ -196,7 +200,9 @@ export default function SettingsScreen() {
           Paper Register & Shed Structure
         </Text>
 
-        <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}>
+        <Text
+          style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 8 }}
+        >
           Batch & Shed Architecture:
         </Text>
         <View style={{ flexDirection: "row", marginBottom: 12 }}>
@@ -223,7 +229,14 @@ export default function SettingsScreen() {
           helperText="Default 'E.S' column from paper register. Excluded from automated formulas until assigned."
         />
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 4,
+          }}
+        >
           <Text style={{ color: colors.text, fontSize: 14 }}>
             Enable Custom Daily Column in Register:
           </Text>

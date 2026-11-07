@@ -112,7 +112,8 @@ export class AlertService {
 
         // A. Check Mortality Spike on today's record (default: 1.0% of live birds per 24h)
         const liveBirds = todayRecord.openingBirds || batch.chicksPlaced;
-        const dailyMortalityPercent = (todayRecord.mortalityCount / liveBirds) * 100;
+        const dailyMortalityPercent =
+          (todayRecord.mortalityCount / liveBirds) * 100;
         const spikeThreshold = thresholds.mortalitySpikePercentDaily || 1.0;
 
         if (dailyMortalityPercent >= spikeThreshold) {
@@ -170,9 +171,12 @@ export class AlertService {
         if (
           thresholds.missedShiftEntryAlert &&
           todayRecord.shift !== "full" &&
-          (!todayRecord.feedUsedDayShiftBags || !todayRecord.feedUsedNightShiftBags)
+          (!todayRecord.feedUsedDayShiftBags ||
+            !todayRecord.feedUsedNightShiftBags)
         ) {
-          const missingShift = !todayRecord.feedUsedDayShiftBags ? "Day" : "Night";
+          const missingShift = !todayRecord.feedUsedDayShiftBags
+            ? "Day"
+            : "Night";
           await this.raiseAlert({
             type: "missed_shift_entry",
             severity: "warning",

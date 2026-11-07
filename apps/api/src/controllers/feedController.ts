@@ -210,7 +210,16 @@ export class FeedController {
 
   static async createTransfer(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { date, partyName, type, brand, feedType, bags, bagWeightKg = 50, notes } = req.body;
+      const {
+        date,
+        partyName,
+        type,
+        brand,
+        feedType,
+        bags,
+        bagWeightKg = 50,
+        notes,
+      } = req.body;
 
       const transfer = await FeedTransfer.create({
         date,
@@ -247,7 +256,8 @@ export class FeedController {
       });
 
       AlertService.runAlertSweep().catch((e) => {
-        if (process.env.NODE_ENV !== "test") console.error("Alert sweep error", e);
+        if (process.env.NODE_ENV !== "test")
+          console.error("Alert sweep error", e);
       });
 
       res.status(201).json({ success: true, data: transfer });

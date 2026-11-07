@@ -377,7 +377,10 @@ export class ReportService {
     });
     const sales = await Sale.find({ batchId });
 
-    const totalLiftedBirds = sales.reduce((sum, s) => sum + (s.birdsSold || 0), 0);
+    const totalLiftedBirds = sales.reduce(
+      (sum, s) => sum + (s.birdsSold || 0),
+      0,
+    );
 
     const weeks: WeeklyFlockSummaryRow[] = [];
     let prevCumFeed = 0;
@@ -403,7 +406,9 @@ export class ReportService {
         .filter((wr) => wr.ageInDays <= endAge && wr.ageInDays >= endAge - 6)
         .pop();
       const avgWeightGrams =
-        sampleWeight?.averageWeightGrams || TARGET_WEIGHTS_BY_DAY[endAge] || 200;
+        sampleWeight?.averageWeightGrams ||
+        TARGET_WEIGHTS_BY_DAY[endAge] ||
+        200;
 
       const row = calculateWeeklyFlockSummaryRow({
         weekNumber: w,

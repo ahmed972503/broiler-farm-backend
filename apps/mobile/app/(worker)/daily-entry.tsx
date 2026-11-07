@@ -52,7 +52,9 @@ export default function DailyEntryScreen() {
   // Unconfirmed paper column "E.S"
   const [customColumnES, setCustomColumnES] = useState("");
 
-  const [feedType, setFeedType] = useState<"starter" | "grower" | "finisher">("grower");
+  const [feedType, setFeedType] = useState<"starter" | "grower" | "finisher">(
+    "grower",
+  );
   const [waterLiters, setWaterLiters] = useState("600");
   const [minTemp, setMinTemp] = useState("24.0");
   const [maxTemp, setMaxTemp] = useState("30.5");
@@ -112,20 +114,37 @@ export default function DailyEntryScreen() {
   // 24h Totals
   const numFeedDay = parseFloat(feedDayBags) || 0;
   const numFeedNight = parseFloat(feedNightBags) || 0;
-  const totalFeed24h = shift === "day" ? numFeedDay : shift === "night" ? numFeedNight : numFeedDay + numFeedNight;
+  const totalFeed24h =
+    shift === "day"
+      ? numFeedDay
+      : shift === "night"
+        ? numFeedNight
+        : numFeedDay + numFeedNight;
   const calculatedKg = bagsToKg(totalFeed24h);
 
   const numMortDay = parseInt(mortDay, 10) || 0;
   const numMortNight = parseInt(mortNight, 10) || 0;
-  const totalMort24h = shift === "day" ? numMortDay : shift === "night" ? numMortNight : numMortDay + numMortNight;
+  const totalMort24h =
+    shift === "day"
+      ? numMortDay
+      : shift === "night"
+        ? numMortNight
+        : numMortDay + numMortNight;
 
   // Stock Reconciliation
   const numOpening = parseFloat(openingStockBags) || 0;
   const numReceived = parseFloat(receivedBags) || 0;
   const numTransferOut = parseFloat(transferredOutBags) || 0;
-  const expectedClosing = Math.max(0, numOpening - totalFeed24h + numReceived - numTransferOut);
-  const reportedClosingNum = reportedClosingBags !== "" ? parseFloat(reportedClosingBags) : expectedClosing;
-  const hasShortage = reportedClosingBags !== "" && reportedClosingNum < expectedClosing - 0.01;
+  const expectedClosing = Math.max(
+    0,
+    numOpening - totalFeed24h + numReceived - numTransferOut,
+  );
+  const reportedClosingNum =
+    reportedClosingBags !== ""
+      ? parseFloat(reportedClosingBags)
+      : expectedClosing;
+  const hasShortage =
+    reportedClosingBags !== "" && reportedClosingNum < expectedClosing - 0.01;
 
   const handleSubmit = async () => {
     const shedId = user?.assignedShedId || user?.shed?.id;
@@ -238,7 +257,9 @@ export default function DailyEntryScreen() {
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+          <Text
+            style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}
+          >
             🌐 {currentLang === "ur" ? "English" : "Roman Urdu"}
           </Text>
         </TouchableOpacity>
@@ -259,7 +280,8 @@ export default function DailyEntryScreen() {
             ✓ Mehfooz Ho Gaya! (Saved Offline)
           </Text>
           <Text style={{ color: "#388E3C", fontSize: 12, marginTop: 2 }}>
-            Record local SQLite database mein safe hai aur online hote hi sync ho jaye ga.
+            Record local SQLite database mein safe hai aur online hote hi sync
+            ho jaye ga.
           </Text>
         </Card>
       )}
@@ -278,7 +300,8 @@ export default function DailyEntryScreen() {
             style={[
               styles.shiftTab,
               {
-                backgroundColor: shift === s.key ? colors.primary : colors.surface,
+                backgroundColor:
+                  shift === s.key ? colors.primary : colors.surface,
                 borderColor: shift === s.key ? colors.primary : colors.border,
               },
             ]}
@@ -446,8 +469,10 @@ export default function DailyEntryScreen() {
               style={[
                 styles.typeChip,
                 {
-                  backgroundColor: feedType === type ? colors.primary : colors.surface,
-                  borderColor: feedType === type ? colors.primary : colors.border,
+                  backgroundColor:
+                    feedType === type ? colors.primary : colors.surface,
+                  borderColor:
+                    feedType === type ? colors.primary : colors.border,
                 },
               ]}
             >
@@ -545,15 +570,30 @@ export default function DailyEntryScreen() {
         )}
 
         {/* 24h Feed Total Callout */}
-        <View style={[styles.metricCallout, { backgroundColor: colors.surface }]}>
+        <View
+          style={[styles.metricCallout, { backgroundColor: colors.surface }]}
+        >
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            24h Feed: <Text style={{ fontWeight: "700", color: colors.primary }}>{totalFeed24h} Bags</Text> ({calculatedKg} kg)
+            24h Feed:{" "}
+            <Text style={{ fontWeight: "700", color: colors.primary }}>
+              {totalFeed24h} Bags
+            </Text>{" "}
+            ({calculatedKg} kg)
           </Text>
         </View>
 
         {/* Feed Stock Reconciliation */}
-        <View style={{ marginTop: spacing.md, borderTopWidth: 1, borderColor: colors.border, paddingTop: spacing.sm }}>
-          <Text style={{ fontWeight: "700", color: colors.text, marginBottom: 6 }}>
+        <View
+          style={{
+            marginTop: spacing.md,
+            borderTopWidth: 1,
+            borderColor: colors.border,
+            paddingTop: spacing.sm,
+          }}
+        >
+          <Text
+            style={{ fontWeight: "700", color: colors.text, marginBottom: 6 }}
+          >
             Stock Reconciliation (Borian Ka Hisab)
           </Text>
           <View style={styles.stockRow}>
@@ -632,7 +672,9 @@ export default function DailyEntryScreen() {
         >
           📝 Paper Register Custom Column ("E.S")
         </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}>
+        <Text
+          style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}
+        >
           Register ka khas column (Formula se bahir hai - sirf record ke liye):
         </Text>
         <Input
@@ -691,7 +733,12 @@ export default function DailyEntryScreen() {
           </View>
         </View>
 
-        <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 6 }]}>
+        <Text
+          style={[
+            styles.inputLabel,
+            { color: colors.textSecondary, marginTop: 6 },
+          ]}
+        >
           {t("daily.litter")}
         </Text>
         <View style={styles.selectorRow}>
@@ -702,8 +749,10 @@ export default function DailyEntryScreen() {
               style={[
                 styles.typeChip,
                 {
-                  backgroundColor: litter === cond ? colors.secondary : colors.surface,
-                  borderColor: litter === cond ? colors.secondary : colors.border,
+                  backgroundColor:
+                    litter === cond ? colors.secondary : colors.surface,
+                  borderColor:
+                    litter === cond ? colors.secondary : colors.border,
                 },
               ]}
             >
@@ -735,7 +784,11 @@ export default function DailyEntryScreen() {
       <View style={{ marginTop: spacing.lg }}>
         <Button
           testID="submit-daily-entry-btn"
-          title={loading ? t("common.loading") : "✓ " + t("common.save") + " (Darj Karein)"}
+          title={
+            loading
+              ? t("common.loading")
+              : "✓ " + t("common.save") + " (Darj Karein)"
+          }
           onPress={handleSubmit}
           loading={loading}
           size="lg"

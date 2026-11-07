@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The Broiler Farm Management System utilizes a schema-enforced document store (MongoDB with Mongoose) coupled with strict TypeScript interfaces (`@broiler/shared`) and local offline persistent caches (SQLite / AsyncStorage). Every business transaction records immutable audit trails, actor identification, and client timestamps to enable robust Last-Write-Wins (LWW) multi-master sync reconciliation.
+The Broiler Farm Management System utilizes a schema-enforced document store (MongoDB with Mongoose) coupled with strict TypeScript interfaces (`@broiler/shared`) and local offline persistent SQLite tables (`expo-sqlite`). Every business transaction records immutable audit trails, actor identification, and client timestamps to enable robust Last-Write-Wins (LWW) multi-master sync reconciliation and day/night shift merging.
 
 ---
 
@@ -18,12 +18,13 @@ erDiagram
     BATCH ||--o{ DAILY_RECORD : tracks
     BATCH ||--o{ WEIGHT_RECORD : samples
     BATCH ||--o{ VACCINATION_TASK : schedules
-    BATCH ||--o{ MEDICINE_RECORD : receives
+    BATCH ||--o{ DAILY_MEDICINE : logs
     BATCH ||--o{ EXPENSE : incurs
     BATCH ||--o{ SALE : yields
     BATCH ||--o{ FEED_ISSUE : consumes
 
     FEED_PURCHASE ||--o{ FEED_ISSUE : provides
+    FEED_TRANSFER ||--o{ FEED_STOCK : adjusts
     STAFF ||--o{ ATTENDANCE : logs
     STAFF ||--o{ STAFF_ADVANCE : receives
     ALERT ||--o{ SHED : flags
@@ -36,8 +37,6 @@ erDiagram
 
 ### 3.1 Users (`users`)
 
-Stores authentication credentials, contact details, assigned sheds, and RBAC roles.
-
 - `_id`: `ObjectId`
 - `username`: `String` (unique, lowercase, indexed)
 - `passwordHash`: `String` (bcrypt salted hash, 10 rounds)
@@ -46,226 +45,116 @@ Stores authentication credentials, contact details, assigned sheds, and RBAC rol
 - `role`: `'admin' | 'worker'` (indexed)
 - `assignedShedId`: `ObjectId` (ref: `Shed`, nullable for admin)
 - `isActive`: `Boolean` (default: `true`)
-- `refreshTokenHash`: `String` (optional, for token rotation)
+- `mustChangePassword`: `Boolean` (default: `true` for all seeded and admin-created users)
 - `timestamps`: `createdAt`, `updatedAt`
 
 ### 3.2 Sheds (`sheds`)
 
-Physical broiler houses on the poultry facility.
-
 - `_id`: `ObjectId`
-- `name`: `String` (e.g., "Shed 1 - Alpha")
+- `name`: `String` (e.g., "Shed 1 - North Wing")
 - `shedNumber`: `Number` (1 to 5, unique, indexed)
 - `capacity`: `Number` (e.g., 5,000 birds)
 - `status`: `'empty' | 'active' | 'cleaning'` (indexed)
-- `assignedWorkerId`: `ObjectId` (ref: `User`, optional)
-- `currentBatchId`: `ObjectId` (ref: `Batch`, optional)
-- `timestamps`: `createdAt`, `updatedAt`
+- `currentBatchId`: `ObjectId` (ref: `Batch`, nullable)
+- `assignedWorkerId`: `ObjectId` (ref: `User`)
 
-### 3.3 Batches / Flocks (`batches`)
-
-A placed flock of broiler chicks from placement to harvest.
-
-- `_id`: `ObjectId`
-- `batchNumber`: `String` (e.g., "FLOCK-2026-S1", unique, indexed)
-- `shedId`: `ObjectId` (ref: `Shed`, indexed)
-- `chicksPlaced`: `Number` (e.g., 5,000)
-- `placementDate`: `String` (YYYY-MM-DD, indexed)
-- `expectedCloseDate`: `String` (YYYY-MM-DD)
-- `actualCloseDate`: `String` (YYYY-MM-DD, optional)
-- `supplier`: `String` (e.g., "Big Bird Hatcheries")
-- `breed`: `String` (e.g., "Cobb 500", "Ross 308")
-- `chickRate`: `Number` (PKR per chick)
-- `initialCost`: `Number` (chicksPlaced * chickRate)
-- `status`: `'active' | 'closed'` (indexed)
-- `summary`: `BatchCloseSummary` embedded object (computed on batch close):
-  - `totalMortality`, `mortalityPercent`, `totalCulls`
-  - `totalBirdsSold`, `totalLiveWeightSoldKg`, `averageWeightSoldKg`
-  - `totalFeedConsumedKg`, `fcr`, `costPerKg`, `totalExpenses`
-  - `totalRevenue`, `netProfit`, `epef`, `livabilityPercent`
-- `closedBy`: `ObjectId` (ref: `User`)
-- `closedAt`: `Date`
-- `timestamps`: `createdAt`, `updatedAt`
-
-### 3.4 Daily Records (`daily_records`)
-
-Submitted once daily per shed by the assigned worker.
+### 3.3 Daily Records (`dailyrecords`) - Mirroring 16-Column Paper Register
 
 - `_id`: `ObjectId`
 - `batchId`: `ObjectId` (ref: `Batch`, indexed)
 - `shedId`: `ObjectId` (ref: `Shed`, indexed)
-- `date`: `String` (YYYY-MM-DD, compound index `[batchId, date]` unique)
-- `ageInDays`: `Number` (0 to 45)
-- `mortalityCount`: `Number` (default 0)
-- `mortalityCause`: `String` (optional)
-- `culls`: `Number` (default 0)
-- `feedUsedBags`: `Number` (e.g., 8 bags)
-- `feedUsedKg`: `Number` (bags * bagWeightKg)
-- `feedType`: `'starter' | 'grower' | 'finisher'`
-- `waterIntakeLiters`: `Number` (optional)
-- `tempMinC`: `Number` (optional)
-- `tempMaxC`: `Number` (optional)
-- `litterCondition`: `'good' | 'fair' | 'poor' | 'wet'`
-- `notes`: `String` (optional)
-- `photoUrl`: `String` (optional)
-- `isLocked`: `Boolean` (locked past midnight unless unlocked by Admin)
-- `createdBy`: `ObjectId` (ref: `User`)
-- `updatedBy`: `ObjectId` (ref: `User`)
-- `clientUpdatedAt`: `String` (ISO 8601 for LWW offline reconciliation)
-- `timestamps`: `createdAt`, `updatedAt`
-
-### 3.5 Weight Records (`weight_records`)
-
-Weekly random sample weighings to track against standard Cobb 500 growth curves.
-
-- `_id`: `ObjectId`
-- `batchId`: `ObjectId` (ref: `Batch`, indexed)
-- `shedId`: `ObjectId` (ref: `Shed`, indexed)
-- `week`: `Number` (Week 1 through 6)
-- `ageInDays`: `Number`
-- `sampleSize`: `Number` (e.g., 50 or 100 birds)
-- `totalSampleWeightKg`: `Number`
-- `averageWeightGrams`: `Number`
-- `targetWeightGrams`: `Number` (standard standard for age)
-- `uniformityPercent`: `Number` (optional)
-- `date`: `String` (YYYY-MM-DD)
-- `notes`: `String`
-- `createdBy`: `ObjectId`
-- `timestamps`: `createdAt`, `updatedAt`
-
-### 3.6 Vaccination Templates & Tasks (`vaccination_templates`, `vaccination_tasks`)
-
-Admin-configurable schedules auto-instantiated for every newly created batch.
-
-- **Template**:
-  - `name`: `String`
-  - `isDefault`: `Boolean`
-  - `schedule`: Array of `{ ageInDays, vaccineName, route, notes, isMandatory }`
-- **Task**:
-  - `batchId`: `ObjectId` (ref: `Batch`, indexed)
-  - `shedId`: `ObjectId` (ref: `Shed`, indexed)
-  - `ageInDays`: `Number`
-  - `dueDate`: `String` (YYYY-MM-DD, indexed)
-  - `vaccineName`: `String` (ND, IB, IBD/Gumboro, Hydro/HPS)
-  - `route`: `'drinking_water' | 'eye_drop' | 'spray' | 'injection_sc' | 'injection_im'`
-  - `status`: `'pending' | 'completed' | 'skipped'` (indexed)
-  - `completedAt`: `Date`
-  - `completedBy`: `ObjectId` (ref: `User`)
-  - `completedByName`: `String`
+- `date`: `String` (`YYYY-MM-DD`, indexed)
+- `dayNumber`: `Number` (1–45)
+- `shift`: `'day' | 'night' | 'full'`
+- **Shift Feed Fields**:
+  - `openingFeedStockBags`: `Number`
+  - `feedUsedDayShiftBags`: `Number` (DAY shift bags)
+  - `feedUsedNightShiftBags`: `Number` (NIGHT shift bags)
+  - `feedUsedBags`: `Number` (24h Total = DAY + NIGHT)
+  - `feedUsedKg`: `Number` (Calculated kg)
+  - `feedReceivedBags`: `Number` (Added feed)
+  - `feedTransferredOutBags`: `Number` (Transferred to other farm/shed)
+  - `closingFeedStockBags`: `Number` (Physical or expected closing stock)
+  - `feedRemarks`: `String` (e.g., "Star Feed borrowed from Shed 2")
+- **Shift Mortality Fields**:
+  - `openingBirds`: `Number`
+  - `mortalityDayShift`: `Number` (DAY shift bird loss)
+  - `mortalityDayCause`: `String` (Reason: heat, weakness, etc.)
+  - `mortalityNightShift`: `Number` (NIGHT shift bird loss)
+  - `mortalityNightCause`: `String`
+  - `mortalityCount`: `Number` (24h Total = DAY + NIGHT)
+  - `culls`: `Number` (Weak/culled birds)
+  - `closingBirds`: `Number` (Calculated remaining)
+- **Paper Register Custom Column**:
+  - `customColumnES`: `Number | null` (Admin-configurable column, excluded from automated formulas until assigned)
+- **Environment**:
+  - `waterLiters`: `Number`
+  - `minTemp`: `Number` (°C)
+  - `maxTemp`: `Number` (°C)
+  - `litterCondition`: `'dry' | 'normal' | 'wet'`
   - `notes`: `String`
+- `isLocked`: `Boolean` (Locked after shift/day, editable via admin unlock)
 
-### 3.7 Feed Management (`feed_purchases`, `feed_issues`)
+### 3.4 Feed Transfers & Lending (`feedtransfers`)
 
-- **Feed Purchase**:
-  - `purchaseDate`: `String` (YYYY-MM-DD)
-  - `supplier`: `String` (e.g., "Supreme Feeds")
-  - `feedType`: `'starter' | 'grower' | 'finisher'`
-  - `bags`: `Number`
-  - `bagWeightKg`: `Number` (default 50.0 kg)
-  - `totalKg`: `Number`
-  - `ratePerBag`: `Number` (PKR)
-  - `totalAmount`: `Number`
-  - `invoiceNumber`: `String`
-- **Feed Issue**:
-  - `date`: `String`
-  - `batchId`: `ObjectId`
-  - `shedId`: `ObjectId`
-  - `feedType`: `String`
-  - `bags`: `Number`
-  - `bagWeightKg`: `Number`
-  - `totalKg`: `Number`
-  - `issuedToStaffId`: `ObjectId`
+- `_id`: `ObjectId`
+- `date`: `String` (`YYYY-MM-DD`)
+- `partyName`: `String` (Farm owner or feed dealer, e.g. "Star Feed", "Haji Aslam Farm")
+- `transferType`: `'received' | 'given'` (borrowed vs lent)
+- `feedBrand`: `String` (e.g. Star Feed, Chenab Feed)
+- `feedType`: `'starter' | 'grower' | 'finisher'`
+- `bagCount`: `Number` (Quantity in bags)
+- `notes`: `String`
 
-### 3.8 Expenses (`expenses`)
+### 3.5 Catching & Partial Lifting Lots (`sales`)
 
-Granular financial outlays categorized for P&L tracking.
-
-- `date`: `String` (YYYY-MM-DD, indexed)
-- `category`: `'chicks' | 'feed' | 'medicine' | 'electricity' | 'labour' | 'fuel_generator' | 'transport' | 'maintenance' | 'miscellaneous'`
-- `amount`: `Number` (PKR, indexed)
-- `batchId`: `ObjectId` (optional, null for farm-level general overhead)
-- `shedId`: `ObjectId` (optional)
-- `description`: `String`
-- `paidTo`: `String`
-- `paymentMethod`: `'cash' | 'bank_transfer' | 'check'`
-- `receiptNumber`: `String`
-
-### 3.9 Sales & Buyer Ledgers (`sales`, `buyer_payments`)
-
-Flock harvest bird sales with manually editable rates and running balances.
-
-- `date`: `String` (YYYY-MM-DD, indexed)
+- `_id`: `ObjectId`
 - `batchId`: `ObjectId` (ref: `Batch`, indexed)
 - `shedId`: `ObjectId` (ref: `Shed`, indexed)
-- `buyerName`: `String` (indexed)
+- `lotNumber`: `Number` (1, 2, 3...)
+- `date`: `String` (`YYYY-MM-DD`)
+- `buyerName`: `String`
 - `buyerPhone`: `String`
-- `birdsSold`: `Number`
-- `totalLiveWeightKg`: `Number`
-- `averageWeightKg`: `Number` (totalLiveWeightKg / birdsSold)
-- `ratePerKg`: `Number` (editable PKR rate)
-- `totalAmount`: `Number` (totalLiveWeightKg * ratePerKg)
+- `totalLiveWeightKg`: `Number` (Weighbridge gross live kg)
+- `averageWeightKg`: `Number` (Average kg per bird)
+- `birdsSold`: `Number` (Auto-computed = `round(totalLiveWeightKg / averageWeightKg)`)
+- `isManualBirdCountOverride`: `Boolean`
+- `overrideReason`: `String` (Mandatory when overridden)
+- `ratePerKg`: `Number` (PKR per kg, manually editable)
+- `totalAmount`: `Number` (`totalLiveWeightKg * ratePerKg`)
 - `amountPaid`: `Number`
-- `remainingBalance`: `Number`
+- `balanceDue`: `Number`
 - `paymentStatus`: `'paid' | 'partial' | 'pending'`
-- `payments`: Array of `{ date, amount, paymentMethod, notes }`
+- `vehicleNo`: `String`
 
-### 3.10 Staff & Payroll (`staff`, `attendance`, `staff_advances`)
+### 3.6 Daily Medicine Sheet (`dailymedicines`)
 
-- **Staff**: `name`, `role`, `phone`, `dailyWage`, `assignedShedId`, `isActive`
-- **Attendance**: `staffId`, `date` (unique per staff/day), `status` ('present' | 'absent' | 'half_day' | 'leave'), `notes`
-- **Advances**: `staffId`, `date`, `amount`, `reason`, `deducted`
+- `_id`: `ObjectId`
+- `batchId`: `ObjectId` (ref: `Batch`)
+- `shedId`: `ObjectId` (ref: `Shed`)
+- `date`: `String` (`YYYY-MM-DD`)
+- `items`: `Array` of:
+  - `name`: `String` (e.g., Vitamin AD3E, Electrolyte Power, Acidifier)
+  - `category`: `'vitamins' | 'electrolytes' | 'antibiotics' | 'respiratory' | 'acidifier' | 'vaccine' | 'other'`
+  - `quantity`: `String` (optional)
+  - `unit`: `String` (optional, ml/grams)
+  - `cost`: `Number` (optional)
+- Distinct names cached for autocomplete chip suggestions.
 
-### 3.11 System Alerts (`alerts`)
+### 3.7 Farm Settings (`farmsettings`)
 
-Real-time automated warnings generated by the alerting engine.
-
-- `type`: `'mortality_spike' | 'missed_daily_entry' | 'vaccine_due' | 'vaccine_overdue' | 'low_feed_stock' | 'medicine_expiry' | 'abnormal_temperature' | 'pending_payment'`
-- `severity`: `'info' | 'warning' | 'critical'`
-- `title`: `String`
-- `message`: `String`
-- `shedId`: `ObjectId` (optional)
-- `batchId`: `ObjectId` (optional)
-- `isResolved`: `Boolean` (indexed)
-- `resolvedAt`: `Date`
-- `resolvedBy`: `ObjectId`
-
-### 3.12 Audit Logs (`audit_logs`)
-
-Tamper-evident logs of all mutations, record edits, and deletions.
-
-- `userId`: `ObjectId`
-- `userName`: `String`
-- `action`: `'create' | 'update' | 'delete' | 'sync' | 'unlock'`
-- `entity`: `String` (e.g., 'daily_record', 'sale', 'expense')
-- `entityId`: `String`
-- `oldValue`: `Object`
-- `newValue`: `Object`
-- `ipAddress`: `String`
-- `userAgent`: `String`
-- `timestamp`: `Date` (indexed)
-
-### 3.13 Sync Queue Log (`sync_mutations`)
-
-Idempotency registry tracking client-generated mutation IDs.
-
-- `clientMutationId`: `String` (UUID v4, unique, indexed)
-- `userId`: `ObjectId`
-- `entityType`: `String`
-- `action`: `String`
-- `status`: `'applied' | 'rejected' | 'conflict_resolved'`
-- `serverProcessedAt`: `Date`
-
----
-
-## 4. Database Indexing Strategy
-
-Compound and specialized indexes for sub-10ms query performance:
-
-1. `daily_records`: `{ batchId: 1, date: -1 }` (unique constraint on batchId + date)
-2. `daily_records`: `{ shedId: 1, date: -1 }`
-3. `vaccination_tasks`: `{ batchId: 1, status: 1, dueDate: 1 }`
-4. `sales`: `{ batchId: 1, date: 1 }`
-5. `expenses`: `{ batchId: 1, category: 1 }`
-6. `attendance`: `{ staffId: 1, date: -1 }` (unique constraint on staffId + date)
-7. `sync_mutations`: `{ clientMutationId: 1 }` (unique)
-8. `alerts`: `{ isResolved: 1, severity: 1, createdAt: -1 }`
+- `_id`: `ObjectId`
+- `farmName`: `String`
+- `ownerName`: `String`
+- `location`: `String`
+- `phone`: `String`
+- `defaultFeedBagWeightKg`: `Number` (default: 50.0)
+- `customDailyColumnLabel`: `String` (default: "E.S")
+- `customDailyColumnEnabled`: `Boolean` (default: true)
+- `batchScope`: `'multi_shed' | 'per_shed'` (default: "multi_shed")
+- `alertThresholds`:
+  - `mortalitySpikePercentDaily`: `Number` (default: 1.0%)
+  - `mortalityWeeklyPercent`: `Number` (default: 3.5%)
+  - `lowFeedStockBags`: `Number` (default: 20)
+  - `tempMinCelsius`: `Number`
+  - `tempMaxCelsius`: `Number`

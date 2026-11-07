@@ -153,7 +153,12 @@ export class SyncService {
       let mortDay = payload.mortalityDayShift || 0;
       let mortNight = payload.mortalityNightShift || 0;
 
-      if (feedDay === 0 && feedNight === 0 && payload.feedUsedBags && payload.feedUsedBags > 0) {
+      if (
+        feedDay === 0 &&
+        feedNight === 0 &&
+        payload.feedUsedBags &&
+        payload.feedUsedBags > 0
+      ) {
         if (payload.shift === "night") {
           feedNight = payload.feedUsedBags;
         } else {
@@ -161,7 +166,12 @@ export class SyncService {
         }
       }
 
-      if (mortDay === 0 && mortNight === 0 && payload.mortalityCount && payload.mortalityCount > 0) {
+      if (
+        mortDay === 0 &&
+        mortNight === 0 &&
+        payload.mortalityCount &&
+        payload.mortalityCount > 0
+      ) {
         if (payload.shift === "night") {
           mortNight = payload.mortalityCount;
         } else {
@@ -204,7 +214,10 @@ export class SyncService {
         feedUsedNightShiftBags: feedNight,
         feedUsed24hBags: summary.feedUsed24hBags,
         feedUsedBags: summary.feedUsed24hBags,
-        feedUsedKg: payload.feedUsedKg !== undefined ? payload.feedUsedKg : summary.feedUsedKg,
+        feedUsedKg:
+          payload.feedUsedKg !== undefined
+            ? payload.feedUsedKg
+            : summary.feedUsedKg,
         closingFeedStockBags: summary.closingFeedStockBags,
         feedStockDiscrepancyBags: summary.feedStockDiscrepancyBags,
         hasFeedStockShortage: summary.hasFeedStockShortage,
@@ -213,7 +226,8 @@ export class SyncService {
         mortality24h: summary.mortality24h,
         mortalityCount: summary.mortality24h,
         closingBirds: summary.closingBirds,
-        customColumnES: payload.customColumnES !== undefined ? payload.customColumnES : null,
+        customColumnES:
+          payload.customColumnES !== undefined ? payload.customColumnES : null,
         createdBy: new mongoose.Types.ObjectId(userId),
         clientUpdatedAt: item.clientTimestamp,
       });
@@ -226,40 +240,67 @@ export class SyncService {
 
       if (payload.feedUsedDayShiftBags !== undefined) {
         mergedDayFeed = payload.feedUsedDayShiftBags;
-      } else if (payload.shift !== "night" && payload.feedUsedBags !== undefined) {
+      } else if (
+        payload.shift !== "night" &&
+        payload.feedUsedBags !== undefined
+      ) {
         mergedDayFeed = payload.feedUsedBags;
       }
 
       if (payload.feedUsedNightShiftBags !== undefined) {
         mergedNightFeed = payload.feedUsedNightShiftBags;
-      } else if (payload.shift === "night" && payload.feedUsedBags !== undefined) {
+      } else if (
+        payload.shift === "night" &&
+        payload.feedUsedBags !== undefined
+      ) {
         mergedNightFeed = payload.feedUsedBags;
       }
 
       if (payload.mortalityDayShift !== undefined) {
         mergedDayMort = payload.mortalityDayShift;
-      } else if (payload.shift !== "night" && payload.mortalityCount !== undefined) {
+      } else if (
+        payload.shift !== "night" &&
+        payload.mortalityCount !== undefined
+      ) {
         mergedDayMort = payload.mortalityCount;
       }
 
       if (payload.mortalityNightShift !== undefined) {
         mergedNightMort = payload.mortalityNightShift;
-      } else if (payload.shift === "night" && payload.mortalityCount !== undefined) {
+      } else if (
+        payload.shift === "night" &&
+        payload.mortalityCount !== undefined
+      ) {
         mergedNightMort = payload.mortalityCount;
       }
 
       const summary = calculateDailyRecordSummary({
-        openingFeedStockBags: payload.openingFeedStockBags !== undefined ? payload.openingFeedStockBags : record.openingFeedStockBags,
+        openingFeedStockBags:
+          payload.openingFeedStockBags !== undefined
+            ? payload.openingFeedStockBags
+            : record.openingFeedStockBags,
         feedUsedDayShiftBags: mergedDayFeed,
         feedUsedNightShiftBags: mergedNightFeed,
-        feedReceivedBags: payload.feedReceivedBags !== undefined ? payload.feedReceivedBags : record.feedReceivedBags,
-        feedTransferredOutBags: payload.feedTransferredOutBags !== undefined ? payload.feedTransferredOutBags : record.feedTransferredOutBags,
-        reportedClosingFeedStockBags: payload.closingFeedStockBags !== undefined ? payload.closingFeedStockBags : record.closingFeedStockBags,
+        feedReceivedBags:
+          payload.feedReceivedBags !== undefined
+            ? payload.feedReceivedBags
+            : record.feedReceivedBags,
+        feedTransferredOutBags:
+          payload.feedTransferredOutBags !== undefined
+            ? payload.feedTransferredOutBags
+            : record.feedTransferredOutBags,
+        reportedClosingFeedStockBags:
+          payload.closingFeedStockBags !== undefined
+            ? payload.closingFeedStockBags
+            : record.closingFeedStockBags,
         openingBirds: record.openingBirds || batch.chicksPlaced,
         mortalityDayShift: mergedDayMort,
         mortalityNightShift: mergedNightMort,
         culls: payload.culls !== undefined ? payload.culls : record.culls,
-        liftedBirds: payload.liftedBirds !== undefined ? payload.liftedBirds : record.liftedBirds,
+        liftedBirds:
+          payload.liftedBirds !== undefined
+            ? payload.liftedBirds
+            : record.liftedBirds,
       });
 
       // Update merged record
@@ -267,7 +308,10 @@ export class SyncService {
       record.feedUsedNightShiftBags = mergedNightFeed;
       record.feedUsed24hBags = summary.feedUsed24hBags;
       record.feedUsedBags = summary.feedUsed24hBags;
-      record.feedUsedKg = payload.feedUsedKg !== undefined ? payload.feedUsedKg : summary.feedUsedKg;
+      record.feedUsedKg =
+        payload.feedUsedKg !== undefined
+          ? payload.feedUsedKg
+          : summary.feedUsedKg;
       record.closingFeedStockBags = summary.closingFeedStockBags;
       record.feedStockDiscrepancyBags = summary.feedStockDiscrepancyBags;
       record.hasFeedStockShortage = summary.hasFeedStockShortage;
@@ -277,17 +321,25 @@ export class SyncService {
       record.mortalityCount = summary.mortality24h;
       record.closingBirds = summary.closingBirds;
 
-      if (payload.mortalityDayCause) record.mortalityDayCause = payload.mortalityDayCause;
-      if (payload.mortalityNightCause) record.mortalityNightCause = payload.mortalityNightCause;
+      if (payload.mortalityDayCause)
+        record.mortalityDayCause = payload.mortalityDayCause;
+      if (payload.mortalityNightCause)
+        record.mortalityNightCause = payload.mortalityNightCause;
       if (payload.feedRemarks) record.feedRemarks = payload.feedRemarks;
-      if (payload.customColumnES !== undefined) record.customColumnES = payload.customColumnES;
-      if (payload.waterLiters !== undefined) record.waterLiters = payload.waterLiters;
+      if (payload.customColumnES !== undefined)
+        record.customColumnES = payload.customColumnES;
+      if (payload.waterLiters !== undefined)
+        record.waterLiters = payload.waterLiters;
       if (payload.minTemp !== undefined) record.minTemp = payload.minTemp;
       if (payload.maxTemp !== undefined) record.maxTemp = payload.maxTemp;
-      if (payload.litterCondition) record.litterCondition = payload.litterCondition;
+      if (payload.litterCondition)
+        record.litterCondition = payload.litterCondition;
       if (payload.notes) record.notes = payload.notes;
 
-      record.shift = mergedDayFeed > 0 && mergedNightFeed > 0 ? "full" : payload.shift || record.shift;
+      record.shift =
+        mergedDayFeed > 0 && mergedNightFeed > 0
+          ? "full"
+          : payload.shift || record.shift;
       record.updatedBy = new mongoose.Types.ObjectId(userId);
       record.clientUpdatedAt = item.clientTimestamp;
 
@@ -301,8 +353,10 @@ export class SyncService {
     userId: string,
   ): Promise<string> {
     const payload = item.payload;
-    const target = payload.targetWeightGrams !== undefined ? payload.targetWeightGrams : 0;
-    const deviation = payload.deviationGrams !== undefined ? payload.deviationGrams : 0;
+    const target =
+      payload.targetWeightGrams !== undefined ? payload.targetWeightGrams : 0;
+    const deviation =
+      payload.deviationGrams !== undefined ? payload.deviationGrams : 0;
     const ageInDays = payload.ageInDays !== undefined ? payload.ageInDays : 1;
     let record = payload.id ? await WeightRecord.findById(payload.id) : null;
     if (!record) {
@@ -472,8 +526,13 @@ export class SyncService {
     userId: string,
   ): Promise<string> {
     const payload = item.payload;
-    const date = payload.date || payload.saleDate || new Date().toISOString().split("T")[0];
-    const averageWeightKg = payload.averageWeightKg || (payload.birdsSold ? payload.totalLiveWeightKg / payload.birdsSold : 2.0);
+    const date =
+      payload.date ||
+      payload.saleDate ||
+      new Date().toISOString().split("T")[0];
+    const averageWeightKg =
+      payload.averageWeightKg ||
+      (payload.birdsSold ? payload.totalLiveWeightKg / payload.birdsSold : 2.0);
     const liftingCalc = calculateLiftingBirds(
       payload.totalLiveWeightKg,
       averageWeightKg,
@@ -482,7 +541,8 @@ export class SyncService {
     );
 
     const birdsSold = payload.birdsSold || liftingCalc.birds;
-    const totalAmount = payload.totalAmount || payload.totalLiveWeightKg * payload.ratePerKg;
+    const totalAmount =
+      payload.totalAmount || payload.totalLiveWeightKg * payload.ratePerKg;
     const amountPaid = payload.amountPaid || 0;
     const balanceAmount = totalAmount - amountPaid;
 

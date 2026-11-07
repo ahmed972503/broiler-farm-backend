@@ -576,7 +576,10 @@ describe("Offline-First Sync Engine Integration Tests", () => {
     expect(res2.status).toBe(200);
     expect(res2.body.results[0].status).toBe("synced");
 
-    const savedSheet = await DailyMedicineSheet.findOne({ batchId: batch1Id, date });
+    const savedSheet = await DailyMedicineSheet.findOne({
+      batchId: batch1Id,
+      date,
+    });
     expect(savedSheet?.items.length).toBe(2);
     expect(savedSheet?.items[1].name).toBe("Colistin Sulphate");
   });
@@ -731,7 +734,8 @@ describe("Offline-First Sync Engine Integration Tests", () => {
             averageWeightKg: 2.56,
             birdsSold: 1220,
             isManualBirdCountOverride: true,
-            overrideReason: "Coop head count verified by weighbridge supervisor",
+            overrideReason:
+              "Coop head count verified by weighbridge supervisor",
             ratePerKg: 385,
             amountPaid: 1197735,
             paymentStatus: "paid",
@@ -782,7 +786,9 @@ describe("Offline-First Sync Engine Integration Tests", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.results[0].status).toBe("error");
-    expect(res.body.results[0].message).toContain("Unsupported entity type: UNKNOWN_ENTITY");
+    expect(res.body.results[0].message).toContain(
+      "Unsupported entity type: UNKNOWN_ENTITY",
+    );
   });
 
   it("covers MEDICINE_RECORD entity type and edge shift branching", async () => {
@@ -855,7 +861,10 @@ describe("Offline-First Sync Engine Integration Tests", () => {
     expect(nightRes.status).toBe(200);
     expect(nightRes.body.results[0].status).toBe("synced");
 
-    const recordNight = await DailyRecord.findOne({ batchId: batch1Id, date: "2026-03-23" });
+    const recordNight = await DailyRecord.findOne({
+      batchId: batch1Id,
+      date: "2026-03-23",
+    });
     expect(recordNight?.feedUsedNightShiftBags).toBe(6);
     expect(recordNight?.mortalityNightShift).toBe(3);
 
@@ -893,7 +902,10 @@ describe("Offline-First Sync Engine Integration Tests", () => {
     expect(dayRes.status).toBe(200);
     expect(dayRes.body.results[0].status).toBe("synced");
 
-    const recordMerged = await DailyRecord.findOne({ batchId: batch1Id, date: "2026-03-23" });
+    const recordMerged = await DailyRecord.findOne({
+      batchId: batch1Id,
+      date: "2026-03-23",
+    });
     expect(recordMerged?.feedUsedDayShiftBags).toBe(5);
     expect(recordMerged?.feedUsedNightShiftBags).toBe(6);
     expect(recordMerged?.mortalityDayShift).toBe(2);

@@ -578,18 +578,17 @@ export function calculateWeeklyFlockSummaryRow(params: {
     2,
   );
   // Important: weekly feed is ALWAYS the difference of cumulative totals
-  const weeklyFeedBags = roundTo(
-    Math.max(0, totalFeedBags - prevFeedBags),
-    2,
-  );
+  const weeklyFeedBags = roundTo(Math.max(0, totalFeedBags - prevFeedBags), 2);
 
-  const avgWeightGrams = Math.max(
-    0,
-    Number(params.averageWeightGrams) || 0,
-  );
+  const avgWeightGrams = Math.max(0, Number(params.averageWeightGrams) || 0);
   const totalWeightKg = roundTo((remainingChicks * avgWeightGrams) / 1000, 2);
 
-  const trueFcr = calculateTrueFCR(totalFeedBags, totalWeightKg, true, bagWeight);
+  const trueFcr = calculateTrueFCR(
+    totalFeedBags,
+    totalWeightKg,
+    true,
+    bagWeight,
+  );
   const farmMethodFcr = calculateFarmMethodMetric(totalWeightKg, totalFeedBags);
 
   return {

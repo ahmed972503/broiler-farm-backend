@@ -228,7 +228,8 @@ export default function SalesScreen() {
               fontSize: typography.sizes.sm,
             }}
           >
-            Partial lifting lots, auto-calculated bird counts, and consistency reconciliation
+            Partial lifting lots, auto-calculated bird counts, and consistency
+            reconciliation
           </Text>
         </View>
 
@@ -247,17 +248,29 @@ export default function SalesScreen() {
           testID="lifting-consistency-card"
           style={{
             marginVertical: spacing.sm,
-            borderColor: consistencyData.isConsistent ? colors.primary : colors.warning,
+            borderColor: consistencyData.isConsistent
+              ? colors.primary
+              : colors.warning,
             borderWidth: 1.5,
           }}
         >
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ fontWeight: "700", color: colors.text, fontSize: 14 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{ fontWeight: "700", color: colors.text, fontSize: 14 }}
+            >
               Flock Lifting Reconciliation ({consistencyData.batchNumber})
             </Text>
             <Badge
               testID="consistency-status-badge"
-              label={consistencyData.isConsistent ? "RECONCILED" : "DISCREPANCY"}
+              label={
+                consistencyData.isConsistent ? "RECONCILED" : "DISCREPANCY"
+              }
               variant={consistencyData.isConsistent ? "success" : "warning"}
               size="sm"
             />
@@ -265,7 +278,9 @@ export default function SalesScreen() {
 
           <View style={styles.reconGrid}>
             <View style={styles.reconCell}>
-              <Text style={styles.reconVal}>{consistencyData.chicksPlaced?.toLocaleString()}</Text>
+              <Text style={styles.reconVal}>
+                {consistencyData.chicksPlaced?.toLocaleString()}
+              </Text>
               <Text style={styles.reconLbl}>Placed</Text>
             </View>
             <View style={styles.reconCell}>
@@ -289,7 +304,15 @@ export default function SalesScreen() {
           </View>
 
           {consistencyData.warning && (
-            <Text testID="lifting-warning-text" style={{ color: colors.warning, fontSize: 12, marginTop: 6, fontStyle: "italic" }}>
+            <Text
+              testID="lifting-warning-text"
+              style={{
+                color: colors.warning,
+                fontSize: 12,
+                marginTop: 6,
+                fontStyle: "italic",
+              }}
+            >
               {consistencyData.warning}
             </Text>
           )}
@@ -358,7 +381,9 @@ export default function SalesScreen() {
             ))}
           </View>
 
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
             <View style={{ flex: 0.3 }}>
               <Input
                 testID="lot-number-input"
@@ -415,21 +440,34 @@ export default function SalesScreen() {
           </View>
 
           {/* Auto Computed Birds Badge */}
-          <View style={[styles.autoBirdsCard, { backgroundColor: colors.surface }]}>
+          <View
+            style={[styles.autoBirdsCard, { backgroundColor: colors.surface }]}
+          >
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
               Computed Birds = Total Weight / Avg Weight:
             </Text>
-            <Text testID="computed-birds-text" style={{ color: colors.primary, fontSize: 20, fontWeight: "800", marginTop: 2 }}>
+            <Text
+              testID="computed-birds-text"
+              style={{
+                color: colors.primary,
+                fontSize: 20,
+                fontWeight: "800",
+                marginTop: 2,
+              }}
+            >
               {liftingCalc.calculatedBirds} birds
             </Text>
             <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-              {numTotalWeight} kg ÷ {numAvgWeight} kg = {liftingCalc.calculatedBirds} birds
+              {numTotalWeight} kg ÷ {numAvgWeight} kg ={" "}
+              {liftingCalc.calculatedBirds} birds
             </Text>
           </View>
 
           {/* Manual Override Option */}
           <View style={styles.overrideRow}>
-            <Text style={{ color: colors.text, fontWeight: "600", fontSize: 13 }}>
+            <Text
+              style={{ color: colors.text, fontWeight: "600", fontSize: 13 }}
+            >
               Manually override bird count?
             </Text>
             <Switch
@@ -481,7 +519,8 @@ export default function SalesScreen() {
             ]}
           >
             <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-              Total Invoiced Amount ({finalBirdsSold} birds @ Rs. {ratePerKg}/kg):
+              Total Invoiced Amount ({finalBirdsSold} birds @ Rs. {ratePerKg}
+              /kg):
             </Text>
             <Text
               testID="total-invoice-amount-text"
@@ -628,7 +667,10 @@ export default function SalesScreen() {
               >
                 {sale.birdsSold?.toLocaleString()}
                 {sale.isManualBirdCountOverride && (
-                  <Text style={{ color: colors.warning, fontSize: 10 }}> (Overridden)</Text>
+                  <Text style={{ color: colors.warning, fontSize: 10 }}>
+                    {" "}
+                    (Overridden)
+                  </Text>
                 )}
               </Text>
             </View>
@@ -664,12 +706,22 @@ export default function SalesScreen() {
             </View>
           </View>
 
-          <View style={[styles.invoiceDetails, { borderTopColor: colors.border }]}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View
+            style={[styles.invoiceDetails, { borderTopColor: colors.border }]}
+          >
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
               <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                 Invoiced: Rs. {sale.totalAmount?.toLocaleString()}
               </Text>
-              <Text style={{ color: colors.success, fontSize: 12, fontWeight: "600" }}>
+              <Text
+                style={{
+                  color: colors.success,
+                  fontSize: 12,
+                  fontWeight: "600",
+                }}
+              >
                 Paid: Rs. {sale.amountPaid?.toLocaleString() || "0"}
               </Text>
             </View>
@@ -684,7 +736,11 @@ export default function SalesScreen() {
                 }}
               >
                 <Text
-                  style={{ color: colors.danger, fontWeight: "700", fontSize: 13 }}
+                  style={{
+                    color: colors.danger,
+                    fontWeight: "700",
+                    fontSize: 13,
+                  }}
                 >
                   Balance Due: Rs. {sale.balanceAmount?.toLocaleString()}
                 </Text>

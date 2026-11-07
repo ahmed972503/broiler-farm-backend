@@ -137,7 +137,8 @@ export class SaleController {
       });
 
       AlertService.runAlertSweep().catch((e) => {
-        if (process.env.NODE_ENV !== "test") console.error("Alert sweep error", e);
+        if (process.env.NODE_ENV !== "test")
+          console.error("Alert sweep error", e);
       });
 
       res.status(201).json({ success: true, data: sale });
@@ -163,13 +164,13 @@ export class SaleController {
         (sum, r) => sum + (r.mortality24h || r.mortalityCount || 0),
         0,
       );
-      const totalCulls = dailyRecords.reduce((sum, r) => sum + (r.culls || 0), 0);
-
-      const sales = await Sale.find({ batchId });
-      const totalLifted = sales.reduce(
-        (sum, s) => sum + (s.birdsSold || 0),
+      const totalCulls = dailyRecords.reduce(
+        (sum, r) => sum + (r.culls || 0),
         0,
       );
+
+      const sales = await Sale.find({ batchId });
+      const totalLifted = sales.reduce((sum, s) => sum + (s.birdsSold || 0), 0);
       const totalWeightSoldKg = roundTo(
         sales.reduce((sum, s) => sum + s.totalLiveWeightKg, 0),
         2,

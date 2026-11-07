@@ -41,13 +41,12 @@ describe("Worker Daily Entry Screen Component Tests", () => {
     jest.clearAllMocks();
     useAuthStore.setState({
       user: {
-        _id: "worker-1",
         id: "worker-1",
         username: "worker_ali",
-        fullName: "Ali Ahmed",
+        name: "Ali Ahmed",
+        phone: "0301-1111111",
         role: "worker",
         assignedShedId: "shed-1",
-        mustChangePassword: false,
       },
       token: "mock-worker-jwt",
       isAuthenticated: true,
@@ -150,7 +149,7 @@ describe("Worker Daily Entry Screen Component Tests", () => {
           shift: "day",
           feedUsedDayShiftBags: 4,
           customColumnES: 12,
-        })
+        }),
       );
       // Offline confirmation card displayed
       expect(getByTestId("saved-offline-banner")).toBeTruthy();
