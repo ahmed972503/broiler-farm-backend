@@ -47,6 +47,13 @@
     "sync": "Sync Status",
     "today": "Today's Work"
   },
+  "tabs": {
+    "today": "Today",
+    "dailyEntry": "Daily",
+    "vaccinations": "Vaccines",
+    "weights": "Weight",
+    "history": "History"
+  },
   "auth": {
     "login": "Login",
     "welcome": "Welcome back",

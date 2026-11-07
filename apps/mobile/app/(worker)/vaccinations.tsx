@@ -695,7 +695,7 @@ export default function WorkerVaccinationsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 60,
+    paddingBottom: 80,
   },
   headerRow: {
     flexDirection: "row",

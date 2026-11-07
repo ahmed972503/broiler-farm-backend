@@ -331,7 +331,7 @@ export default function WorkerWeightScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   title: {},
   comparisonBox: {

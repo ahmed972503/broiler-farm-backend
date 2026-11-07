@@ -875,7 +875,7 @@ export default function DailyEntryScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 60,
+    paddingBottom: 80,
   },
   topBar: {
     flexDirection: "row",

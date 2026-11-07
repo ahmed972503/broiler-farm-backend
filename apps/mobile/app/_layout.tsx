@@ -34,6 +34,24 @@ function RootNavigation() {
         const style = document.createElement("style");
         style.id = styleId;
         style.textContent = `
+          /* Full viewport height & accurate mobile responsiveness */
+          html, body {
+            height: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            -webkit-text-size-adjust: 100% !important;
+          }
+          #root {
+            height: 100% !important;
+            min-height: 100% !important;
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+            overflow: hidden !important;
+          }
           /* Eradicate default browser white outline/borders on inputs across all pages */
           input {
             outline: none !important;
@@ -133,7 +151,7 @@ function RootNavigation() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { flex: 1, backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -147,7 +165,7 @@ function RootNavigation() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <RootNavigation />
       </QueryClientProvider>

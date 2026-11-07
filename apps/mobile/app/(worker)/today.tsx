@@ -374,7 +374,7 @@ export default function WorkerTodayScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   statusCard: {
     padding: 12,

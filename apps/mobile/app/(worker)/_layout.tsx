@@ -19,7 +19,13 @@ export default function WorkerLayout() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{
+        flex: 1,
+        height: "100%",
+        backgroundColor: colors.background,
+      }}
+    >
       {/* Top Worker App Header */}
       <View
         style={[
@@ -27,8 +33,9 @@ export default function WorkerLayout() {
           { backgroundColor: colors.card, borderBottomColor: colors.border },
         ]}
       >
-        <View>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text
+            numberOfLines={1}
             style={[
               styles.shedBadge,
               {
@@ -42,6 +49,7 @@ export default function WorkerLayout() {
               `SHED ${user?.assignedShedId ? "ASSIGNED" : "5"}`}
           </Text>
           <Text
+            numberOfLines={1}
             style={[
               styles.workerName,
               {
@@ -116,63 +124,70 @@ export default function WorkerLayout() {
         sceneContainerStyle={{ backgroundColor: colors.background }}
         screenOptions={{
           headerShown: false,
+          tabBarHideOnKeyboard: true,
           tabBarStyle: {
             backgroundColor: colors.card,
             borderTopColor: colors.border,
+            borderTopWidth: 1,
             height: 60,
-            paddingBottom: 8,
+            paddingBottom: 6,
             paddingTop: 6,
           },
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
           tabBarLabelStyle: {
-            fontSize: typography.sizes.xs,
-            fontWeight: typography.weights.semibold,
+            fontSize: 11,
+            fontWeight: "600",
+            textAlign: "center",
+          },
+          tabBarItemStyle: {
+            paddingHorizontal: 0,
+            overflow: "hidden",
           },
         }}
       >
         <Tabs.Screen
           name="today"
           options={{
-            title: t("nav.today"),
+            title: t("tabs.today", "Aaj"),
             tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={22} color={color} />
+              <Ionicons name="home-outline" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="daily-entry"
           options={{
-            title: t("worker.addDailyEntry"),
+            title: t("tabs.dailyEntry", "Rozana"),
             tabBarIcon: ({ color }) => (
-              <Ionicons name="create-outline" size={22} color={color} />
+              <Ionicons name="create-outline" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="vaccinations"
           options={{
-            title: t("nav.vaccinations"),
+            title: t("tabs.vaccinations", "Teekay"),
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="needle" size={22} color={color} />
+              <MaterialCommunityIcons name="needle" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="weight"
           options={{
-            title: t("nav.weights"),
+            title: t("tabs.weights", "Wazan"),
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="scale" size={22} color={color} />
+              <MaterialCommunityIcons name="scale" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
-            title: "Khata",
+            title: t("tabs.history", "Khata"),
             tabBarIcon: ({ color }) => (
-              <Ionicons name="reader-outline" size={22} color={color} />
+              <Ionicons name="reader-outline" size={20} color={color} />
             ),
           }}
         />

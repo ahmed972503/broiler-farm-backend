@@ -228,7 +228,7 @@ export default function WorkerHistoryScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   title: {},
   divider: {

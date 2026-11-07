@@ -47,6 +47,13 @@
     "sync": "Internet Sync Halat",
     "today": "Aaj Ka Kaam"
   },
+  "tabs": {
+    "today": "Aaj",
+    "dailyEntry": "Rozana",
+    "vaccinations": "Teekay",
+    "weights": "Wazan",
+    "history": "Khata"
+  },
   "auth": {
     "login": "Dakhil Hon (Login)",
     "welcome": "Khush Amdeed",
