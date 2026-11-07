@@ -78,11 +78,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   restoreSession: async () => {
+    const timer = setTimeout(() => {
+      if (useAuthStore.getState().isLoading) {
+        set({ isLoading: false });
+      }
+    }, 400);
+
     try {
       const storedUser = await AsyncStorage.getItem(AUTH_USER_KEY);
       const storedToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
       const storedRefresh = await AsyncStorage.getItem(AUTH_REFRESH_KEY);
 
+      clearTimeout(timer);
       if (storedUser && storedToken) {
         set({
           user: JSON.parse(storedUser),
@@ -95,6 +102,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: false });
       }
     } catch {
+      clearTimeout(timer);
       set({ isLoading: false });
     }
   },

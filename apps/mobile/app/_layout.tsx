@@ -30,16 +30,16 @@ function RootNavigation() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const inAuthGroup = segments[0] === "(auth)" || segments[0] === "login";
     const inAdminGroup = segments[0] === "(admin)";
     const inWorkerGroup = segments[0] === "(worker)";
 
     if (!isAuthenticated) {
       if (!inAuthGroup) {
-        router.replace("/(auth)/login");
+        router.replace("/login");
       }
     } else {
-      if (inAuthGroup || segments.length === 0) {
+      if (inAuthGroup || segments.length === 0 || segments[0] === "index") {
         if (user?.role === "admin") {
           router.replace("/(admin)/dashboard");
         } else {
