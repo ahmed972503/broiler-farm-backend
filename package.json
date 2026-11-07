@@ -23,7 +23,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "seed": "npm --workspace=@broiler/api run seed"
+    "seed": "npm --workspace=@broiler/api run seed",
+    "postinstall": "node -e \"const fs = require('fs'); if (!fs.existsSync('apps/mobile/node_modules')) { try { fs.symlinkSync('../../node_modules', 'apps/mobile/node_modules', 'junction'); } catch(e){} }\""
   },
   "devDependencies": {
     "ajv": "^8.20.0",
