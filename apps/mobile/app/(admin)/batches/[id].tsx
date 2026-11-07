@@ -17,6 +17,7 @@ import {
   StatCard,
 } from "../../../src/components/ui";
 import { apiFetch } from "../../../src/api/client";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function BatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -139,16 +140,29 @@ export default function BatchDetailScreen() {
       {/* If Closed, display Final Performance Summary */}
       {summary ? (
         <View style={{ marginBottom: spacing.lg }}>
-          <Text
+          <View
             style={{
-              color: colors.primary,
-              fontSize: typography.sizes.lg,
-              fontWeight: typography.weights.bold,
+              flexDirection: "row",
+              alignItems: "center",
               marginBottom: 8,
             }}
           >
-            🏆 Harvest Performance Summary
-          </Text>
+            <Ionicons
+              name="ribbon-outline"
+              size={22}
+              color={colors.primary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={{
+                color: colors.primary,
+                fontSize: typography.sizes.lg,
+                fontWeight: typography.weights.bold,
+              }}
+            >
+              Harvest Performance Summary
+            </Text>
+          </View>
 
           <View style={styles.gridRow}>
             <View style={styles.gridCol2}>

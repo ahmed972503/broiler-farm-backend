@@ -123,7 +123,7 @@ export default function WorkerHistoryScreen() {
               </View>
 
               <Badge
-                label={record.isLocked ? "🔒 LOCKED" : "✏️ EDITABLE"}
+                label={record.isLocked ? "LOCKED" : "EDITABLE"}
                 variant={record.isLocked ? "neutral" : "success"}
                 size="sm"
               />

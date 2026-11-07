@@ -58,6 +58,26 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
+// Mock @expo/vector-icons
+jest.mock("@expo/vector-icons", () => {
+  const React = require("react");
+  const { Text } = require("react-native");
+  const createMockIcon = (family) => {
+    const MockIcon = (props) =>
+      React.createElement(Text, props, props.name || family);
+    MockIcon.displayName = family;
+    return MockIcon;
+  };
+  return {
+    Ionicons: createMockIcon("Ionicons"),
+    MaterialCommunityIcons: createMockIcon("MaterialCommunityIcons"),
+    MaterialIcons: createMockIcon("MaterialIcons"),
+    Feather: createMockIcon("Feather"),
+    FontAwesome: createMockIcon("FontAwesome"),
+    FontAwesome5: createMockIcon("FontAwesome5"),
+  };
+});
+
 // Mock i18next
 jest.mock("i18next", () => ({
   use: () => ({

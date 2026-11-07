@@ -13,6 +13,7 @@ import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button } from "../../../src/components/ui";
 import { apiFetch, API_BASE_URL } from "../../../src/api/client";
 import { useAuthStore } from "../../../src/store/useAuthStore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ReportsScreen() {
   const { colors, typography, spacing } = useTheme();
@@ -871,10 +872,18 @@ export default function ReportsScreen() {
                 borderRadius: 8,
               }}
             >
-              <Text style={{ color: colors.success, fontWeight: "700" }}>
-                ✓ Successfully imported {importResult.importedRecords} of{" "}
-                {importResult.totalRows} rows
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={16}
+                  color={colors.success}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={{ color: colors.success, fontWeight: "700" }}>
+                  Successfully imported {importResult.importedRecords} of{" "}
+                  {importResult.totalRows} rows
+                </Text>
+              </View>
               {importResult.errors?.length > 0 && (
                 <View style={{ marginTop: 6 }}>
                   <Text

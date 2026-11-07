@@ -122,7 +122,7 @@ export default function AdminDailyRecordsScreen() {
             </View>
 
             <Badge
-              label={record.isLocked ? "🔒 LOCKED" : "✏️ OPEN"}
+              label={record.isLocked ? "LOCKED" : "OPEN"}
               variant={record.isLocked ? "neutral" : "success"}
             />
           </View>

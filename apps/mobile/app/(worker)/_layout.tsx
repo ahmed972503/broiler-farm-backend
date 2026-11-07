@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Tabs, useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTranslation } from "react-i18next";
@@ -80,9 +81,11 @@ export default function WorkerLayout() {
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
-            <Text style={{ fontSize: 13 }}>
-              {mode === "dark" ? "☀️" : "🌙"}
-            </Text>
+            <Ionicons
+              name={mode === "dark" ? "sunny-outline" : "moon-outline"}
+              size={14}
+              color={colors.text}
+            />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -131,35 +134,45 @@ export default function WorkerLayout() {
           name="today"
           options={{
             title: t("nav.today"),
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="home-outline" size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="daily-entry"
           options={{
             title: t("worker.addDailyEntry"),
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📝</Text>,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="create-outline" size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="vaccinations"
           options={{
             title: t("nav.vaccinations"),
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>💉</Text>,
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="needle" size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="weight"
           options={{
             title: t("nav.weights"),
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>⚖️</Text>,
+            tabBarIcon: ({ color }) => (
+              <MaterialCommunityIcons name="scale" size={22} color={color} />
+            ),
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
             title: "Khata",
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📋</Text>,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="reader-outline" size={22} color={color} />
+            ),
           }}
         />
       </Tabs>

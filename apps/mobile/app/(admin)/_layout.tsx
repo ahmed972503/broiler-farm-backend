@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { Slot, useRouter, usePathname } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTranslation } from "react-i18next";
@@ -19,7 +20,7 @@ interface NavItem {
   name: string;
   labelKey: string;
   fallbackLabel: string;
-  icon: string;
+  renderIcon: (color: string) => React.ReactNode;
   path: string;
 }
 
@@ -28,91 +29,117 @@ const NAV_ITEMS: NavItem[] = [
     name: "dashboard",
     labelKey: "nav.dashboard",
     fallbackLabel: "Dashboard",
-    icon: "📊",
+    renderIcon: (color) => (
+      <Ionicons name="stats-chart" size={18} color={color} />
+    ),
     path: "/(admin)/dashboard",
   },
   {
     name: "sheds",
     labelKey: "nav.sheds",
     fallbackLabel: "Sheds",
-    icon: "🏠",
+    renderIcon: (color) => (
+      <Ionicons name="business-outline" size={18} color={color} />
+    ),
     path: "/(admin)/sheds",
   },
   {
     name: "batches",
     labelKey: "nav.batches",
     fallbackLabel: "Batches / Flocks",
-    icon: "🐣",
+    renderIcon: (color) => (
+      <MaterialCommunityIcons name="egg-outline" size={18} color={color} />
+    ),
     path: "/(admin)/batches",
   },
   {
     name: "daily-records",
     labelKey: "nav.dailyEntry",
     fallbackLabel: "Daily Records",
-    icon: "📝",
+    renderIcon: (color) => (
+      <Ionicons name="clipboard-outline" size={18} color={color} />
+    ),
     path: "/(admin)/daily-records",
   },
   {
     name: "feed",
     labelKey: "nav.feed",
     fallbackLabel: "Feed Stock",
-    icon: "🌾",
+    renderIcon: (color) => (
+      <MaterialCommunityIcons name="barley" size={18} color={color} />
+    ),
     path: "/(admin)/feed",
   },
   {
     name: "inventory",
     labelKey: "nav.inventory",
     fallbackLabel: "Inventory",
-    icon: "📦",
+    renderIcon: (color) => (
+      <Ionicons name="cube-outline" size={18} color={color} />
+    ),
     path: "/(admin)/inventory",
   },
   {
     name: "expenses",
     labelKey: "nav.expenses",
     fallbackLabel: "Expenses",
-    icon: "💸",
+    renderIcon: (color) => (
+      <Ionicons name="wallet-outline" size={18} color={color} />
+    ),
     path: "/(admin)/expenses",
   },
   {
     name: "sales",
     labelKey: "nav.sales",
     fallbackLabel: "Sales & Buyers",
-    icon: "💰",
+    renderIcon: (color) => (
+      <Ionicons name="cash-outline" size={18} color={color} />
+    ),
     path: "/(admin)/sales",
   },
   {
     name: "staff",
     labelKey: "nav.staff",
     fallbackLabel: "Staff & Wages",
-    icon: "👥",
+    renderIcon: (color) => (
+      <Ionicons name="people-outline" size={18} color={color} />
+    ),
     path: "/(admin)/staff",
   },
   {
     name: "reports",
     labelKey: "nav.reports",
     fallbackLabel: "Reports & Export",
-    icon: "📑",
+    renderIcon: (color) => (
+      <Ionicons name="document-text-outline" size={18} color={color} />
+    ),
     path: "/(admin)/reports",
   },
   {
     name: "alerts",
     labelKey: "nav.alerts",
     fallbackLabel: "Alerts Center",
-    icon: "🔔",
+    renderIcon: (color) => (
+      <Ionicons name="notifications-outline" size={18} color={color} />
+    ),
     path: "/(admin)/alerts",
   },
   {
     name: "users",
     labelKey: "nav.users",
     fallbackLabel: "User Management",
-    icon: "👤",
+    renderIcon: (color) => (
+      <Ionicons name="person-circle-outline" size={18} color={color} />
+    ),
     path: "/(admin)/users",
   },
   {
     name: "settings",
     labelKey: "nav.settings",
     fallbackLabel: "Settings",
-    icon: "⚙️",
+    renderIcon: (color) => (
+      <Ionicons name="settings-outline" size={18} color={color} />
+    ),
     path: "/(admin)/settings",
   },
 ];
@@ -137,6 +164,7 @@ export default function AdminLayout() {
     <ScrollView style={{ flex: 1 }}>
       {NAV_ITEMS.map((item) => {
         const isActive = pathname.startsWith(item.path);
+        const itemColor = isActive ? colors.primary : colors.textSecondary;
         return (
           <TouchableOpacity
             key={item.name}
@@ -156,7 +184,9 @@ export default function AdminLayout() {
               },
             ]}
           >
-            <Text style={{ fontSize: 18, marginRight: 12 }}>{item.icon}</Text>
+            <View style={{ marginRight: 12, width: 22, alignItems: "center" }}>
+              {item.renderIcon(itemColor)}
+            </View>
             <Text
               style={[
                 styles.navLabel,
@@ -193,7 +223,11 @@ export default function AdminLayout() {
             <View
               style={[styles.logoIconBg, { backgroundColor: colors.primary }]}
             >
-              <Text style={{ fontSize: 20 }}>🐓</Text>
+              <MaterialCommunityIcons
+                name="shield-home"
+                size={20}
+                color="#FFFFFF"
+              />
             </View>
             <View style={{ marginLeft: 10 }}>
               <Text
@@ -270,7 +304,7 @@ export default function AdminLayout() {
                 onPress={() => setMobileMenuOpen(!mobileMenuOpen)}
                 style={{ padding: 6, marginRight: 8 }}
               >
-                <Text style={{ fontSize: 22, color: colors.text }}>☰</Text>
+                <Ionicons name="menu-outline" size={24} color={colors.text} />
               </TouchableOpacity>
             ) : null}
             <Text
@@ -313,9 +347,11 @@ export default function AdminLayout() {
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
             >
-              <Text style={{ fontSize: 13 }}>
-                {mode === "dark" ? "☀️" : "🌙"}
-              </Text>
+              <Ionicons
+                name={mode === "dark" ? "sunny-outline" : "moon-outline"}
+                size={16}
+                color={colors.text}
+              />
             </TouchableOpacity>
 
             {!isWide ? (

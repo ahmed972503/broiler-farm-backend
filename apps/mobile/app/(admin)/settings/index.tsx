@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Alert } from "react-native";
 import { useTheme } from "../../../src/theme";
 import { Card, Button, Input } from "../../../src/components/ui";
 import { apiFetch } from "../../../src/api/client";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
   const { colors, typography, spacing } = useTheme();
@@ -134,16 +135,29 @@ export default function SettingsScreen() {
           marginBottom: spacing.md,
         }}
       >
-        <Text
+        <View
           style={{
-            color: colors.warning,
-            fontWeight: typography.weights.bold,
-            fontSize: typography.sizes.sm,
+            flexDirection: "row",
+            alignItems: "center",
             marginBottom: 4,
           }}
         >
-          ⚠️ Veterinary Verification Required
-        </Text>
+          <Ionicons
+            name="alert-circle-outline"
+            size={18}
+            color={colors.warning}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={{
+              color: colors.warning,
+              fontWeight: typography.weights.bold,
+              fontSize: typography.sizes.sm,
+            }}
+          >
+            Veterinary Verification Required
+          </Text>
+        </View>
         <Text
           style={{ color: colors.textSecondary, fontSize: typography.sizes.xs }}
         >

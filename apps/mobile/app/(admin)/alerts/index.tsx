@@ -10,6 +10,7 @@ import {
 import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button } from "../../../src/components/ui";
 import { apiFetch } from "../../../src/api/client";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AlertsCenterScreen() {
   const { colors, typography, spacing } = useTheme();
@@ -116,7 +117,12 @@ export default function AlertsCenterScreen() {
 
       {alerts.length === 0 ? (
         <Card style={{ padding: 24, alignItems: "center", marginTop: 12 }}>
-          <Text style={{ fontSize: 28, marginBottom: 8 }}>✅</Text>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={36}
+            color={colors.success}
+            style={{ marginBottom: 8 }}
+          />
           <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>
             All Farm Systems Normal
           </Text>

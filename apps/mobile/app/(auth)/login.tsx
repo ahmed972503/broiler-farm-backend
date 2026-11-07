@@ -8,6 +8,7 @@ import {
   Platform,
   TouchableOpacity,
 } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { Button, Input, Card } from "../../src/components/ui";
 import { useAuthStore } from "../../src/store/useAuthStore";
@@ -107,17 +108,28 @@ export default function LoginScreen() {
             onPress={toggleTheme}
             style={[
               styles.chipButton,
-              { borderColor: colors.border, backgroundColor: colors.surface },
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+                flexDirection: "row",
+                alignItems: "center",
+              },
             ]}
           >
+            <Ionicons
+              name={mode === "dark" ? "sunny-outline" : "moon-outline"}
+              size={13}
+              color={colors.text}
+            />
             <Text
               style={{
+                marginLeft: 4,
                 color: colors.text,
                 fontSize: typography.sizes.xs,
                 fontWeight: typography.weights.bold,
               }}
             >
-              {mode === "dark" ? "☀️ Light" : "🌙 Dark"}
+              {mode === "dark" ? "Light" : "Dark"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -125,7 +137,11 @@ export default function LoginScreen() {
         {/* Brand Header */}
         <View style={styles.brandContainer}>
           <View style={[styles.logoBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.logoIcon}>🐓</Text>
+            <MaterialCommunityIcons
+              name="shield-home"
+              size={32}
+              color="#FFFFFF"
+            />
           </View>
           <Text
             style={[

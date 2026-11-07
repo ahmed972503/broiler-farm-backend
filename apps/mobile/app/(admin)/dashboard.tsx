@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useTheme } from "../../src/theme";
 import { Card, Badge, StatCard, Button } from "../../src/components/ui";
 import { apiFetch } from "../../src/api/client";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 
 export default function AdminDashboardScreen() {
@@ -168,18 +169,32 @@ export default function AdminDashboardScreen() {
       {/* Critical Alerts Banner Section */}
       {alerts.length > 0 ? (
         <View style={{ marginTop: spacing.md }}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              {
-                color: colors.danger,
-                fontSize: typography.sizes.md,
-                fontWeight: typography.weights.bold,
-              },
-            ]}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 4,
+            }}
           >
-            ⚠️ Active Farm Alerts ({alerts.length})
-          </Text>
+            <Ionicons
+              name="warning-outline"
+              size={18}
+              color={colors.danger}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  color: colors.danger,
+                  fontSize: typography.sizes.md,
+                  fontWeight: typography.weights.bold,
+                },
+              ]}
+            >
+              Active Farm Alerts ({alerts.length})
+            </Text>
+          </View>
 
           {alerts.slice(0, 3).map((al: any) => (
             <Card

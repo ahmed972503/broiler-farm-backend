@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { Button, Card, Badge, StatCard } from "../../src/components/ui";
@@ -108,7 +109,12 @@ export default function WorkerTodayScreen() {
           ]}
         >
           <View style={styles.statusRow}>
-            <Text style={{ fontSize: 24, marginRight: 10 }}>✓</Text>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={26}
+              color={colors.success}
+              style={{ marginRight: 10 }}
+            />
             <View style={{ flex: 1 }}>
               <Text
                 style={[
@@ -142,7 +148,12 @@ export default function WorkerTodayScreen() {
           ]}
         >
           <View style={styles.statusRow}>
-            <Text style={{ fontSize: 24, marginRight: 10 }}>⚠️</Text>
+            <Ionicons
+              name="alert-circle-outline"
+              size={26}
+              color={colors.warning}
+              style={{ marginRight: 10 }}
+            />
             <View style={{ flex: 1 }}>
               <Text
                 style={[
@@ -181,7 +192,12 @@ export default function WorkerTodayScreen() {
           },
         ]}
       >
-        <Text style={styles.bigButtonIcon}>📝</Text>
+        <Ionicons
+          name="create-outline"
+          size={32}
+          color="#FFFFFF"
+          style={{ marginBottom: 4 }}
+        />
         <Text
           style={[
             styles.bigButtonTitle,
@@ -241,7 +257,12 @@ export default function WorkerTodayScreen() {
               marginBottom: spacing.xs,
             }}
           >
-            <Text style={{ fontSize: 20, marginRight: 8 }}>💉</Text>
+            <MaterialCommunityIcons
+              name="needle"
+              size={20}
+              color={colors.danger}
+              style={{ marginRight: 8 }}
+            />
             <Text
               style={{
                 color: colors.danger,
@@ -291,7 +312,12 @@ export default function WorkerTodayScreen() {
             },
           ]}
         >
-          <Text style={{ fontSize: 24, marginBottom: 4 }}>⚖️</Text>
+          <MaterialCommunityIcons
+            name="scale"
+            size={24}
+            color={colors.primary}
+            style={{ marginBottom: 4 }}
+          />
           <Text
             style={{
               color: colors.text,
@@ -319,7 +345,12 @@ export default function WorkerTodayScreen() {
             },
           ]}
         >
-          <Text style={{ fontSize: 24, marginBottom: 4 }}>📋</Text>
+          <Ionicons
+            name="reader-outline"
+            size={24}
+            color={colors.primary}
+            style={{ marginBottom: 4 }}
+          />
           <Text
             style={{
               color: colors.text,

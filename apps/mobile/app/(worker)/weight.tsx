@@ -10,6 +10,7 @@ import {
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { Button, Card, Badge, Input, StatCard } from "../../src/components/ui";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { apiFetch, API_BASE_URL } from "../../src/api/client";
 import { OfflineStore } from "../../src/db/offlineStore";
 import { useSyncStore } from "../../src/store/useSyncStore";
@@ -137,16 +138,29 @@ export default function WorkerWeightScreen() {
 
       {/* Entry Form */}
       <Card elevated>
-        <Text
+        <View
           style={{
-            color: colors.primary,
-            fontSize: typography.sizes.md,
-            fontWeight: typography.weights.bold,
+            flexDirection: "row",
+            alignItems: "center",
             marginBottom: 12,
           }}
         >
-          ⚖️ New Sample Weight Reading
-        </Text>
+          <MaterialCommunityIcons
+            name="scale"
+            size={20}
+            color={colors.primary}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={{
+              color: colors.primary,
+              fontSize: typography.sizes.md,
+              fontWeight: typography.weights.bold,
+            }}
+          >
+            New Sample Weight Reading
+          </Text>
+        </View>
 
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <View style={{ flex: 0.48 }}>

@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { Button, Input, Card, Badge } from "../../src/components/ui";
@@ -254,13 +255,24 @@ export default function DailyEntryScreen() {
           testID="language-toggle-btn"
           style={[
             styles.langPill,
-            { backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+            },
           ]}
         >
+          <Ionicons
+            name="globe-outline"
+            size={14}
+            color={colors.primary}
+            style={{ marginRight: 4 }}
+          />
           <Text
             style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}
           >
-            🌐 {currentLang === "ur" ? "English" : "Roman Urdu"}
+            {currentLang === "ur" ? "English" : "Roman Urdu"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -276,9 +288,17 @@ export default function DailyEntryScreen() {
             borderWidth: 1.5,
           }}
         >
-          <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 14 }}>
-            ✓ Mehfooz Ho Gaya! (Saved Offline)
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="checkmark-circle"
+              size={16}
+              color="#2E7D32"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 14 }}>
+              Mehfooz Ho Gaya! (Saved Offline)
+            </Text>
+          </View>
           <Text style={{ color: "#388E3C", fontSize: 12, marginTop: 2 }}>
             Record local SQLite database mein safe hai aur online hote hi sync
             ho jaye ga.
@@ -321,18 +341,32 @@ export default function DailyEntryScreen() {
 
       {/* 1. Mortality Section */}
       <Card elevated>
-        <Text
-          style={[
-            styles.cardHeader,
-            {
-              color: colors.danger,
-              fontSize: typography.sizes.md,
-              fontWeight: typography.weights.bold,
-            },
-          ]}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: spacing.xs,
+          }}
         >
-          💀 {t("daily.mortality")} (Mout / Mortality)
-        </Text>
+          <MaterialCommunityIcons
+            name="heart-broken"
+            size={20}
+            color={colors.danger}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.cardHeader,
+              {
+                color: colors.danger,
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.bold,
+              },
+            ]}
+          >
+            {t("daily.mortality")} (Mout / Mortality)
+          </Text>
+        </View>
 
         {(shift === "day" || shift === "full") && (
           <View style={{ marginBottom: spacing.sm }}>
@@ -447,18 +481,32 @@ export default function DailyEntryScreen() {
 
       {/* 2. Feed Section */}
       <Card elevated style={{ marginTop: spacing.md }}>
-        <Text
-          style={[
-            styles.cardHeader,
-            {
-              color: colors.primary,
-              fontSize: typography.sizes.md,
-              fontWeight: typography.weights.bold,
-            },
-          ]}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: spacing.xs,
+          }}
         >
-          🌾 {t("daily.feedUsedBags")} (Daana / Khorak)
-        </Text>
+          <MaterialCommunityIcons
+            name="barley"
+            size={20}
+            color={colors.primary}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.cardHeader,
+              {
+                color: colors.primary,
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.bold,
+              },
+            ]}
+          >
+            {t("daily.feedUsedBags")} (Daana / Khorak)
+          </Text>
+        </View>
 
         {/* Feed Type Selector */}
         <View style={styles.selectorRow}>
@@ -642,7 +690,7 @@ export default function DailyEntryScreen() {
           {hasShortage && (
             <Badge
               testID="feed-shortage-badge"
-              label={`⚠️ STOCK SHORTAGE DETECTED (Expected: ${expectedClosing} bags, Reported: ${reportedClosingNum} bags)`}
+              label={`STOCK SHORTAGE DETECTED (Expected: ${expectedClosing} bags, Reported: ${reportedClosingNum} bags)`}
               variant="danger"
               style={{ marginTop: 4 }}
             />
@@ -660,18 +708,32 @@ export default function DailyEntryScreen() {
 
       {/* 3. Paper Register Unconfirmed Column "E.S" */}
       <Card elevated style={{ marginTop: spacing.md }}>
-        <Text
-          style={[
-            styles.cardHeader,
-            {
-              color: colors.secondary,
-              fontSize: typography.sizes.md,
-              fontWeight: typography.weights.bold,
-            },
-          ]}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: spacing.xs,
+          }}
         >
-          📝 Paper Register Custom Column ("E.S")
-        </Text>
+          <Ionicons
+            name="document-text-outline"
+            size={20}
+            color={colors.secondary}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.cardHeader,
+              {
+                color: colors.secondary,
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.bold,
+              },
+            ]}
+          >
+            Paper Register Custom Column ("E.S")
+          </Text>
+        </View>
         <Text
           style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 6 }}
         >
@@ -689,18 +751,32 @@ export default function DailyEntryScreen() {
 
       {/* 4. Shed Environment (Paani, Temp, Bedding) */}
       <Card elevated style={{ marginTop: spacing.md }}>
-        <Text
-          style={[
-            styles.cardHeader,
-            {
-              color: colors.text,
-              fontSize: typography.sizes.md,
-              fontWeight: typography.weights.bold,
-            },
-          ]}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: spacing.xs,
+          }}
         >
-          🌡️ Environment (Mahol)
-        </Text>
+          <MaterialCommunityIcons
+            name="thermometer"
+            size={20}
+            color={colors.text}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.cardHeader,
+              {
+                color: colors.text,
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.bold,
+              },
+            ]}
+          >
+            Environment (Mahol)
+          </Text>
+        </View>
 
         <Input
           testID="water-liters-input"
@@ -785,9 +861,7 @@ export default function DailyEntryScreen() {
         <Button
           testID="submit-daily-entry-btn"
           title={
-            loading
-              ? t("common.loading")
-              : "✓ " + t("common.save") + " (Darj Karein)"
+            loading ? t("common.loading") : t("common.save") + " (Darj Karein)"
           }
           onPress={handleSubmit}
           loading={loading}

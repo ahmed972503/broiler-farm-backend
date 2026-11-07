@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { Button, Card, Badge, Input } from "../../src/components/ui";
@@ -290,9 +291,17 @@ export default function WorkerVaccinationsScreen() {
           borderWidth: 1.5,
         }}
       >
-        <Text style={{ color: "#B45309", fontWeight: "700", fontSize: 13 }}>
-          ⚕️ Veterinary Notice
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <MaterialCommunityIcons
+            name="medical-bag"
+            size={16}
+            color="#B45309"
+            style={{ marginRight: 6 }}
+          />
+          <Text style={{ color: "#B45309", fontWeight: "700", fontSize: 13 }}>
+            Veterinary Notice
+          </Text>
+        </View>
         <Text style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
           Vaccination schedules and Cobb 500 target curves must be verified and
           approved by a registered poultry veterinarian.
@@ -327,9 +336,18 @@ export default function WorkerVaccinationsScreen() {
                 activeTab === "vaccines" ? colors.primary : colors.surface,
               borderColor:
                 activeTab === "vaccines" ? colors.primary : colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
             },
           ]}
         >
+          <MaterialCommunityIcons
+            name="needle"
+            size={16}
+            color={activeTab === "vaccines" ? "#fff" : colors.text}
+            style={{ marginRight: 6 }}
+          />
           <Text
             style={{
               color: activeTab === "vaccines" ? "#fff" : colors.text,
@@ -337,7 +355,7 @@ export default function WorkerVaccinationsScreen() {
               fontSize: 13,
             }}
           >
-            💉 Scheduled Vaccines ({pendingTasks.length})
+            Scheduled Vaccines ({pendingTasks.length})
           </Text>
         </TouchableOpacity>
 
@@ -355,9 +373,18 @@ export default function WorkerVaccinationsScreen() {
                 activeTab === "water_medication"
                   ? colors.secondary
                   : colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
             },
           ]}
         >
+          <MaterialCommunityIcons
+            name="pill"
+            size={16}
+            color={activeTab === "water_medication" ? "#fff" : colors.text}
+            style={{ marginRight: 6 }}
+          />
           <Text
             style={{
               color: activeTab === "water_medication" ? "#fff" : colors.text,
@@ -365,7 +392,7 @@ export default function WorkerVaccinationsScreen() {
               fontSize: 13,
             }}
           >
-            💊 Water Medicines ({medItems.length})
+            Water Medicines ({medItems.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -389,7 +416,12 @@ export default function WorkerVaccinationsScreen() {
 
           {pendingTasks.length === 0 ? (
             <Card style={{ padding: 16, alignItems: "center" }}>
-              <Text style={{ fontSize: 24, marginBottom: 6 }}>🎉</Text>
+              <Ionicons
+                name="checkmark-done-circle"
+                size={36}
+                color={colors.success}
+                style={{ marginBottom: 6 }}
+              />
               <Text style={{ color: colors.text, fontWeight: "600" }}>
                 {t("worker.allVaccinesCompleted")}
               </Text>
@@ -429,7 +461,7 @@ export default function WorkerVaccinationsScreen() {
 
                 <View style={{ marginTop: 10 }}>
                   <Button
-                    title="✓ Mark Administered"
+                    title="Mark Administered"
                     size="sm"
                     onPress={() => handleMarkComplete(task)}
                   />
@@ -503,9 +535,17 @@ export default function WorkerVaccinationsScreen() {
                 {
                   backgroundColor: colors.surface,
                   borderColor: colors.secondary,
+                  flexDirection: "row",
+                  alignItems: "center",
                 },
               ]}
             >
+              <Ionicons
+                name="copy-outline"
+                size={14}
+                color={colors.secondary}
+                style={{ marginRight: 6 }}
+              />
               <Text
                 style={{
                   color: colors.secondary,
@@ -513,7 +553,7 @@ export default function WorkerVaccinationsScreen() {
                   fontSize: 13,
                 }}
               >
-                📋 Copy Yesterday (Ditto)
+                Copy Yesterday (Ditto)
               </Text>
             </TouchableOpacity>
           </View>
@@ -623,15 +663,11 @@ export default function WorkerVaccinationsScreen() {
                   testID={`remove-med-${idx}`}
                   style={{ padding: 6 }}
                 >
-                  <Text
-                    style={{
-                      color: colors.danger,
-                      fontWeight: "700",
-                      fontSize: 14,
-                    }}
-                  >
-                    ✕
-                  </Text>
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={20}
+                    color={colors.danger}
+                  />
                 </TouchableOpacity>
               </View>
             </Card>
@@ -641,7 +677,7 @@ export default function WorkerVaccinationsScreen() {
           <View style={{ marginTop: spacing.md }}>
             <Button
               testID="save-medicine-sheet-btn"
-              title="✓ Save Today's Medicine List (Khata Mehfooz Karein)"
+              title="Save Today's Medicine List (Khata Mehfooz Karein)"
               onPress={handleSaveDailyMedicineSheet}
               loading={submittingSheet}
               variant="secondary"
