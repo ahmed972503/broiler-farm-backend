@@ -82,6 +82,13 @@ function RootNavigation() {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.body.style.backgroundColor = colors.background;
+      document.documentElement.style.backgroundColor = colors.background;
+    }
+  }, [colors.background]);
+
+  useEffect(() => {
     if (isLoading) return;
 
     const firstSegment = (segments[0] as string) || "";

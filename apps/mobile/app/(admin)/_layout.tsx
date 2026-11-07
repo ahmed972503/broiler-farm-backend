@@ -387,7 +387,7 @@ export default function AdminLayout() {
         ) : null}
 
         {/* Active Page Content */}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
           <Slot />
         </View>
       </View>

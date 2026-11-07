@@ -113,6 +113,7 @@ export default function WorkerLayout() {
       </View>
 
       <Tabs
+        sceneContainerStyle={{ backgroundColor: colors.background }}
         screenOptions={{
           headerShown: false,
           tabBarStyle: {

@@ -91,6 +91,7 @@ export default function WorkerTodayScreen() {
 
   return (
     <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[styles.container, { padding: spacing.base }]}
       refreshControl={
         <RefreshControl

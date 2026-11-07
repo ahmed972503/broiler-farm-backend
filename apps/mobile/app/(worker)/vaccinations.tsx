@@ -270,6 +270,7 @@ export default function WorkerVaccinationsScreen() {
 
   return (
     <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[styles.container, { padding: spacing.base }]}
       refreshControl={
         <RefreshControl
@@ -285,8 +286,8 @@ export default function WorkerVaccinationsScreen() {
       {/* Veterinary Verification Mandatory Disclaimer Banner */}
       <Card
         style={{
-          backgroundColor: "#FFFBEB",
-          borderColor: "#F59E0B",
+          backgroundColor: colors.warningBg,
+          borderColor: colors.warning,
           marginBottom: spacing.md,
           borderWidth: 1.5,
         }}
@@ -295,14 +296,16 @@ export default function WorkerVaccinationsScreen() {
           <MaterialCommunityIcons
             name="medical-bag"
             size={16}
-            color="#B45309"
+            color={colors.warning}
             style={{ marginRight: 6 }}
           />
-          <Text style={{ color: "#B45309", fontWeight: "700", fontSize: 13 }}>
+          <Text
+            style={{ color: colors.warning, fontWeight: "700", fontSize: 13 }}
+          >
             Veterinary Notice
           </Text>
         </View>
-        <Text style={{ color: "#92400E", fontSize: 12, marginTop: 2 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
           Vaccination schedules and Cobb 500 target curves must be verified and
           approved by a registered poultry veterinarian.
         </Text>

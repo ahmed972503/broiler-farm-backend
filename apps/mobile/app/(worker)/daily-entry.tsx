@@ -219,6 +219,7 @@ export default function DailyEntryScreen() {
 
   return (
     <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={[styles.container, { padding: spacing.base }]}
       testID="daily-entry-scroll-view"
     >
