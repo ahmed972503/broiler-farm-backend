@@ -71,24 +71,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/(admin)/feed",
   },
   {
-    name: "inventory",
-    labelKey: "nav.inventory",
-    fallbackLabel: "Inventory",
-    renderIcon: (color) => (
-      <Ionicons name="cube-outline" size={18} color={color} />
-    ),
-    path: "/(admin)/inventory",
-  },
-  {
-    name: "expenses",
-    labelKey: "nav.expenses",
-    fallbackLabel: "Expenses",
-    renderIcon: (color) => (
-      <Ionicons name="wallet-outline" size={18} color={color} />
-    ),
-    path: "/(admin)/expenses",
-  },
-  {
     name: "sales",
     labelKey: "nav.sales",
     fallbackLabel: "Sales & Buyers",
@@ -96,15 +78,6 @@ const NAV_ITEMS: NavItem[] = [
       <Ionicons name="cash-outline" size={18} color={color} />
     ),
     path: "/(admin)/sales",
-  },
-  {
-    name: "staff",
-    labelKey: "nav.staff",
-    fallbackLabel: "Staff & Wages",
-    renderIcon: (color) => (
-      <Ionicons name="people-outline" size={18} color={color} />
-    ),
-    path: "/(admin)/staff",
   },
   {
     name: "reports",
