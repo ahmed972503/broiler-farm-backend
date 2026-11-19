@@ -16,6 +16,7 @@
     "build:shared": "npm --workspace=@broiler/shared run build",
     "build:api": "npm --workspace=@broiler/api run build",
     "build:apk": "npm --workspace=@broiler/mobile run build:apk",
+    "build:apk:local": "powershell -ExecutionPolicy Bypass -File scripts/build-apk-local.ps1",
     "build": "npm run build:shared && npm run build:api",
     "test:shared": "npm --workspace=@broiler/shared run test",
     "test:mobile": "npm --workspace=@broiler/mobile run test",
