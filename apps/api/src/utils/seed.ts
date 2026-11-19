@@ -45,7 +45,7 @@ export async function seedDatabase() {
 
   console.log("[Seed] Connecting to MongoDB...");
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(config.mongodbUri);
+    await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 5000 });
   }
 
   console.log("[Seed] Clearing existing collections...");
@@ -621,7 +621,19 @@ if (require.main === module) {
   seedDatabase()
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error("[Seed Error]:", err);
+      if (
+        err.name === "MongooseServerSelectionError" ||
+        (err.message && err.message.includes("ECONNREFUSED"))
+      ) {
+        console.error("\n========================================================");
+        console.error("  ❌ [ERROR] MongoDB is NOT running on port 27017!");
+        console.error("========================================================");
+        console.error("  Please start MongoDB first in another terminal:");
+        console.error("     npm run dev:mongo");
+        console.error("  Keep that terminal open, then run 'npm run seed' again.\n");
+      } else {
+        console.error("[Seed Error]:", err);
+      }
       process.exit(1);
     });
 }

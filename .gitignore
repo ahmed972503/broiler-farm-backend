@@ -17,3 +17,6 @@ Thumbs.db
 coverage/
 .turbo/
 *.tsbuildinfo
+.chrome_temp/
+.chrome_walkthrough_temp/
+data/
