@@ -55,11 +55,11 @@
     "history": "Khata"
   },
   "auth": {
-    "login": "Dakhil Hon (Login)",
+    "login": "Login",
     "welcome": "Khush Amdeed",
     "username": "Username ya Phone",
     "password": "Password",
-    "loginButton": "Dakhil Hon (Login)",
+    "loginButton": "Login",
     "loggingIn": "Dakhil ho rahe hain...",
     "invalidCredentials": "Username ya password ghalat hai",
     "loggedOut": "Bahir nikal gaye"

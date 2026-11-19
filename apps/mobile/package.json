@@ -7,6 +7,7 @@
     "android": "expo start --android --offline",
     "ios": "expo start --ios --offline",
     "web": "expo start --web --offline",
+    "build:apk": "eas build -p android --profile preview",
     "type-check": "tsc --noEmit",
     "test": "jest --runInBand --forceExit"
   },
