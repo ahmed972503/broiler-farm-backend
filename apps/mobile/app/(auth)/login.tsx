@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,31 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const handler = (e: any) => {
+        e.preventDefault();
+        setInstallPrompt(e);
+      };
+      window.addEventListener("beforeinstallprompt", handler);
+      return () => window.removeEventListener("beforeinstallprompt", handler);
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choiceResult = await installPrompt.userChoice;
+      if (choiceResult.outcome === "accepted") {
+        setInstallPrompt(null);
+      }
+    } else {
+      setShowInstallGuide((prev) => !prev);
+    }
+  };
 
   const handleLogin = async (userVal?: string, passVal?: string) => {
     const u = userVal || username;
@@ -261,6 +286,94 @@ export default function LoginScreen() {
                 />
               </View>
             </>
+          )}
+          {/* PWA Mobile Install Banner (Web Only) */}
+          {Platform.OS === "web" && (
+            <View
+              style={{
+                marginTop: 20,
+                padding: 16,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                backgroundColor: colors.surface,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 10,
+                }}
+              >
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={26}
+                  color={colors.primary}
+                />
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontWeight: "700",
+                      fontSize: typography.sizes.sm,
+                    }}
+                  >
+                    {i18n.language === "ur"
+                      ? "📲 Mobile App Install Karein"
+                      : "📲 Install Mobile App"}
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: typography.sizes.xs,
+                      marginTop: 2,
+                    }}
+                  >
+                    {i18n.language === "ur"
+                      ? "Bina Play Store ya account ke direct phone par save karein"
+                      : "Install on mobile home screen for offline access"}
+                  </Text>
+                </View>
+              </View>
+
+              <Button
+                title={
+                  i18n.language === "ur"
+                    ? "📲 Phone par Install Karein"
+                    : "📲 Install on Phone"
+                }
+                variant="primary"
+                size="sm"
+                onPress={handleInstallClick}
+              />
+
+              {showInstallGuide && (
+                <View
+                  style={{
+                    marginTop: 12,
+                    padding: 12,
+                    borderRadius: 8,
+                    backgroundColor: colors.background,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontSize: typography.sizes.xs,
+                      lineHeight: 20,
+                      fontWeight: "500",
+                    }}
+                  >
+                    {i18n.language === "ur"
+                      ? "1. Chrome me ooper daayein 3 dots (⋮) par tap karein.\n2. 'Install app' ya 'Add to Home screen' par click karein.\n3. App aapke mobile par install ho kar offline chalegi!"
+                      : "1. Tap the 3 dots (⋮) in your Chrome browser.\n2. Tap 'Install app' or 'Add to Home screen'.\n3. The app is installed and works offline!"}
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
         </Card>
       </ScrollView>
