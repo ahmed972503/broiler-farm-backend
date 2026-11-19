@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "start": "node scripts/start-dev.js",
     "dev:api": "npm --workspace=@broiler/api run dev",
     "dev:mongo": "npm --workspace=@broiler/api run dev:mongo",
     "dev:mobile": "npm --workspace=@broiler/mobile run start",
