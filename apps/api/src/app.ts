@@ -91,8 +91,9 @@ export function createApp(): Application {
     });
   });
 
-  // Mount API routes
+  // Mount API routes (supports both /api/* and direct /* paths)
   app.use("/api", routes);
+  app.use("/", routes);
 
   // Centralized Error Handling
   app.use(errorHandler);
