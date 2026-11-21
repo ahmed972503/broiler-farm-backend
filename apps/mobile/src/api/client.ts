@@ -8,11 +8,8 @@ function getDefaultBaseUrl(): string {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
-  if (Platform.OS === "android") {
-    // 192.168.100.19 is the host machine's Wi-Fi LAN IP (reachable by physical phones & emulators on the same network)
-    return "http://192.168.100.19:5000";
-  }
-  return "http://localhost:5000";
+  // Default to live cloud backend on Vercel
+  return "https://broiler-farm-backend-3g4r-seven.vercel.app";
 }
 
 export let API_BASE_URL: string = getDefaultBaseUrl();
