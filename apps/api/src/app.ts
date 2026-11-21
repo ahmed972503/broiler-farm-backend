@@ -5,6 +5,34 @@ import rateLimit from "express-rate-limit";
 import routes from "./routes";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
+import { initNeonDatabase } from "./config/postgres";
+import { config } from "./config";
+import mongoose from "mongoose";
+
+let isNeonInitialized = false;
+let isMongoConnecting = false;
+
+async function ensureDatabases() {
+  if (!isNeonInitialized && config.databaseUrl) {
+    try {
+      await initNeonDatabase();
+      isNeonInitialized = true;
+    } catch (err) {
+      console.error("[Neon Init Error]:", err);
+    }
+  }
+
+  if (config.mongodbUri && mongoose.connection.readyState < 1 && !isMongoConnecting) {
+    try {
+      isMongoConnecting = true;
+      await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 3000 });
+    } catch (mErr: any) {
+      console.warn("[Mongo Serverless]:", mErr.message);
+    } finally {
+      isMongoConnecting = false;
+    }
+  }
+}
 
 export function createApp(): Application {
   const app = express();
@@ -22,6 +50,16 @@ export function createApp(): Application {
   // Request logger
   app.use(requestLogger);
 
+  // Lazy database initialization for serverless invocations
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureDatabases();
+    } catch (e) {
+      console.warn("[Lazy DB Init Error]:", e);
+    }
+    next();
+  });
+
   // Rate Limiter
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -34,6 +72,15 @@ export function createApp(): Application {
     },
   });
   app.use("/api/", limiter);
+
+  // Root endpoint
+  app.get("/", (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      service: "Broiler Farm Management System API",
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   // Health check endpoint
   app.get("/health", (_req: Request, res: Response) => {
@@ -52,3 +99,6 @@ export function createApp(): Application {
 
   return app;
 }
+
+const app = createApp();
+export default app;
