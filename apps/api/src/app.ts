@@ -44,7 +44,7 @@ export function createApp(): Application {
                           req.headers["x-forwarded-uri"] ||
                           req.headers["x-original-url"] ||
                           req.headers["x-rewrite-url"]) as string;
-    if (typeof originalPath === "string" && originalPath.length > 0 && originalPath !== "/index.ts") {
+    if (typeof originalPath === "string" && originalPath.length > 0 && !originalPath.endsWith("/index.ts") && !originalPath.endsWith("/api/index")) {
       const queryIdx = req.url.indexOf("?");
       if (queryIdx !== -1 && !originalPath.includes("?")) {
         req.url = originalPath + req.url.substring(queryIdx);
@@ -113,14 +113,14 @@ export function createApp(): Application {
   app.use("/api", routes);
   app.use("/", routes);
 
-  // Catch /index.ts explicitly in case rewrite retained filename
-  app.all("/index.ts", (req: Request, res: Response, next) => {
+  // Catch /index.ts and /api/index explicitly in case rewrite retained filename
+  app.all(["/index.ts", "/api/index", "/api/index.ts"], (req: Request, res: Response, next) => {
     const originalPath = (req.headers["x-matched-path"] ||
                           req.headers["x-vercel-matched-path"] ||
                           req.headers["x-forwarded-uri"] ||
                           req.headers["x-original-url"] ||
                           req.headers["x-rewrite-url"]) as string;
-    if (typeof originalPath === "string" && originalPath.length > 0 && originalPath !== "/index.ts") {
+    if (typeof originalPath === "string" && originalPath.length > 0 && !originalPath.includes("index")) {
       req.url = originalPath;
       return (app as any).handle(req, res, next);
     }

@@ -49,7 +49,7 @@ export async function testServerConnection(urlToTest?: string): Promise<{
   const target = (urlToTest || getApiBaseUrl()).trim().replace(/\/$/, "");
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), 15000);
 
     let res: Response;
     try {
