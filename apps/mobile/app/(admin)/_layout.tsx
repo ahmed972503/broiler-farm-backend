@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   Platform,
   StatusBar as RNStatusBar,
+  Image,
 } from "react-native";
 import { Slot, useRouter, usePathname } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -236,15 +237,11 @@ export default function AdminLayout() {
           ]}
         >
           <View style={styles.brandHeader}>
-            <View
-              style={[styles.logoIconBg, { backgroundColor: colors.primary }]}
-            >
-              <MaterialCommunityIcons
-                name="shield-home"
-                size={20}
-                color="#FFFFFF"
-              />
-            </View>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={{ width: 38, height: 38, borderRadius: 19 }}
+              resizeMode="contain"
+            />
             <View style={{ marginLeft: 10 }}>
               <Text
                 style={[

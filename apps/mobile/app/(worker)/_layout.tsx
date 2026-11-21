@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
   StatusBar as RNStatusBar,
+  Image,
 } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -50,34 +51,41 @@ export default function WorkerLayout() {
           },
         ]}
       >
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.shedBadge,
-              {
-                color: colors.primary,
-                fontSize: typography.sizes.xs,
-                fontWeight: typography.weights.bold,
-              },
-            ]}
-          >
-            {user?.shed?.name ||
-              `SHED ${user?.assignedShedId ? "ASSIGNED" : "5"}`}
-          </Text>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.workerName,
-              {
-                color: colors.text,
-                fontSize: typography.sizes.md,
-                fontWeight: typography.weights.bold,
-              },
-            ]}
-          >
-            {user?.name || "Worker"}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 }}>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={{ width: 34, height: 34, borderRadius: 17, marginRight: 10 }}
+            resizeMode="contain"
+          />
+          <View style={{ flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.shedBadge,
+                {
+                  color: colors.primary,
+                  fontSize: typography.sizes.xs,
+                  fontWeight: typography.weights.bold,
+                },
+              ]}
+            >
+              {user?.shed?.name ||
+                `SHED ${user?.assignedShedId ? "ASSIGNED" : "5"}`}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.workerName,
+                {
+                  color: colors.text,
+                  fontSize: typography.sizes.md,
+                  fontWeight: typography.weights.bold,
+                },
+              ]}
+            >
+              {user?.name || "Worker"}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.headerActions}>

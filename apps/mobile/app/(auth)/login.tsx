@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Modal,
   StatusBar as RNStatusBar,
+  Image,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
@@ -238,13 +239,11 @@ export default function LoginScreen() {
 
         {/* Brand Header */}
         <View style={styles.brandContainer}>
-          <View style={[styles.logoBadge, { backgroundColor: colors.primary }]}>
-            <MaterialCommunityIcons
-              name="shield-home"
-              size={32}
-              color="#FFFFFF"
-            />
-          </View>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text
             style={[
               styles.brandTitle,
@@ -691,6 +690,12 @@ const styles = StyleSheet.create({
   brandContainer: {
     alignItems: "center",
     marginBottom: 24,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
   },
   logoBadge: {
     width: 68,
