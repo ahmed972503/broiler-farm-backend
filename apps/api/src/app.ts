@@ -37,6 +37,24 @@ async function ensureDatabases() {
 export function createApp(): Application {
   const app = express();
 
+  // Support Vercel serverless rewrites: restore the original requested path
+  app.use((req, _res, next) => {
+    const originalPath = (req.headers["x-matched-path"] ||
+                          req.headers["x-vercel-matched-path"] ||
+                          req.headers["x-forwarded-uri"] ||
+                          req.headers["x-original-url"] ||
+                          req.headers["x-rewrite-url"]) as string;
+    if (typeof originalPath === "string" && originalPath.length > 0 && originalPath !== "/index.ts") {
+      const queryIdx = req.url.indexOf("?");
+      if (queryIdx !== -1 && !originalPath.includes("?")) {
+        req.url = originalPath + req.url.substring(queryIdx);
+      } else {
+        req.url = originalPath;
+      }
+    }
+    next();
+  });
+
   // Security headers
   app.use(helmet());
 
@@ -94,6 +112,26 @@ export function createApp(): Application {
   // Mount API routes (supports both /api/* and direct /* paths)
   app.use("/api", routes);
   app.use("/", routes);
+
+  // Catch /index.ts explicitly in case rewrite retained filename
+  app.all("/index.ts", (req: Request, res: Response, next) => {
+    const originalPath = (req.headers["x-matched-path"] ||
+                          req.headers["x-vercel-matched-path"] ||
+                          req.headers["x-forwarded-uri"] ||
+                          req.headers["x-original-url"] ||
+                          req.headers["x-rewrite-url"]) as string;
+    if (typeof originalPath === "string" && originalPath.length > 0 && originalPath !== "/index.ts") {
+      req.url = originalPath;
+      return (app as any).handle(req, res, next);
+    }
+    return res.json({
+      status: "ok",
+      service: "Broiler Farm Management System API",
+      timestamp: new Date().toISOString(),
+      url: req.url,
+      headers: req.headers,
+    });
+  });
 
   // Centralized Error Handling
   app.use(errorHandler);
