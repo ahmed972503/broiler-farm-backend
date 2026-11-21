@@ -13,8 +13,8 @@ export function getPostgresPool(): Pool | null {
   if (!pool) {
     pool = new Pool({
       connectionString: url,
-      max: 10,
-      idleTimeoutMillis: 30000,
+      max: process.env.VERCEL ? 3 : 10,
+      idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 10000,
       ssl: {
         rejectUnauthorized: false,
