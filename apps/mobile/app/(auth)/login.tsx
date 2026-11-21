@@ -575,7 +575,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() =>
                   setServerUrlInput(
-                    "https://broiler-farm-backend-3g4r-hoslcd6ju-aag-d348.vercel.app"
+                    "https://broiler-farm-backend-3g4r-aag-d348.vercel.app"
                   )
                 }
                 style={[

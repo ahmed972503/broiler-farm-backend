@@ -9,7 +9,7 @@ function getDefaultBaseUrl(): string {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
   // Default to live cloud backend on Vercel
-  return "https://broiler-farm-backend-3g4r-hoslcd6ju-aag-d348.vercel.app";
+  return "https://broiler-farm-backend-3g4r-aag-d348.vercel.app";
 }
 
 export let API_BASE_URL: string = getDefaultBaseUrl();
