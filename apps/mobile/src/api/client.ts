@@ -9,7 +9,7 @@ function getDefaultBaseUrl(): string {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
   // Default to live cloud backend on Vercel
-  return "https://broiler-farm-backend-3g4r-seven.vercel.app";
+  return "https://broiler-farm-backend-3g4r-hoslcd6ju-aag-d348.vercel.app";
 }
 
 export let API_BASE_URL: string = getDefaultBaseUrl();
@@ -49,13 +49,35 @@ export async function testServerConnection(urlToTest?: string): Promise<{
   const target = (urlToTest || getApiBaseUrl()).trim().replace(/\/$/, "");
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
+    const timer = setTimeout(() => controller.abort(), 6000);
 
-    const res = await fetch(`${target}/health`, {
-      method: "GET",
-      signal: controller.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${target}/health`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        res = await fetch(`${target}/`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+      }
+    } catch (e: any) {
+      res = await fetch(`${target}/`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+    }
     clearTimeout(timer);
+
+    const text = await res.text();
+    if (text.includes("Protected by Vercel Authentication")) {
+      return {
+        success: false,
+        message: "Vercel Authentication is ON! Please disable Deployment Protection in Vercel Settings.",
+      };
+    }
 
     if (res.ok) {
       return { success: true, message: `Connected successfully to ${target}` };
@@ -68,7 +90,7 @@ export async function testServerConnection(urlToTest?: string): Promise<{
     if (err.name === "AbortError") {
       return {
         success: false,
-        message: `Connection timed out to ${target}. Make sure PC and mobile are on the same Wi-Fi.`,
+        message: `Connection timed out to ${target}. Check internet connection or server status.`,
       };
     }
     return {
@@ -129,6 +151,21 @@ export async function apiFetch<T = any>(
       }
     }
 
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      if (text.includes("Protected by Vercel Authentication")) {
+        return {
+          success: false,
+          error: "Vercel Authentication is ON! Disable Deployment Protection in Vercel Settings -> Deployment Protection.",
+        };
+      }
+      return {
+        success: false,
+        error: `Server error (${res.status}): ${text.slice(0, 100)}`,
+      };
+    }
+
     const data = await res.json();
     return data;
   } catch (err: any) {
@@ -136,7 +173,7 @@ export async function apiFetch<T = any>(
       success: false,
       error:
         err.message ||
-        `Network request failed: Cannot connect to ${baseUrl}. Check Wi-Fi and server status.`,
+        `Network request failed: Cannot connect to ${baseUrl}. Check internet and server status.`,
     };
   }
 }

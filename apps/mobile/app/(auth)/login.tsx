@@ -573,6 +573,48 @@ export default function LoginScreen() {
               }}
             >
               <TouchableOpacity
+                onPress={() =>
+                  setServerUrlInput(
+                    "https://broiler-farm-backend-3g4r-hoslcd6ju-aag-d348.vercel.app"
+                  )
+                }
+                style={[
+                  styles.presetChip,
+                  {
+                    borderColor: colors.primary,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 11,
+                    fontWeight: "700",
+                  }}
+                >
+                  ☁️ Vercel Cloud (Live)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  setServerUrlInput(
+                    "https://broiler-farm-backend-3g4r-seven.vercel.app"
+                  )
+                }
+                style={[
+                  styles.presetChip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                  ☁️ Vercel (Seven)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={() => setServerUrlInput("http://192.168.100.19:5000")}
                 style={[
                   styles.presetChip,
@@ -584,9 +626,9 @@ export default function LoginScreen() {
               >
                 <Text
                   style={{
-                    color: colors.primary,
+                    color: colors.textSecondary,
                     fontSize: 11,
-                    fontWeight: "600",
+                    fontWeight: "500",
                   }}
                 >
                   PC Wi-Fi (192.168.100.19)
