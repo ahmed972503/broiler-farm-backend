@@ -20,10 +20,16 @@ setTimeout(() => {
     shell: true,
   });
 
-  // 3. Start Expo Web on Port 8081 after another 3 seconds
+  // 3. Setup ADB Reverse for connected Android devices & start Metro Bundler (Port 8081)
   setTimeout(() => {
-    console.log("\n[3/3] Starting Expo Web App (Port 8081)...");
-    const webProcess = spawn("npm", ["run", "dev:web"], {
+    try {
+      const adb = "C:\\Users\\mahme\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe";
+      spawn(adb, ["reverse", "tcp:8081", "tcp:8081"]);
+      spawn(adb, ["reverse", "tcp:5000", "tcp:5000"]);
+    } catch (e) {}
+
+    console.log("\n[3/3] Starting Metro Bundler (Mobile & Web on Port 8081)...");
+    const metroProcess = spawn("npm", ["run", "dev:mobile"], {
       stdio: "inherit",
       shell: true,
     });
@@ -32,7 +38,7 @@ setTimeout(() => {
       console.log("\n[Shutdown] Stopping all farm services...");
       try { mongoProcess.kill(); } catch (e) {}
       try { apiProcess.kill(); } catch (e) {}
-      try { webProcess.kill(); } catch (e) {}
+      try { metroProcess.kill(); } catch (e) {}
       process.exit(0);
     };
 

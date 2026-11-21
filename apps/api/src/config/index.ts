@@ -1,11 +1,23 @@
 import dotenv from "dotenv";
+import path from "path";
+
+// 1. Load local api .env
 dotenv.config();
+
+// 2. Load root .env.local (where Neon provisions DATABASE_URL)
+dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env.local") });
 
 export const config = {
   port: parseInt(process.env.PORT || "5000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   mongodbUri:
     process.env.MONGODB_URI || "mongodb://localhost:27017/broiler_farm",
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL ||
+    "",
   jwtSecret:
     process.env.JWT_SECRET ||
     "fallback-super-secure-broiler-farm-secret-32chars",

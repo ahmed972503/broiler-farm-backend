@@ -7,20 +7,34 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Modal,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { Button, Input, Card } from "../../src/components/ui";
 import { useAuthStore } from "../../src/store/useAuthStore";
-import { apiFetch } from "../../src/api/client";
+import {
+  apiFetch,
+  getApiBaseUrl,
+  setApiBaseUrl,
+  testServerConnection,
+  initApiBaseUrl,
+} from "../../src/api/client";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../src/i18n";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const { colors, spacing, typography, borderRadius, mode, toggleTheme } =
     useTheme();
   const { setAuth } = useAuthStore();
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const statusBarHeight =
+    Platform.OS === "android"
+      ? Math.max(RNStatusBar.currentHeight || 0, insets.top, 24)
+      : insets.top;
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +42,32 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [serverUrlInput, setServerUrlInput] = useState(getApiBaseUrl());
+  const [testingServer, setTestingServer] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    initApiBaseUrl().then((url) => setServerUrlInput(url));
+  }, []);
+
+  const handleTestServer = async () => {
+    setTestingServer(true);
+    setTestResult(null);
+    const res = await testServerConnection(serverUrlInput);
+    setTestResult(res);
+    setTestingServer(false);
+  };
+
+  const handleSaveServerUrl = async () => {
+    await setApiBaseUrl(serverUrlInput);
+    setShowServerModal(false);
+    setError(null);
+  };
 
   useEffect(() => {
     if (Platform.OS === "web" && typeof window !== "undefined") {
@@ -108,9 +148,46 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Top Controls: Theme & Language */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: statusBarHeight + 16,
+            paddingBottom: insets.bottom + 20,
+          },
+        ]}
+      >
+        {/* Top Controls: Theme, Language & Server */}
         <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => {
+              setServerUrlInput(getApiBaseUrl());
+              setTestResult(null);
+              setShowServerModal(true);
+            }}
+            style={[
+              styles.chipButton,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+                flexDirection: "row",
+                alignItems: "center",
+              },
+            ]}
+          >
+            <Ionicons name="server-outline" size={13} color={colors.primary} />
+            <Text
+              style={{
+                marginLeft: 4,
+                color: colors.text,
+                fontSize: typography.sizes.xs,
+                fontWeight: typography.weights.bold,
+              }}
+            >
+              Server
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={toggleLanguage}
             style={[
@@ -215,6 +292,41 @@ export default function LoginScreen() {
               >
                 {error}
               </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setServerUrlInput(getApiBaseUrl());
+                  setTestResult(null);
+                  setShowServerModal(true);
+                }}
+                style={{
+                  marginTop: 8,
+                  paddingVertical: 5,
+                  paddingHorizontal: 8,
+                  backgroundColor: colors.surface,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={12}
+                  color={colors.primary}
+                />
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: typography.sizes.xs,
+                    marginLeft: 4,
+                    fontWeight: typography.weights.bold,
+                  }}
+                >
+                  Configure Server URL / IP
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -377,6 +489,183 @@ export default function LoginScreen() {
           )}
         </Card>
       </ScrollView>
+
+      {/* Server Configuration Modal */}
+      <Modal
+        visible={showServerModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowServerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Card style={styles.modalCard} elevated>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="server-outline"
+                  size={20}
+                  color={colors.primary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontSize: typography.sizes.lg,
+                    fontWeight: typography.weights.bold,
+                  }}
+                >
+                  Server Connection
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowServerModal(false)}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: typography.sizes.xs,
+                marginBottom: 14,
+                lineHeight: 18,
+              }}
+            >
+              Enter backend API URL. Make sure your PC running the API (`npm start`)
+              and mobile phone are connected to the SAME Wi-Fi network.
+            </Text>
+
+            <Input
+              label="Backend Server URL"
+              placeholder="http://192.168.100.19:5000"
+              value={serverUrlInput}
+              onChangeText={setServerUrlInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {/* Quick Presets */}
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: 11,
+                marginBottom: 6,
+                fontWeight: "600",
+              }}
+            >
+              Quick Presets:
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 6,
+                marginBottom: 14,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => setServerUrlInput("http://192.168.100.19:5000")}
+                style={[
+                  styles.presetChip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 11,
+                    fontWeight: "600",
+                  }}
+                >
+                  PC Wi-Fi (192.168.100.19)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setServerUrlInput("http://10.0.2.2:5000")}
+                style={[
+                  styles.presetChip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                  Emulator (10.0.2.2)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setServerUrlInput("http://localhost:5000")}
+                style={[
+                  styles.presetChip,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                  Localhost
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {testResult ? (
+              <View
+                style={{
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: testResult.success
+                    ? "#ECFDF5"
+                    : colors.dangerBg,
+                  borderColor: testResult.success ? "#10B981" : colors.danger,
+                  borderWidth: 1,
+                  marginBottom: 14,
+                }}
+              >
+                <Text
+                  style={{
+                    color: testResult.success ? "#065F46" : colors.danger,
+                    fontSize: typography.sizes.xs,
+                    fontWeight: "600",
+                  }}
+                >
+                  {testResult.success ? "✓ " : "✗ "}
+                  {testResult.message}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Button
+                title={testingServer ? "Testing..." : "Test Ping"}
+                variant="outline"
+                onPress={handleTestServer}
+                style={{ flex: 1 }}
+                disabled={testingServer}
+              />
+              <Button
+                title="Save & Connect"
+                onPress={handleSaveServerUrl}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -462,5 +751,23 @@ const styles = StyleSheet.create({
   demoButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    padding: 20,
+  },
+  presetChip: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
 });

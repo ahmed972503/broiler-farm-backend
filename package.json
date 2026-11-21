@@ -17,6 +17,8 @@
     "build:api": "npm --workspace=@broiler/api run build",
     "build:apk": "npm --workspace=@broiler/mobile run build:apk",
     "build:apk:local": "powershell -ExecutionPolicy Bypass -File scripts/build-apk-local.ps1",
+    "build:apk:release": "powershell -ExecutionPolicy Bypass -File scripts/build-apk-release.ps1",
+    "test:usb": "powershell -ExecutionPolicy Bypass -File scripts/usb-test.ps1",
     "build": "npm run build:shared && npm run build:api",
     "test:shared": "npm --workspace=@broiler/shared run test",
     "test:mobile": "npm --workspace=@broiler/mobile run test",
@@ -35,5 +37,9 @@
     "prettier": "^3.3.3",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.72.0"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.6",
+    "@neon/env": "^2.1.9"
   }
 }

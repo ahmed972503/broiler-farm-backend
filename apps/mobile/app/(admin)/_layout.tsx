@@ -7,6 +7,7 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { Slot, useRouter, usePathname } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -15,6 +16,7 @@ import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../src/i18n";
 import { SyncStatusBanner } from "../../src/components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface NavItem {
   name: string;
@@ -128,6 +130,11 @@ export default function AdminLayout() {
 
   const isWide = width >= 768; // Tablet / Web Laptop breakpoint
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  const statusBarHeight =
+    Platform.OS === "android"
+      ? Math.max(RNStatusBar.currentHeight || 0, insets.top, 24)
+      : insets.top;
 
   const toggleLang = () => {
     changeLanguage(i18n.language === "ur" ? "en" : "ur");
@@ -177,6 +184,42 @@ export default function AdminLayout() {
           </TouchableOpacity>
         );
       })}
+
+      {!isWide && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={async () => {
+            setMobileMenuOpen(false);
+            await logout();
+            router.replace("/login");
+          }}
+          style={[
+            styles.navItem,
+            {
+              backgroundColor: colors.dangerBg,
+              borderColor: colors.danger,
+              borderRadius: borderRadius.md,
+              paddingVertical: spacing.sm + 4,
+              paddingHorizontal: spacing.md,
+              marginTop: 14,
+              marginBottom: 20,
+            },
+          ]}
+        >
+          <View style={{ marginRight: 12, width: 22, alignItems: "center" }}>
+            <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+          </View>
+          <Text
+            style={{
+              color: colors.danger,
+              fontWeight: typography.weights.bold,
+              fontSize: typography.sizes.sm,
+            }}
+          >
+            Logout (لاگ آؤٹ)
+          </Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 
@@ -268,29 +311,49 @@ export default function AdminLayout() {
         <View
           style={[
             styles.topNavbar,
-            { backgroundColor: colors.card, borderBottomColor: colors.border },
+            {
+              backgroundColor: colors.card,
+              borderBottomColor: colors.border,
+              paddingTop: statusBarHeight,
+              height: 56 + statusBarHeight,
+            },
           ]}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              marginRight: 6,
+            }}
+          >
             {!isWide ? (
               <TouchableOpacity
                 onPress={() => setMobileMenuOpen(!mobileMenuOpen)}
-                style={{ padding: 6, marginRight: 8 }}
+                style={{ padding: 6, marginRight: 6 }}
+                accessibilityLabel="Navigation menu"
               >
                 <Ionicons name="menu-outline" size={24} color={colors.text} />
               </TouchableOpacity>
             ) : null}
             <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={[
                 styles.navTitle,
                 {
+                  flex: 1,
                   color: colors.text,
-                  fontSize: typography.sizes.md,
+                  fontSize: isWide
+                    ? typography.sizes.md
+                    : typography.sizes.sm + 1,
                   fontWeight: typography.weights.bold,
                 },
               ]}
             >
-              Broiler Farm Management System
+              {isWide
+                ? "Broiler Farm Management System"
+                : "Broiler Farm Manager"}
             </Text>
           </View>
 
@@ -326,20 +389,6 @@ export default function AdminLayout() {
                 color={colors.text}
               />
             </TouchableOpacity>
-
-            {!isWide ? (
-              <TouchableOpacity onPress={() => logout()} style={{ padding: 6 }}>
-                <Text
-                  style={{
-                    color: colors.danger,
-                    fontSize: 13,
-                    fontWeight: "700",
-                  }}
-                >
-                  Exit
-                </Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
 
@@ -352,10 +401,77 @@ export default function AdminLayout() {
           <View
             style={[
               styles.mobileMenuDrawer,
-              { backgroundColor: colors.card, borderColor: colors.border },
+              {
+                top: 56 + statusBarHeight,
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                paddingBottom: insets.bottom + 16,
+              },
             ]}
           >
             {renderNavList()}
+
+            {/* Mobile Sidebar Footer (Bottom Left Logout) */}
+            <View
+              style={[
+                styles.mobileDrawerFooter,
+                { borderTopColor: colors.border },
+              ]}
+            >
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: colors.text,
+                    fontSize: typography.sizes.sm,
+                    fontWeight: typography.weights.bold,
+                  }}
+                >
+                  {user?.name || "Farm Owner"}
+                </Text>
+                <Text
+                  style={{
+                    color: colors.textMuted,
+                    fontSize: typography.sizes.xs,
+                  }}
+                >
+                  Administrator
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  setMobileMenuOpen(false);
+                  await logout();
+                  router.replace("/login");
+                }}
+                activeOpacity={0.7}
+                style={[
+                  styles.mobileLogoutBtn,
+                  {
+                    backgroundColor: colors.dangerBg,
+                    borderColor: colors.danger,
+                    alignSelf: "flex-start",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={18}
+                  color={colors.danger}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    color: colors.danger,
+                    fontSize: typography.sizes.sm,
+                    fontWeight: typography.weights.bold,
+                  }}
+                >
+                  Logout (لاگ آؤٹ)
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
 
@@ -409,7 +525,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topNavbar: {
-    height: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -430,12 +545,24 @@ const styles = StyleSheet.create({
   },
   mobileMenuDrawer: {
     position: "absolute",
-    top: 56,
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 999,
     borderBottomWidth: 1,
     padding: 16,
+  },
+  mobileDrawerFooter: {
+    borderTopWidth: 1,
+    paddingTop: 14,
+    marginTop: 8,
+  },
+  mobileLogoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
 });

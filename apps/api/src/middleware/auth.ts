@@ -1,17 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { config } from "../config";
 import { User, IUser } from "../models";
+import { config } from "../config";
+import { NeonUserRepository } from "../config/postgres";
 
 export interface AuthRequest extends Request {
-  user?: IUser;
+  user?: any;
 }
 
-export async function authenticate(
+export const authenticate = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction,
-): Promise<void> {
+  next: NextFunction
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -28,6 +29,20 @@ export async function authenticate(
       role: string;
     };
 
+    // 1. Check Neon Postgres
+    const neonUser = await NeonUserRepository.findById(decoded.userId);
+    if (neonUser) {
+      if (!neonUser.isActive) {
+        res
+          .status(401)
+          .json({ success: false, error: "User is inactive or not found" });
+        return;
+      }
+      req.user = neonUser;
+      return next();
+    }
+
+    // 2. Fallback to Mongo
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
       res
@@ -47,8 +62,25 @@ export async function authenticate(
       });
       return;
     }
-    res
-      .status(401)
-      .json({ success: false, error: "Invalid authentication token" });
+    res.status(401).json({ success: false, error: "Invalid token" });
   }
-}
+};
+
+export const requireRole = (allowedRoles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: "Authentication required" });
+      return;
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      res.status(403).json({
+        success: false,
+        error: `Access denied. Requires one of: ${allowedRoles.join(", ")}`,
+      });
+      return;
+    }
+
+    next();
+  };
+};

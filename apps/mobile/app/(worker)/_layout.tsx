@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  StatusBar as RNStatusBar,
+} from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
@@ -7,12 +14,18 @@ import { useAuthStore } from "../../src/store/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../src/i18n";
 import { SyncStatusBanner } from "../../src/components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WorkerLayout() {
   const { colors, typography, spacing, mode, toggleTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const statusBarHeight =
+    Platform.OS === "android"
+      ? Math.max(RNStatusBar.currentHeight || 0, insets.top, 24)
+      : insets.top;
 
   const toggleLang = () => {
     changeLanguage(i18n.language === "ur" ? "en" : "ur");
@@ -30,7 +43,11 @@ export default function WorkerLayout() {
       <View
         style={[
           styles.topHeader,
-          { backgroundColor: colors.card, borderBottomColor: colors.border },
+          {
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+            paddingTop: statusBarHeight + 10,
+          },
         ]}
       >
         <View style={{ flex: 1, marginRight: 8 }}>
@@ -97,7 +114,10 @@ export default function WorkerLayout() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => logout()}
+            onPress={async () => {
+              await logout();
+              router.replace("/login");
+            }}
             style={[
               styles.logoutButton,
               { backgroundColor: colors.dangerBg, borderColor: colors.danger },
@@ -129,8 +149,8 @@ export default function WorkerLayout() {
             backgroundColor: colors.card,
             borderTopColor: colors.border,
             borderTopWidth: 1,
-            height: 60,
-            paddingBottom: 6,
+            height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 4 : 6,
             paddingTop: 6,
           },
           tabBarActiveTintColor: colors.primary,

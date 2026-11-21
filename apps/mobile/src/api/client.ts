@@ -1,15 +1,87 @@
 import { useAuthStore } from "../store/useAuthStore";
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// In Expo, localhost works on Web and iOS simulator. On Android emulator use 10.0.2.2.
-function getBaseUrl(): string {
+export const STORAGE_KEY_API_URL = "@broiler_farm_api_url";
+
+function getDefaultBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  }
   if (Platform.OS === "android") {
-    return "http://10.0.2.2:5000";
+    // 192.168.100.19 is the host machine's Wi-Fi LAN IP (reachable by physical phones & emulators on the same network)
+    return "http://192.168.100.19:5000";
   }
   return "http://localhost:5000";
 }
 
-export const API_BASE_URL = getBaseUrl();
+export let API_BASE_URL: string = getDefaultBaseUrl();
+
+export function getApiBaseUrl(): string {
+  return API_BASE_URL;
+}
+
+export async function initApiBaseUrl(): Promise<string> {
+  try {
+    const saved = await AsyncStorage.getItem(STORAGE_KEY_API_URL);
+    if (saved && saved.trim()) {
+      API_BASE_URL = saved.trim().replace(/\/$/, "");
+    }
+  } catch {}
+  return API_BASE_URL;
+}
+
+// Initialize on module load
+initApiBaseUrl();
+
+export async function setApiBaseUrl(newUrl: string): Promise<string> {
+  const sanitized = newUrl.trim().replace(/\/$/, "");
+  API_BASE_URL = sanitized;
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY_API_URL, sanitized);
+  } catch (err) {
+    console.error("Failed to save custom API URL:", err);
+  }
+  return API_BASE_URL;
+}
+
+export async function testServerConnection(urlToTest?: string): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const target = (urlToTest || getApiBaseUrl()).trim().replace(/\/$/, "");
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(`${target}/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      return { success: true, message: `Connected successfully to ${target}` };
+    }
+    return {
+      success: false,
+      message: `Server returned HTTP status ${res.status} (${res.statusText})`,
+    };
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      return {
+        success: false,
+        message: `Connection timed out to ${target}. Make sure PC and mobile are on the same Wi-Fi.`,
+      };
+    }
+    return {
+      success: false,
+      message:
+        err.message ||
+        `Failed to reach server at ${target}. Check if backend is running.`,
+    };
+  }
+}
 
 export async function apiFetch<T = any>(
   path: string,
@@ -25,7 +97,8 @@ export async function apiFetch<T = any>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 
   try {
     const res = await fetch(url, { ...options, headers });
@@ -39,7 +112,7 @@ export async function apiFetch<T = any>(
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {
         try {
-          const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          const refreshRes = await fetch(`${baseUrl}/api/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refreshToken }),
@@ -64,7 +137,9 @@ export async function apiFetch<T = any>(
   } catch (err: any) {
     return {
       success: false,
-      error: err.message || "Network request failed. Working in offline mode.",
+      error:
+        err.message ||
+        `Network request failed: Cannot connect to ${baseUrl}. Check Wi-Fi and server status.`,
     };
   }
 }

@@ -20,3 +20,5 @@ coverage/
 .chrome_temp/
 .chrome_walkthrough_temp/
 data/
+.neon
+*.apk
