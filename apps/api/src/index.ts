@@ -1,3 +1,4 @@
+import express from "express";
 import mongoose from "mongoose";
 import app, { createApp } from "./app";
 import { config } from "./config";

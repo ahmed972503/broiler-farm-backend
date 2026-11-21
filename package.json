@@ -2,6 +2,7 @@
   "name": "broiler-farm-management-system",
   "version": "1.0.0",
   "private": true,
+  "main": "index.ts",
   "description": "Production-grade Broiler Farm Management System with offline-first mobile app and web admin dashboard",
   "workspaces": [
     "packages/*",
