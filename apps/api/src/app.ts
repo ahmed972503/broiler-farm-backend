@@ -9,6 +9,9 @@ import { initNeonDatabase } from "./config/postgres";
 import { config } from "./config";
 import mongoose from "mongoose";
 
+// Disable Mongoose command buffering in serverless to prevent 10000ms timeouts when Mongo is not running
+mongoose.set("bufferCommands", false);
+
 let isNeonInitialized = false;
 let isMongoConnecting = false;
 

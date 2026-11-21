@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { User, Shed } from "../models";
 import { config } from "../config";
 import { AuthRequest } from "../middleware/auth";
@@ -296,10 +297,14 @@ export class AuthController {
         return;
       }
 
-      const existing = await User.findOne({ username: cleanUsername });
-      if (existing) {
-        res.status(409).json({ success: false, error: "Username already exists" });
-        return;
+      if (mongoose.connection.readyState >= 1) {
+        try {
+          const existing = await User.findOne({ username: cleanUsername });
+          if (existing) {
+            res.status(409).json({ success: false, error: "Username already exists" });
+            return;
+          }
+        } catch (e) {}
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
@@ -318,19 +323,21 @@ export class AuthController {
       }
 
       // Also create in Mongo if connected
-      try {
-        const mongoUser = await User.create({
-          username: cleanUsername,
-          passwordHash,
-          name,
-          phone,
-          role,
-          assignedShedId: assignedShedId || null,
-          isActive: true,
-          mustChangePassword: true,
-        });
-        if (!createdUser) createdUser = mongoUser;
-      } catch (e) {}
+      if (mongoose.connection.readyState >= 1) {
+        try {
+          const mongoUser = await User.create({
+            username: cleanUsername,
+            passwordHash,
+            name,
+            phone,
+            role,
+            assignedShedId: assignedShedId || null,
+            isActive: true,
+            mustChangePassword: true,
+          });
+          if (!createdUser) createdUser = mongoUser;
+        } catch (e) {}
+      }
 
       res.status(201).json({
         success: true,
@@ -354,20 +361,36 @@ export class AuthController {
   static async resetPassword(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId, newPassword } = req.body;
-      const targetUser = await User.findById(userId);
-      if (!targetUser) {
-        res.status(404).json({ success: false, error: "User not found" });
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      // 1. Check Neon PostgreSQL
+      const neonUser = await NeonUserRepository.findById(userId);
+      if (neonUser) {
+        await NeonUserRepository.updatePassword(userId, passwordHash);
+        res.json({
+          success: true,
+          message: `Password for ${neonUser.username} successfully updated`,
+        });
         return;
       }
 
-      targetUser.passwordHash = await bcrypt.hash(newPassword, 10);
-      targetUser.refreshToken = null;
-      await targetUser.save();
+      // 2. Check Mongo if connected
+      if (mongoose.connection.readyState >= 1) {
+        const targetUser = await User.findById(userId);
+        if (targetUser) {
+          targetUser.passwordHash = passwordHash;
+          targetUser.refreshToken = null;
+          await targetUser.save();
 
-      res.json({
-        success: true,
-        message: `Password for ${targetUser.username} successfully updated`,
-      });
+          res.json({
+            success: true,
+            message: `Password for ${targetUser.username} successfully updated`,
+          });
+          return;
+        }
+      }
+
+      res.status(404).json({ success: false, error: "User not found" });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

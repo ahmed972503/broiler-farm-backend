@@ -148,6 +148,15 @@ export class NeonUserRepository {
     );
   }
 
+  static async updatePassword(id: string, passwordHash: string): Promise<void> {
+    const p = getPostgresPool();
+    if (!p) return;
+    await p.query(
+      `UPDATE users SET password_hash = $1, refresh_token = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [passwordHash, id]
+    );
+  }
+
   static async findAll(): Promise<NeonUser[]> {
     const p = getPostgresPool();
     if (!p) return [];
