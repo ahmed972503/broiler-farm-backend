@@ -45,7 +45,8 @@ export default function CreateBatchScreen() {
         if (!selectedShedId && res.data.length > 0) {
           // Select first available empty shed if possible
           const emptyShed = res.data.find((s: any) => s.status !== "active");
-          setSelectedShedId(emptyShed ? emptyShed._id : res.data[0]._id);
+          const firstId = res.data[0].id || res.data[0]._id;
+          setSelectedShedId(emptyShed ? (emptyShed.id || emptyShed._id) : firstId);
         }
       }
     };
@@ -134,36 +135,37 @@ export default function CreateBatchScreen() {
           Select Shed (Darrha Chunein)
         </Text>
         <View style={styles.shedChipRow}>
-          {sheds.map((shed) => (
-            <TouchableOpacity
-              key={shed._id}
-              onPress={() => setSelectedShedId(shed._id)}
-              style={[
-                styles.shedChip,
-                {
-                  backgroundColor:
-                    selectedShedId === shed._id
+          {sheds.map((shed) => {
+            const sId = shed.id || shed._id;
+            const isSelected = selectedShedId === sId;
+            return (
+              <TouchableOpacity
+                key={sId}
+                onPress={() => setSelectedShedId(sId)}
+                style={[
+                  styles.shedChip,
+                  {
+                    backgroundColor: isSelected
                       ? colors.primary
                       : colors.surface,
-                  borderColor:
-                    selectedShedId === shed._id
+                    borderColor: isSelected
                       ? colors.primary
                       : colors.border,
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  color:
-                    selectedShedId === shed._id ? colors.white : colors.text,
-                  fontWeight: "600",
-                  fontSize: typography.sizes.xs,
-                }}
+                  },
+                ]}
               >
-                {shed.name} {shed.status === "active" ? "(Busy)" : "(Ready)"}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={{
+                    color: isSelected ? colors.white : colors.text,
+                    fontWeight: "600",
+                    fontSize: typography.sizes.xs,
+                  }}
+                >
+                  {shed.name} {shed.status === "active" ? "(Busy)" : "(Ready)"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Input

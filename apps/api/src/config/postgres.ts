@@ -159,15 +159,24 @@ export class NeonUserRepository {
     const p = getPostgresPool();
     if (!p) return null;
     const res = await p.query(
-      `SELECT id, username, password_hash as "passwordHash", name, phone, role, 
-              assigned_shed_id as "assignedShedId", refresh_token as "refreshToken", 
-              is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
-       FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT u.id, u.username, u.password_hash as "passwordHash", u.name, u.phone, u.role, 
+              u.assigned_shed_id as "assignedShedId", u.refresh_token as "refreshToken", 
+              u.is_active as "isActive", u.created_at as "createdAt", u.updated_at as "updatedAt",
+              s.name as "shedName", s.shed_number as "shedNumber"
+       FROM users u
+       LEFT JOIN sheds s ON u.assigned_shed_id = s.id
+       WHERE u.id = $1 LIMIT 1`,
       [id]
     );
     if (res.rows.length === 0) return null;
     const row = res.rows[0];
-    return { ...row, _id: row.id };
+    return {
+      ...row,
+      _id: row.id,
+      assignedShedId: row.assignedShedId
+        ? { _id: row.assignedShedId, id: row.assignedShedId, name: row.shedName || "Shed", shedNumber: row.shedNumber }
+        : null,
+    };
   }
 
   static async updateRefreshToken(id: string, refreshToken: string | null): Promise<void> {
@@ -192,12 +201,21 @@ export class NeonUserRepository {
     const p = getPostgresPool();
     if (!p) return [];
     const res = await p.query(
-      `SELECT id, username, password_hash as "passwordHash", name, phone, role, 
-              assigned_shed_id as "assignedShedId", refresh_token as "refreshToken", 
-              is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
-       FROM users ORDER BY created_at ASC`
+      `SELECT u.id, u.username, u.password_hash as "passwordHash", u.name, u.phone, u.role, 
+              u.assigned_shed_id as "assignedShedId", u.refresh_token as "refreshToken", 
+              u.is_active as "isActive", u.created_at as "createdAt", u.updated_at as "updatedAt",
+              s.name as "shedName", s.shed_number as "shedNumber"
+       FROM users u
+       LEFT JOIN sheds s ON u.assigned_shed_id = s.id
+       ORDER BY u.created_at ASC`
     );
-    return res.rows.map((row) => ({ ...row, _id: row.id }));
+    return res.rows.map((row) => ({
+      ...row,
+      _id: row.id,
+      assignedShedId: row.assignedShedId
+        ? { _id: row.assignedShedId, id: row.assignedShedId, name: row.shedName || "Shed", shedNumber: row.shedNumber }
+        : null,
+    }));
   }
 
   static async create(user: {

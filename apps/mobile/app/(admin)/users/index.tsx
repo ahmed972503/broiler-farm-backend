@@ -41,6 +41,16 @@ export default function UsersManagementScreen() {
   const [selectedNewShedId, setSelectedNewShedId] = useState<string | null>(null);
   const [submittingReassign, setSubmittingReassign] = useState(false);
 
+  const getShedDisplayName = (u: any) => {
+    if (u.assignedShedId && typeof u.assignedShedId === "object" && u.assignedShedId.name) {
+      return u.assignedShedId.name;
+    }
+    const shedId = u.assignedShedId?.id || u.assignedShedId?._id || (typeof u.assignedShedId === "string" ? u.assignedShedId : null);
+    if (!shedId) return "Koi shed assign nahi";
+    const found = sheds.find((s) => (s.id && s.id === shedId) || (s._id && s._id === shedId));
+    return found ? found.name : "Shed";
+  };
+
   const handleOpenReassign = (user: any) => {
     setReassignWorker(user);
     const curr = user.assignedShedId?.id || user.assignedShedId?._id || user.assignedShedId || null;
@@ -77,7 +87,7 @@ export default function UsersManagementScreen() {
       if (shedRes.success && shedRes.data) {
         setSheds(shedRes.data);
         if (!assignedShedId && shedRes.data.length > 0)
-          setAssignedShedId(shedRes.data[0]._id);
+          setAssignedShedId(shedRes.data[0].id || shedRes.data[0]._id);
       }
     } catch (err) {
       console.warn(err);
@@ -292,36 +302,37 @@ export default function UsersManagementScreen() {
                 Assign Shed:
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-                {sheds.map((s) => (
-                  <TouchableOpacity
-                    key={s._id}
-                    onPress={() => setAssignedShedId(s._id)}
-                    style={[
-                      styles.shedChip,
-                      {
-                        backgroundColor:
-                          assignedShedId === s._id
+                {sheds.map((s) => {
+                  const sId = s.id || s._id;
+                  const isSelected = assignedShedId === sId;
+                  return (
+                    <TouchableOpacity
+                      key={sId}
+                      onPress={() => setAssignedShedId(sId)}
+                      style={[
+                        styles.shedChip,
+                        {
+                          backgroundColor: isSelected
                             ? colors.secondary
                             : colors.surface,
-                        borderColor:
-                          assignedShedId === s._id
+                          borderColor: isSelected
                             ? colors.secondary
                             : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color:
-                          assignedShedId === s._id ? colors.white : colors.text,
-                        fontSize: 11,
-                        fontWeight: "600",
-                      }}
+                        },
+                      ]}
                     >
-                      {s.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={{
+                          color: isSelected ? colors.white : colors.text,
+                          fontSize: 11,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {s.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           ) : null}
@@ -382,8 +393,8 @@ export default function UsersManagementScreen() {
       ) : null}
 
       {/* Users List */}
-      {users.map((u) => (
-        <Card key={u._id} elevated style={{ marginVertical: 6 }}>
+      {users.map((u, idx) => (
+        <Card key={u.id || u._id || u.username || `user-${idx}`} elevated style={{ marginVertical: 6 }}>
           <View
             style={{
               flexDirection: "row",
@@ -401,7 +412,7 @@ export default function UsersManagementScreen() {
                 Phone: {u.phone} •{" "}
                 {u.role === "admin"
                   ? "Farm Administrator"
-                  : `Assigned: ${u.assignedShedId?.name || "Shed"}`}
+                  : `Assigned: ${getShedDisplayName(u)}`}
               </Text>
             </View>
 

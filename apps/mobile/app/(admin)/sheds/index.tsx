@@ -179,7 +179,7 @@ export default function ShedsListScreen() {
         >
           <Ionicons name="add" size={18} color={colors.white} />
           <Text style={[styles.addBtnText, { color: colors.white }]}>
-            + Add Shed
+            Add Shed
           </Text>
         </TouchableOpacity>
       </View>
@@ -220,8 +220,14 @@ export default function ShedsListScreen() {
       {/* Shed Cards */}
       {sheds.map((shed) => {
         const batch = shed.currentBatch;
+        const workerId =
+          shed.assignedWorkerId?._id ||
+          shed.assignedWorkerId?.id ||
+          (typeof shed.assignedWorkerId === "string" ? shed.assignedWorkerId : null);
+        const matchedWorker = workerId ? workers.find((w) => w.id === workerId || w._id === workerId) : null;
         const assignedWorkerName =
           shed.assignedWorkerId?.name ||
+          matchedWorker?.name ||
           (typeof shed.assignedWorkerId === "string" ? shed.assignedWorkerId : null) ||
           "Unassigned (Admin/Owner)";
 
