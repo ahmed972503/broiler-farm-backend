@@ -185,42 +185,6 @@ export default function AdminLayout() {
           </TouchableOpacity>
         );
       })}
-
-      {!isWide && (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={async () => {
-            setMobileMenuOpen(false);
-            await logout();
-            router.replace("/login");
-          }}
-          style={[
-            styles.navItem,
-            {
-              backgroundColor: colors.dangerBg,
-              borderColor: colors.danger,
-              borderRadius: borderRadius.md,
-              paddingVertical: spacing.sm + 4,
-              paddingHorizontal: spacing.md,
-              marginTop: 14,
-              marginBottom: 20,
-            },
-          ]}
-        >
-          <View style={{ marginRight: 12, width: 22, alignItems: "center" }}>
-            <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-          </View>
-          <Text
-            style={{
-              color: colors.danger,
-              fontWeight: typography.weights.bold,
-              fontSize: typography.sizes.sm,
-            }}
-          >
-            Logout (لاگ آؤٹ)
-          </Text>
-        </TouchableOpacity>
-      )}
     </ScrollView>
   );
 
