@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Modal,
 } from "react-native";
 import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button, Input } from "../../../src/components/ui";
