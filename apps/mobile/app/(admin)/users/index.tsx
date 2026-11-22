@@ -35,6 +35,38 @@ export default function UsersManagementScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [submittingReset, setSubmittingReset] = useState(false);
 
+  // Reassign Shed Modal
+  const [reassignWorker, setReassignWorker] = useState<any | null>(null);
+  const [selectedNewShedId, setSelectedNewShedId] = useState<string | null>(null);
+  const [submittingReassign, setSubmittingReassign] = useState(false);
+
+  const handleOpenReassign = (user: any) => {
+    setReassignWorker(user);
+    const curr = user.assignedShedId?.id || user.assignedShedId?._id || user.assignedShedId || null;
+    setSelectedNewShedId(curr);
+  };
+
+  const handleSaveReassign = async () => {
+    if (!reassignWorker) return;
+    setSubmittingReassign(true);
+    try {
+      const workerId = reassignWorker.id || reassignWorker._id;
+      if (selectedNewShedId) {
+        await apiFetch(`/api/sheds/${selectedNewShedId}`, {
+          method: "PUT",
+          body: JSON.stringify({ assignedWorkerId: workerId }),
+        });
+      }
+      setReassignWorker(null);
+      loadData();
+      Alert.alert("Success", "Worker shed assignment updated successfully!");
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed to update assignment");
+    } finally {
+      setSubmittingReassign(false);
+    }
+  };
+
   const loadData = async () => {
     try {
       const userRes = await apiFetch("/api/auth/users");
@@ -378,15 +410,119 @@ export default function UsersManagementScreen() {
             />
           </View>
 
-          <Button
-            title="Reset Password"
-            variant="outline"
-            size="sm"
-            onPress={() => setResetUserId(u._id)}
-            style={{ marginTop: 8 }}
-          />
+          {u.role === "worker" ? (
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+              <Button
+                title="Assign / Change Shed"
+                variant="outline"
+                size="sm"
+                onPress={() => handleOpenReassign(u)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Reset Password"
+                variant="outline"
+                size="sm"
+                onPress={() => setResetUserId(u._id || u.id)}
+                style={{ flex: 1 }}
+              />
+            </View>
+          ) : (
+            <Button
+              title="Reset Password"
+              variant="outline"
+              size="sm"
+              onPress={() => setResetUserId(u._id || u.id)}
+              style={{ marginTop: 8 }}
+            />
+          )}
         </Card>
       ))}
+
+      {/* Reassign Shed Modal */}
+      <Modal
+        visible={!!reassignWorker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReassignWorker(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: 14,
+              padding: 20,
+              maxWidth: 480,
+              width: "100%",
+              alignSelf: "center",
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 14,
+              }}
+            >
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>
+                Assign Shed to {reassignWorker?.name}
+              </Text>
+              <TouchableOpacity onPress={() => setReassignWorker(null)}>
+                <Text style={{ color: colors.textSecondary, fontSize: 18, fontWeight: "700" }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+              Muntakhib karein ke yeh worker kis shed ka in-charge hoga:
+            </Text>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {sheds.map((s) => {
+                const sId = s._id || s.id;
+                const isSelected = selectedNewShedId === sId;
+                return (
+                  <TouchableOpacity
+                    key={sId}
+                    onPress={() => setSelectedNewShedId(sId)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                      backgroundColor: isSelected ? colors.primary : colors.surface,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "600",
+                        color: isSelected ? colors.white : colors.text,
+                      }}
+                    >
+                      {s.name} ({Number(s.capacity).toLocaleString()} birds)
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Button
+              title="Save Assignment"
+              onPress={handleSaveReassign}
+              loading={submittingReassign}
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
