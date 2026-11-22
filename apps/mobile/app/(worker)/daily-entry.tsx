@@ -291,8 +291,8 @@ export default function DailyEntryScreen() {
         <Card
           testID="saved-offline-banner"
           style={{
-            backgroundColor: "#E8F5E9",
-            borderColor: "#4CAF50",
+            backgroundColor: colors.successBg,
+            borderColor: colors.success,
             marginBottom: spacing.md,
             borderWidth: 1.5,
           }}
@@ -301,14 +301,14 @@ export default function DailyEntryScreen() {
             <Ionicons
               name="checkmark-circle"
               size={16}
-              color="#2E7D32"
+              color={colors.success}
               style={{ marginRight: 6 }}
             />
-            <Text style={{ color: "#2E7D32", fontWeight: "700", fontSize: 14 }}>
+            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 14 }}>
               Mehfooz Ho Gaya! (Saved Offline)
             </Text>
           </View>
-          <Text style={{ color: "#388E3C", fontSize: 12, marginTop: 2 }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
             Record local SQLite database mein safe hai aur online hote hi sync
             ho jaye ga.
           </Text>
@@ -481,8 +481,23 @@ export default function DailyEntryScreen() {
           suffix={t("common.birds")}
         />
 
-        <View style={styles.summaryBadgeRow}>
-          <Text style={{ color: colors.text, fontWeight: "700" }}>
+        <View
+          style={[
+            styles.summaryBadgeRow,
+            {
+              backgroundColor: colors.dangerBg,
+              borderColor: colors.danger,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <Text
+            style={{
+              color: colors.danger,
+              fontWeight: "700",
+              fontSize: 14,
+            }}
+          >
             24h Mortality Total: {totalMort24h} birds
           </Text>
         </View>
@@ -946,9 +961,8 @@ const styles = StyleSheet.create({
   },
   summaryBadgeRow: {
     marginTop: 8,
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: "#FEF2F2",
+    padding: 10,
+    borderRadius: 8,
     alignItems: "center",
   },
   selectorRow: {
