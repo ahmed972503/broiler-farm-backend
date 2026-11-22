@@ -84,7 +84,38 @@ export async function initNeonDatabase(): Promise<void> {
         console.log("[Neon Postgres] Created default worker account (username: worker1)");
       }
 
-      console.log("[Neon Postgres] Initialized successfully. Table 'users' verified.");
+      // 3. Create sheds table in Neon Postgres
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS sheds (
+          id VARCHAR(64) PRIMARY KEY,
+          shed_number INT UNIQUE NOT NULL,
+          name VARCHAR(128) NOT NULL,
+          capacity INT NOT NULL DEFAULT 5000,
+          assigned_worker_id VARCHAR(64),
+          current_batch_id VARCHAR(64),
+          status VARCHAR(32) DEFAULT 'active',
+          notes TEXT DEFAULT '',
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Seed initial 5 sheds if none exist
+      const shedsCountRes = await client.query("SELECT COUNT(*) FROM sheds");
+      const shedsCount = parseInt(shedsCountRes.rows[0].count, 10);
+      if (shedsCount === 0) {
+        for (let i = 1; i <= 5; i++) {
+          const workerId = i === 1 ? "user_worker_001" : null;
+          await client.query(
+            `INSERT INTO sheds (id, shed_number, name, capacity, assigned_worker_id, status)
+             VALUES ($1, $2, $3, $4, $5, 'active')`,
+            [`shed_00${i}`, i, `Shed ${i}`, 5000, workerId]
+          );
+        }
+        console.log("[Neon Postgres] Seeded initial 5 sheds (Shed 1 to 5)");
+      }
+
+      console.log("[Neon Postgres] Initialized successfully. Tables 'users' and 'sheds' verified.");
     } finally {
       client.release();
     }
@@ -191,5 +222,160 @@ export class NeonUserRepository {
     );
     const row = res.rows[0];
     return { ...row, _id: row.id };
+  }
+
+  static async assignShed(userId: string, shedId: string | null): Promise<void> {
+    const p = getPostgresPool();
+    if (!p) return;
+    await p.query(
+      `UPDATE users SET assigned_shed_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [shedId, userId]
+    );
+  }
+}
+
+export interface NeonShed {
+  id: string;
+  _id?: string;
+  shedNumber: number;
+  name: string;
+  capacity: number;
+  assignedWorkerId?: any;
+  currentBatchId?: string | null;
+  status: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class NeonShedRepository {
+  static async findAll(workerId?: string): Promise<any[]> {
+    const p = getPostgresPool();
+    if (!p) return [];
+    let query = `
+      SELECT s.id, s.id as "_id", s.shed_number as "shedNumber", s.name, s.capacity, 
+             s.assigned_worker_id as "assignedWorkerId", s.current_batch_id as "currentBatchId", 
+             s.status, s.notes, s.created_at as "createdAt", s.updated_at as "updatedAt",
+             u.id as "w_id", u.name as "w_name", u.phone as "w_phone", u.username as "w_username"
+      FROM sheds s
+      LEFT JOIN users u ON s.assigned_worker_id = u.id
+    `;
+    const params: any[] = [];
+    if (workerId) {
+      query += ` WHERE s.assigned_worker_id = $1`;
+      params.push(workerId);
+    }
+    query += ` ORDER BY s.shed_number ASC`;
+    const res = await p.query(query, params);
+    return res.rows.map((r) => ({
+      _id: r.id,
+      id: r.id,
+      shedNumber: r.shedNumber,
+      name: r.name,
+      capacity: r.capacity,
+      status: r.status,
+      notes: r.notes,
+      assignedWorkerId: r.w_id
+        ? { _id: r.w_id, id: r.w_id, name: r.w_name, phone: r.w_phone, username: r.w_username }
+        : null,
+      currentBatchId: r.currentBatchId,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  }
+
+  static async findById(id: string): Promise<any | null> {
+    const p = getPostgresPool();
+    if (!p) return null;
+    const res = await p.query(
+      `SELECT s.id, s.id as "_id", s.shed_number as "shedNumber", s.name, s.capacity, 
+              s.assigned_worker_id as "assignedWorkerId", s.current_batch_id as "currentBatchId", 
+              s.status, s.notes, s.created_at as "createdAt", s.updated_at as "updatedAt",
+              u.id as "w_id", u.name as "w_name", u.phone as "w_phone", u.username as "w_username"
+       FROM sheds s
+       LEFT JOIN users u ON s.assigned_worker_id = u.id
+       WHERE s.id = $1 LIMIT 1`,
+      [id]
+    );
+    if (res.rows.length === 0) return null;
+    const r = res.rows[0];
+    return {
+      _id: r.id,
+      id: r.id,
+      shedNumber: r.shedNumber,
+      name: r.name,
+      capacity: r.capacity,
+      status: r.status,
+      notes: r.notes,
+      assignedWorkerId: r.w_id
+        ? { _id: r.w_id, id: r.w_id, name: r.w_name, phone: r.w_phone, username: r.w_username }
+        : null,
+      currentBatchId: r.currentBatchId,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    };
+  }
+
+  static async create(shed: {
+    name?: string;
+    capacity?: number;
+    assignedWorkerId?: string | null;
+    notes?: string;
+  }): Promise<any> {
+    const p = getPostgresPool();
+    if (!p) throw new Error("Neon Postgres pool not initialized");
+    const maxNumRes = await p.query("SELECT COALESCE(MAX(shed_number), 0) + 1 as next_num FROM sheds");
+    const nextNum = parseInt(maxNumRes.rows[0].next_num, 10);
+    const id = `shed_00${nextNum}_${Date.now()}`;
+    const name = shed.name?.trim() || `Shed ${nextNum}`;
+    const capacity = shed.capacity || 5000;
+    const assignedWorkerId = shed.assignedWorkerId || null;
+
+    const res = await p.query(
+      `INSERT INTO sheds (id, shed_number, name, capacity, assigned_worker_id, notes, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'active')
+       RETURNING id, shed_number as "shedNumber", name, capacity, assigned_worker_id as "assignedWorkerId", status`,
+      [id, nextNum, name, capacity, assignedWorkerId, shed.notes || ""]
+    );
+
+    if (assignedWorkerId) {
+      await p.query("UPDATE users SET assigned_shed_id = $1 WHERE id = $2", [id, assignedWorkerId]);
+    }
+
+    return { ...res.rows[0], _id: res.rows[0].id };
+  }
+
+  static async assignWorker(shedId: string, workerId: string | null): Promise<void> {
+    const p = getPostgresPool();
+    if (!p) return;
+    await p.query(
+      `UPDATE sheds SET assigned_worker_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [workerId, shedId]
+    );
+    if (workerId) {
+      await p.query(
+        `UPDATE users SET assigned_shed_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [shedId, workerId]
+      );
+    }
+  }
+
+  static async update(id: string, updates: any): Promise<any> {
+    const p = getPostgresPool();
+    if (!p) return null;
+    if (updates.assignedWorkerId !== undefined) {
+      await this.assignWorker(id, updates.assignedWorkerId);
+    }
+    const current = await this.findById(id);
+    if (!current) return null;
+    const name = updates.name !== undefined ? updates.name : current.name;
+    const capacity = updates.capacity !== undefined ? updates.capacity : current.capacity;
+    const status = updates.status !== undefined ? updates.status : current.status;
+    const notes = updates.notes !== undefined ? updates.notes : current.notes;
+    await p.query(
+      `UPDATE sheds SET name = $1, capacity = $2, status = $3, notes = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+      [name, capacity, status, notes, id]
+    );
+    return await this.findById(id);
   }
 }
