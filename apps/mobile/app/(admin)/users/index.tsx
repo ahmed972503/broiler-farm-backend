@@ -55,6 +55,9 @@ export default function UsersManagementScreen() {
     setReassignWorker(user);
     const curr = user.assignedShedId?.id || user.assignedShedId?._id || user.assignedShedId || null;
     setSelectedNewShedId(curr);
+    if (sheds.length === 0) {
+      loadData();
+    }
   };
 
   const handleSaveReassign = async () => {
@@ -62,10 +65,25 @@ export default function UsersManagementScreen() {
     setSubmittingReassign(true);
     try {
       const workerId = reassignWorker.id || reassignWorker._id;
+      const prevShedId = reassignWorker.assignedShedId?.id || reassignWorker.assignedShedId?._id || (typeof reassignWorker.assignedShedId === "string" ? reassignWorker.assignedShedId : null);
+
       if (selectedNewShedId) {
+        if (prevShedId && prevShedId !== selectedNewShedId) {
+          try {
+            await apiFetch(`/api/sheds/${prevShedId}`, {
+              method: "PUT",
+              body: JSON.stringify({ assignedWorkerId: null }),
+            });
+          } catch (e) {}
+        }
         await apiFetch(`/api/sheds/${selectedNewShedId}`, {
           method: "PUT",
           body: JSON.stringify({ assignedWorkerId: workerId }),
+        });
+      } else if (prevShedId) {
+        await apiFetch(`/api/sheds/${prevShedId}`, {
+          method: "PUT",
+          body: JSON.stringify({ assignedWorkerId: null }),
         });
       }
       setReassignWorker(null);
@@ -496,36 +514,82 @@ export default function UsersManagementScreen() {
               Muntakhib karein ke yeh worker kis shed ka in-charge hoga:
             </Text>
 
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-              {sheds.map((s) => {
-                const sId = s._id || s.id;
-                const isSelected = selectedNewShedId === sId;
-                return (
-                  <TouchableOpacity
-                    key={sId}
-                    onPress={() => setSelectedNewShedId(sId)}
+            {sheds.length === 0 ? (
+              <View style={{ paddingVertical: 12, alignItems: "center" }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8, textAlign: "center" }}>
+                  Sheds load ho rahay hain ya koi shed register nahi hai.
+                </Text>
+                <TouchableOpacity
+                  onPress={loadData}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
+                    🔄 Reload Sheds
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                <TouchableOpacity
+                  key="unassigned"
+                  onPress={() => setSelectedNewShedId(null)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: selectedNewShedId === null ? colors.danger : colors.border,
+                    backgroundColor: selectedNewShedId === null ? colors.danger : colors.surface,
+                  }}
+                >
+                  <Text
                     style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: isSelected ? colors.primary : colors.border,
-                      backgroundColor: isSelected ? colors.primary : colors.surface,
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: selectedNewShedId === null ? colors.white : colors.text,
                     }}
                   >
-                    <Text
+                    Koi Shed Nahi (Unassign)
+                  </Text>
+                </TouchableOpacity>
+
+                {sheds.map((s) => {
+                  const sId = s.id || s._id;
+                  const isSelected = selectedNewShedId === sId;
+                  return (
+                    <TouchableOpacity
+                      key={sId}
+                      onPress={() => setSelectedNewShedId(sId)}
                       style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: isSelected ? colors.white : colors.text,
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected ? colors.primary : colors.surface,
                       }}
                     >
-                      {s.name} ({Number(s.capacity).toLocaleString()} birds)
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "600",
+                          color: isSelected ? colors.white : colors.text,
+                        }}
+                      >
+                        {s.name} ({Number(s.capacity).toLocaleString()} birds)
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             <Button
               title="Save Assignment"
