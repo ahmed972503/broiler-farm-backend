@@ -112,6 +112,16 @@ export function createApp(): Application {
     });
   });
 
+  // Debug version endpoint
+  app.get(["/debug-version", "/api/debug-version"], (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      version: "v2-neon-sheds-fixed",
+      databaseUrlSet: !!config.databaseUrl,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Mount API routes (supports both /api/* and direct /* paths)
   app.use("/api", routes);
   app.use("/", routes);

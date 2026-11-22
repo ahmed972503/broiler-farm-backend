@@ -11,14 +11,18 @@ export class ShedController {
       const workerId = req.user?.role === "worker" ? (req.user.assignedShedId || req.user.id || req.user._id?.toString()) : undefined;
 
       // 1. Check Neon PostgreSQL first
-      const neonSheds = await NeonShedRepository.findAll(workerId);
-      if (neonSheds.length > 0) {
-        res.json({ success: true, data: neonSheds });
-        return;
+      try {
+        const neonSheds = await NeonShedRepository.findAll(workerId);
+        if (neonSheds.length > 0) {
+          res.json({ success: true, data: neonSheds });
+          return;
+        }
+      } catch (neonErr: any) {
+        console.error("[Neon getAllSheds Error]:", neonErr.message);
       }
 
-      // 2. Fallback to MongoDB if connected
-      if (mongoose.connection.readyState >= 1) {
+      // 2. Fallback to MongoDB ONLY IF connected (readyState === 1)
+      if (mongoose.connection.readyState === 1) {
         const query: any = {};
         if (req.user?.role === "worker") {
           if (!req.user.assignedShedId) {
@@ -108,7 +112,7 @@ export class ShedController {
       }
 
       // 2. Fallback to MongoDB if connected
-      if (mongoose.connection.readyState >= 1) {
+      if (mongoose.connection.readyState === 1) {
         const shed = await Shed.findById(req.params.id).populate(
           "assignedWorkerId",
           "name phone username",
@@ -145,7 +149,7 @@ export class ShedController {
       const neonShed = await NeonShedRepository.create(req.body);
 
       // 2. Also create in Mongo if connected
-      if (mongoose.connection.readyState >= 1) {
+      if (mongoose.connection.readyState === 1) {
         try {
           await Shed.create(req.body);
         } catch (e) {}
@@ -167,7 +171,7 @@ export class ShedController {
       }
 
       // 2. Fallback to Mongo if connected
-      if (mongoose.connection.readyState >= 1) {
+      if (mongoose.connection.readyState === 1) {
         const shed = await Shed.findById(req.params.id);
         if (!shed) {
           res.status(404).json({ success: false, error: "Shed not found" });
