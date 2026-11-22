@@ -38,17 +38,17 @@ export default function DailyEntryScreen() {
   const [feedDayBags, setFeedDayBags] = useState("4");
   const [feedNightBags, setFeedNightBags] = useState("4");
   const [openingStockBags, setOpeningStockBags] = useState("50");
-  const [receivedBags, setReceivedBags] = useState("0");
-  const [transferredOutBags, setTransferredOutBags] = useState("0");
+  const [receivedBags, setReceivedBags] = useState("");
+  const [transferredOutBags, setTransferredOutBags] = useState("");
   const [reportedClosingBags, setReportedClosingBags] = useState("");
   const [feedRemarks, setFeedRemarks] = useState("");
 
   // Shift-specific Mortality
-  const [mortDay, setMortDay] = useState("0");
+  const [mortDay, setMortDay] = useState("");
   const [mortDayCause, setMortDayCause] = useState("");
-  const [mortNight, setMortNight] = useState("0");
+  const [mortNight, setMortNight] = useState("");
   const [mortNightCause, setMortNightCause] = useState("");
-  const [culls, setCulls] = useState("0");
+  const [culls, setCulls] = useState("");
 
   // Unconfirmed paper column "E.S"
   const [customColumnES, setCustomColumnES] = useState("");
@@ -658,30 +658,30 @@ export default function DailyEntryScreen() {
               <Input
                 testID="feed-opening-input"
                 label="Opening Stock"
+                placeholder="0"
                 value={openingStockBags}
                 onChangeText={setOpeningStockBags}
                 keyboardType="numeric"
-                suffix="Bags"
               />
             </View>
             <View style={{ flex: 1, marginRight: 6 }}>
               <Input
                 testID="feed-received-input"
                 label="+ Aamad (Received)"
+                placeholder="0"
                 value={receivedBags}
                 onChangeText={setReceivedBags}
                 keyboardType="numeric"
-                suffix="Bags"
               />
             </View>
             <View style={{ flex: 1 }}>
               <Input
                 testID="feed-transfer-out-input"
                 label="- Diya (Transfer)"
+                placeholder="0"
                 value={transferredOutBags}
                 onChangeText={setTransferredOutBags}
                 keyboardType="numeric"
-                suffix="Bags"
               />
             </View>
           </View>
@@ -940,9 +940,9 @@ const styles = StyleSheet.create({
     color: "#1F2937",
   },
   bigNumericInput: {
-    fontSize: 22,
-    fontWeight: "800",
-    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "left",
   },
   summaryBadgeRow: {
     marginTop: 8,
