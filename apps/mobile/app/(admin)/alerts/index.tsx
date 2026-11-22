@@ -72,7 +72,15 @@ export default function AlertsCenterScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -85,7 +93,7 @@ export default function AlertsCenterScreen() {
       }
     >
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 220 }}>
           <Text
             style={{
               color: colors.text,
@@ -154,9 +162,11 @@ export default function AlertsCenterScreen() {
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
+                flexWrap: "wrap",
+                gap: 8,
               }}
             >
-              <View style={{ flex: 1, paddingRight: 8 }}>
+              <View style={{ flex: 1, minWidth: 200, paddingRight: 8 }}>
                 <Text
                   style={{
                     color:
@@ -185,7 +195,7 @@ export default function AlertsCenterScreen() {
                 </Text>
               </View>
 
-              <View style={{ alignItems: "flex-end" }}>
+              <View style={{ alignItems: "flex-end", flexWrap: "wrap", gap: 6 }}>
                 <Badge
                   label={al.isResolved ? "RESOLVED" : al.severity.toUpperCase()}
                   variant={
@@ -202,7 +212,7 @@ export default function AlertsCenterScreen() {
                     variant="outline"
                     size="sm"
                     onPress={() => handleResolve(al._id)}
-                    style={{ marginTop: 8 }}
+                    style={{ marginTop: 6 }}
                   />
                 ) : null}
               </View>
@@ -222,6 +232,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
     marginBottom: 12,
   },
 });

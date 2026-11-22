@@ -94,7 +94,15 @@ export default function ExpensesScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -107,7 +115,7 @@ export default function ExpensesScreen() {
       }
     >
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 200 }}>
           <Text
             style={{
               color: colors.text,
@@ -264,6 +272,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
     marginBottom: 12,
   },
   catChip: {

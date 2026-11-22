@@ -122,6 +122,8 @@ export const Button: React.FC<ButtonProps> = ({
         <>
           {icon ? <>{icon}</> : null}
           <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={[
               styles.text,
               {
@@ -132,6 +134,7 @@ export const Button: React.FC<ButtonProps> = ({
                     ? typography.weights.bold
                     : typography.weights.semibold,
                 marginLeft: icon ? spacing.sm : 0,
+                flexShrink: 1,
               },
               textStyle,
             ]}

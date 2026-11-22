@@ -157,7 +157,15 @@ export default function ReportsScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
     >
       <View style={{ marginBottom: spacing.md }}>
         <Text
@@ -284,7 +292,7 @@ export default function ReportsScreen() {
             variant="outline"
             size="sm"
             onPress={handleExportCSV}
-            style={{ marginRight: 8 }}
+            style={{ flex: 1, minWidth: 140 }}
           />
           <Button
             title="Print / Save PDF"
@@ -296,6 +304,7 @@ export default function ReportsScreen() {
                 "Register table formatted in notebook column order ready for printing.",
               )
             }
+            style={{ flex: 1, minWidth: 140 }}
           />
         </View>
       )}
@@ -1010,6 +1019,8 @@ const styles = StyleSheet.create({
   },
   exportBar: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     marginVertical: 8,
   },
   summaryGrid: {

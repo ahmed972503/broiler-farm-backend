@@ -92,7 +92,15 @@ export default function WorkerTodayScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 640,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -416,18 +424,18 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
   },
   gridCard: {
-    flex: 0.485,
+    flex: 1,
   },
   quickLinksRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 10,
     marginTop: 16,
   },
   quickCard: {
-    flex: 0.485,
+    flex: 1,
     padding: 14,
     borderWidth: 1,
     alignItems: "center",

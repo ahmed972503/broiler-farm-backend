@@ -220,7 +220,15 @@ export default function DailyEntryScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 640,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       testID="daily-entry-scroll-view"
     >
       {/* Top Bar with Language Switcher */}
@@ -881,6 +889,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
     marginBottom: 8,
   },
   screenTitle: {},

@@ -62,7 +62,15 @@ export default function AdminDailyRecordsScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -216,8 +224,9 @@ export default function AdminDailyRecordsScreen() {
                 <View
                   style={{
                     flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginTop: 4,
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: 8,
                   }}
                 >
                   <Button
@@ -225,13 +234,13 @@ export default function AdminDailyRecordsScreen() {
                     variant="outline"
                     size="sm"
                     onPress={() => setUnlockingId(null)}
-                    style={{ flex: 0.48 }}
+                    style={{ flex: 1, minWidth: 100 }}
                   />
                   <Button
                     title="Confirm Unlock"
                     size="sm"
                     onPress={() => handleUnlock(record._id)}
-                    style={{ flex: 0.48 }}
+                    style={{ flex: 1, minWidth: 120 }}
                   />
                 </View>
               </View>
@@ -258,9 +267,12 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 6,
   },
   metricCell: {
     alignItems: "center",
     flex: 1,
+    minWidth: 65,
   },
 });

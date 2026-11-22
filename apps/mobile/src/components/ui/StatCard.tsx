@@ -27,7 +27,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   const { colors, spacing, typography } = useTheme();
 
   return (
-    <Card style={style} elevated>
+    <Card style={[{ flex: 1, justifyContent: "space-between", marginVertical: 4 }, style]} elevated>
       <View style={styles.header}>
         <Text
           style={[

@@ -271,7 +271,15 @@ export default function WorkerVaccinationsScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 640,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}

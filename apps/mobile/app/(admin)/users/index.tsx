@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  useWindowDimensions,
 } from "react-native";
 import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button, Input } from "../../../src/components/ui";
@@ -15,6 +16,8 @@ import { apiFetch } from "../../../src/api/client";
 
 export default function UsersManagementScreen() {
   const { colors, typography, spacing } = useTheme();
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 420;
 
   const [users, setUsers] = useState<any[]>([]);
   const [sheds, setSheds] = useState<any[]>([]);
@@ -187,7 +190,15 @@ export default function UsersManagementScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -200,7 +211,7 @@ export default function UsersManagementScreen() {
       }
     >
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 220 }}>
           <Text
             style={{
               color: colors.text,
@@ -388,23 +399,23 @@ export default function UsersManagementScreen() {
           />
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              marginTop: 6,
+              flexDirection: isNarrow ? "column" : "row",
+              gap: 8,
+              marginTop: 10,
             }}
           >
             <Button
               title="Cancel"
               variant="outline"
               onPress={() => setResetUserId(null)}
-              style={{ flex: 0.48 }}
+              style={{ flex: isNarrow ? undefined : 1, width: isNarrow ? "100%" : undefined }}
             />
             <Button
               title="Save New Password"
               variant="secondary"
               onPress={handleResetPassword}
               loading={submittingReset}
-              style={{ flex: 0.48 }}
+              style={{ flex: isNarrow ? undefined : 1, width: isNarrow ? "100%" : undefined }}
             />
           </View>
         </Card>
@@ -418,15 +429,17 @@ export default function UsersManagementScreen() {
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
-            <View>
+            <View style={{ flex: 1, minWidth: 180 }}>
               <Text
                 style={{ color: colors.text, fontSize: 16, fontWeight: "700" }}
               >
                 {u.name} ({u.username})
               </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>
                 Phone: {u.phone} •{" "}
                 {u.role === "admin"
                   ? "Farm Administrator"
@@ -441,20 +454,27 @@ export default function UsersManagementScreen() {
           </View>
 
           {u.role === "worker" ? (
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+            <View
+              style={{
+                flexDirection: isNarrow ? "column" : "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: 10,
+              }}
+            >
               <Button
                 title="Assign / Change Shed"
                 variant="outline"
                 size="sm"
                 onPress={() => handleOpenReassign(u)}
-                style={{ flex: 1 }}
+                style={{ flex: isNarrow ? undefined : 1, width: isNarrow ? "100%" : undefined }}
               />
               <Button
                 title="Reset Password"
                 variant="outline"
                 size="sm"
                 onPress={() => setResetUserId(u._id || u.id)}
-                style={{ flex: 1 }}
+                style={{ flex: isNarrow ? undefined : 1, width: isNarrow ? "100%" : undefined }}
               />
             </View>
           ) : (
@@ -463,7 +483,7 @@ export default function UsersManagementScreen() {
               variant="outline"
               size="sm"
               onPress={() => setResetUserId(u._id || u.id)}
-              style={{ marginTop: 8 }}
+              style={{ marginTop: 10, width: "100%" }}
             />
           )}
         </Card>
@@ -481,7 +501,7 @@ export default function UsersManagementScreen() {
             flex: 1,
             backgroundColor: "rgba(0,0,0,0.5)",
             justifyContent: "center",
-            padding: 20,
+            padding: 16,
           }}
         >
           <View
@@ -491,111 +511,114 @@ export default function UsersManagementScreen() {
               padding: 20,
               maxWidth: 480,
               width: "100%",
+              maxHeight: "90%",
               alignSelf: "center",
             }}
           >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 14,
-              }}
-            >
-              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>
-                Assign Shed to {reassignWorker?.name}
-              </Text>
-              <TouchableOpacity onPress={() => setReassignWorker(null)}>
-                <Text style={{ color: colors.textSecondary, fontSize: 18, fontWeight: "700" }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-              Muntakhib karein ke yeh worker kis shed ka in-charge hoga:
-            </Text>
-
-            {sheds.length === 0 ? (
-              <View style={{ paddingVertical: 12, alignItems: "center" }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8, textAlign: "center" }}>
-                  Sheds load ho rahay hain ya koi shed register nahi hai.
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 14,
+                }}
+              >
+                <Text style={{ fontSize: 17, fontWeight: "700", color: colors.text }}>
+                  Assign Shed to {reassignWorker?.name}
                 </Text>
-                <TouchableOpacity
-                  onPress={loadData}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 6,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
-                    🔄 Reload Sheds
-                  </Text>
+                <TouchableOpacity onPress={() => setReassignWorker(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 18, fontWeight: "700" }}>✕</Text>
                 </TouchableOpacity>
               </View>
-            ) : (
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                <TouchableOpacity
-                  key="unassigned"
-                  onPress={() => setSelectedNewShedId(null)}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: selectedNewShedId === null ? colors.danger : colors.border,
-                    backgroundColor: selectedNewShedId === null ? colors.danger : colors.surface,
-                  }}
-                >
-                  <Text
+
+              <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                Muntakhib karein ke yeh worker kis shed ka in-charge hoga:
+              </Text>
+
+              {sheds.length === 0 ? (
+                <View style={{ paddingVertical: 12, alignItems: "center" }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 8, textAlign: "center" }}>
+                    Sheds load ho rahay hain ya koi shed register nahi hai.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={loadData}
                     style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: selectedNewShedId === null ? colors.white : colors.text,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 6,
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
                     }}
                   >
-                    Koi Shed Nahi (Unassign)
-                  </Text>
-                </TouchableOpacity>
-
-                {sheds.map((s) => {
-                  const sId = s.id || s._id;
-                  const isSelected = selectedNewShedId === sId;
-                  return (
-                    <TouchableOpacity
-                      key={sId}
-                      onPress={() => setSelectedNewShedId(sId)}
+                    <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
+                      🔄 Reload Sheds
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                  <TouchableOpacity
+                    key="unassigned"
+                    onPress={() => setSelectedNewShedId(null)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: selectedNewShedId === null ? colors.danger : colors.border,
+                      backgroundColor: selectedNewShedId === null ? colors.danger : colors.surface,
+                    }}
+                  >
+                    <Text
                       style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
+                        fontSize: 12,
+                        fontWeight: "600",
+                        color: selectedNewShedId === null ? colors.white : colors.text,
                       }}
                     >
-                      <Text
+                      Koi Shed Nahi (Unassign)
+                    </Text>
+                  </TouchableOpacity>
+
+                  {sheds.map((s) => {
+                    const sId = s.id || s._id;
+                    const isSelected = selectedNewShedId === sId;
+                    return (
+                      <TouchableOpacity
+                        key={sId}
+                        onPress={() => setSelectedNewShedId(sId)}
                         style={{
-                          fontSize: 12,
-                          fontWeight: "600",
-                          color: isSelected ? colors.white : colors.text,
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                          backgroundColor: isSelected ? colors.primary : colors.surface,
                         }}
                       >
-                        {s.name} ({Number(s.capacity).toLocaleString()} birds)
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color: isSelected ? colors.white : colors.text,
+                          }}
+                        >
+                          {s.name} ({Number(s.capacity).toLocaleString()} birds)
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
 
-            <Button
-              title="Save Assignment"
-              onPress={handleSaveReassign}
-              loading={submittingReassign}
-            />
+              <Button
+                title="Save Assignment"
+                onPress={handleSaveReassign}
+                loading={submittingReassign}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -611,6 +634,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
     marginBottom: 12,
   },
   roleChip: {

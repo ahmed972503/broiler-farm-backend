@@ -23,6 +23,8 @@ export default function AdminDashboardScreen() {
 
   const isWide = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
+  const isMobile = width < 768;
+  const isSmallMobile = width < 380;
 
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,15 @@ export default function AdminDashboardScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1200,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -80,7 +90,7 @@ export default function AdminDashboardScreen() {
     >
       {/* Dashboard Top Header & Quick Actions */}
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 220 }}>
           <Text
             style={[
               styles.heading,
@@ -103,32 +113,33 @@ export default function AdminDashboardScreen() {
           </Text>
         </View>
 
-        <View style={styles.topActionButtons}>
+        <View style={[styles.topActionButtons, { width: isMobile ? "100%" : "auto" }]}>
           <Button
             title="+ New Batch"
             size="sm"
             onPress={() => router.push("/(admin)/batches/create" as any)}
-            style={{ marginRight: 8 }}
+            style={{ flex: isMobile ? 1 : undefined }}
           />
           <Button
             title="+ Record Sale"
             variant="secondary"
             size="sm"
             onPress={() => router.push("/(admin)/sales" as any)}
-            style={{ marginRight: 8 }}
+            style={{ flex: isMobile ? 1 : undefined }}
           />
           <Button
             title="Reports"
             variant="outline"
             size="sm"
             onPress={() => router.push("/(admin)/reports" as any)}
+            style={{ flex: isMobile ? 1 : undefined }}
           />
         </View>
       </View>
 
       {/* Financial Overview Cards */}
       <View style={[styles.gridRow, { marginTop: spacing.md }]}>
-        <View style={[styles.gridCol4, { padding: spacing.xs }]}>
+        <View style={{ width: isWide ? "25%" : isSmallMobile ? "100%" : "50%", padding: 4 }}>
           <StatCard
             title={t("dashboard.totalRevenue")}
             value={`Rs. ${(financials.totalSalesRevenue || 0).toLocaleString()}`}
@@ -137,7 +148,7 @@ export default function AdminDashboardScreen() {
             badgeVariant="success"
           />
         </View>
-        <View style={[styles.gridCol4, { padding: spacing.xs }]}>
+        <View style={{ width: isWide ? "25%" : isSmallMobile ? "100%" : "50%", padding: 4 }}>
           <StatCard
             title={t("dashboard.totalExpenses")}
             value={`Rs. ${(financials.totalExpenses || 0).toLocaleString()}`}
@@ -146,7 +157,7 @@ export default function AdminDashboardScreen() {
             badgeVariant="warning"
           />
         </View>
-        <View style={[styles.gridCol4, { padding: spacing.xs }]}>
+        <View style={{ width: isWide ? "25%" : isSmallMobile ? "100%" : "50%", padding: 4 }}>
           <StatCard
             title={t("dashboard.netProfit")}
             value={`Rs. ${(financials.netFarmProfit || 0).toLocaleString()}`}
@@ -155,7 +166,7 @@ export default function AdminDashboardScreen() {
             badgeVariant={financials.netFarmProfit >= 0 ? "success" : "danger"}
           />
         </View>
-        <View style={[styles.gridCol4, { padding: spacing.xs }]}>
+        <View style={{ width: isWide ? "25%" : isSmallMobile ? "100%" : "50%", padding: 4 }}>
           <StatCard
             title={t("dashboard.receivables")}
             value={`Rs. ${(financials.outstandingReceivables || 0).toLocaleString()}`}
@@ -210,9 +221,11 @@ export default function AdminDashboardScreen() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8,
                 }}
               >
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 180 }}>
                   <Text
                     style={{
                       color:
@@ -241,7 +254,7 @@ export default function AdminDashboardScreen() {
                   variant="outline"
                   size="sm"
                   onPress={() => handleResolveAlert(al._id)}
-                  style={{ marginLeft: 10 }}
+                  style={{ alignSelf: "center" }}
                 />
               </View>
             </Card>
@@ -487,11 +500,18 @@ export default function AdminDashboardScreen() {
           return (
             <View
               key={stock.feedType}
-              style={[styles.gridCol3, { padding: spacing.xs }]}
+              style={{
+                width: isWide ? "33.333%" : isTablet ? "50%" : "100%",
+                padding: 4,
+              }}
             >
               <Card
                 elevated
-                style={{ borderColor: isLow ? colors.danger : colors.border }}
+                style={{
+                  borderColor: isLow ? colors.danger : colors.border,
+                  flex: 1,
+                  justifyContent: "space-between",
+                }}
               >
                 <View
                   style={{
@@ -547,11 +567,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
+    gap: 10,
     marginBottom: 8,
   },
   heading: {},
   topActionButtons: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     marginTop: 8,
   },
   sectionTitle: {

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import { useTheme } from "../../../src/theme";
 import {
@@ -20,6 +21,9 @@ import { apiFetch } from "../../../src/api/client";
 
 export default function FeedManagementScreen() {
   const { colors, typography, spacing, borderRadius } = useTheme();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
 
   const [stocks, setStocks] = useState<any[]>([]);
   const [reconciliation, setReconciliation] = useState<any>(null);
@@ -152,7 +156,15 @@ export default function FeedManagementScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -165,7 +177,7 @@ export default function FeedManagementScreen() {
       }
     >
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 220 }}>
           <Text
             style={{
               color: colors.text,
@@ -186,18 +198,19 @@ export default function FeedManagementScreen() {
           </Text>
         </View>
 
-        <View style={{ flexDirection: "row", marginTop: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8, width: isMobile ? "100%" : "auto" }}>
           <Button
             title="+ Purchase Delivery"
             size="sm"
             onPress={() => setShowPurchaseForm(!showPurchaseForm)}
-            style={{ marginRight: 8 }}
+            style={{ flex: isMobile ? 1 : undefined }}
           />
           <Button
             title="Issue to Shed"
             variant="secondary"
             size="sm"
             onPress={() => setShowIssueForm(!showIssueForm)}
+            style={{ flex: isMobile ? 1 : undefined }}
           />
         </View>
       </View>
@@ -340,7 +353,13 @@ export default function FeedManagementScreen() {
         {stocks.map((s) => {
           const isLow = s.currentBags <= s.reorderThresholdBags;
           return (
-            <View key={s.feedType} style={styles.gridCol3}>
+            <View
+              key={s.feedType}
+              style={{
+                width: isMobile ? "100%" : isTablet ? "50%" : "33.333%",
+                padding: 4,
+              }}
+            >
               <StatCard
                 title={s.feedType}
                 value={`${s.currentBags} bags`}

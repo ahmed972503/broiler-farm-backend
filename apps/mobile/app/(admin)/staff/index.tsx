@@ -90,7 +90,15 @@ export default function StaffManagementScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -151,21 +159,22 @@ export default function StaffManagementScreen() {
           <View
             style={{
               flexDirection: "row",
-              justifyContent: "space-between",
-              marginTop: 6,
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 8,
             }}
           >
             <Button
               title="Cancel"
               variant="outline"
               onPress={() => setShowAdvanceModal(false)}
-              style={{ flex: 0.48 }}
+              style={{ flex: 1, minWidth: 100 }}
             />
             <Button
               title="Pay Advance"
               onPress={handleRecordAdvance}
               loading={submittingAdvance}
-              style={{ flex: 0.48 }}
+              style={{ flex: 1, minWidth: 120 }}
             />
           </View>
         </Card>

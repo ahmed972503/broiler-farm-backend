@@ -199,7 +199,15 @@ export default function SalesScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -212,7 +220,7 @@ export default function SalesScreen() {
       }
     >
       <View style={styles.headerRow}>
-        <View>
+        <View style={{ flex: 1, minWidth: 220 }}>
           <Text
             style={{
               color: colors.text,
@@ -382,9 +390,9 @@ export default function SalesScreen() {
           </View>
 
           <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
+            style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}
           >
-            <View style={{ flex: 0.3 }}>
+            <View style={{ flex: 1, minWidth: 90 }}>
               <Input
                 testID="lot-number-input"
                 label="Lot #"
@@ -393,7 +401,7 @@ export default function SalesScreen() {
                 keyboardType="numeric"
               />
             </View>
-            <View style={{ flex: 0.67 }}>
+            <View style={{ flex: 2, minWidth: 180 }}>
               <Input
                 testID="buyer-name-input"
                 label="Buyer / Dealer Name"
@@ -415,9 +423,9 @@ export default function SalesScreen() {
 
           {/* Catching Auto-computation Fields: Total Weight & Avg Weight */}
           <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
+            style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}
           >
-            <View style={{ flex: 0.48 }}>
+            <View style={{ flex: 1, minWidth: 140 }}>
               <Input
                 testID="total-weight-input"
                 label="Total Live Weight (kg)"
@@ -427,7 +435,7 @@ export default function SalesScreen() {
                 suffix="kg"
               />
             </View>
-            <View style={{ flex: 0.48 }}>
+            <View style={{ flex: 1, minWidth: 140 }}>
               <Input
                 testID="avg-weight-input"
                 label="Average Weight (kg)"
@@ -774,6 +782,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
+    gap: 10,
     marginBottom: 8,
   },
   reconGrid: {

@@ -142,7 +142,15 @@ export default function ShedsListScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.container, { padding: spacing.base }]}
+      contentContainerStyle={[
+        styles.container,
+        {
+          padding: spacing.base,
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+        },
+      ]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -156,7 +164,7 @@ export default function ShedsListScreen() {
     >
       {/* Header with Title and Add Shed Button */}
       <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 200 }}>
           <Text
             style={{
               color: colors.text,
@@ -283,14 +291,14 @@ export default function ShedsListScreen() {
                 },
               ]}
             >
-              <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 170 }}>
                 <Ionicons
                   name="person-circle-outline"
                   size={20}
                   color={colors.primary}
                   style={{ marginRight: 6 }}
                 />
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.textMuted, fontSize: 10 }}>
                     Assigned In-charge:
                   </Text>
@@ -300,6 +308,7 @@ export default function ShedsListScreen() {
                       fontSize: 13,
                       fontWeight: "700",
                     }}
+                    numberOfLines={1}
                   >
                     {assignedWorkerName}
                   </Text>
@@ -392,89 +401,91 @@ export default function ShedsListScreen() {
         onRequestClose={() => setShowAddModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                + Add New Shed (Naya Darrha)
+          <View style={[styles.modalContent, { backgroundColor: colors.background, maxHeight: "90%" }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  + Add New Shed (Naya Darrha)
+                </Text>
+                <TouchableOpacity onPress={() => setShowAddModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Input
+                label="Shed Name"
+                placeholder="e.g. Shed 6"
+                value={newShedName}
+                onChangeText={setNewShedName}
+              />
+
+              <Input
+                label="Bird Capacity (Max Chooray)"
+                placeholder="e.g. 5000"
+                keyboardType="numeric"
+                value={newShedCapacity}
+                onChangeText={setNewShedCapacity}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                Assign Worker (In-charge Muqarrar Karein):
               </Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Input
-              label="Shed Name"
-              placeholder="e.g. Shed 6"
-              value={newShedName}
-              onChangeText={setNewShedName}
-            />
-
-            <Input
-              label="Bird Capacity (Max Chooray)"
-              placeholder="e.g. 5000"
-              keyboardType="numeric"
-              value={newShedCapacity}
-              onChangeText={setNewShedCapacity}
-            />
-
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-              Assign Worker (In-charge Muqarrar Karein):
-            </Text>
-            <View style={styles.workerSelectWrap}>
-              <TouchableOpacity
-                onPress={() => setSelectedWorkerId(null)}
-                style={[
-                  styles.workerChip,
-                  selectedWorkerId === null && {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.primary,
-                  },
-                ]}
-              >
-                <Text
+              <View style={styles.workerSelectWrap}>
+                <TouchableOpacity
+                  onPress={() => setSelectedWorkerId(null)}
                   style={[
-                    styles.workerChipText,
-                    selectedWorkerId === null ? { color: colors.white } : { color: colors.text },
+                    styles.workerChip,
+                    selectedWorkerId === null && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                 >
-                  Admin / Unassigned
-                </Text>
-              </TouchableOpacity>
-
-              {workers.map((w) => {
-                const wId = w.id || w._id;
-                const isSelected = selectedWorkerId === wId;
-                return (
-                  <TouchableOpacity
-                    key={wId}
-                    onPress={() => setSelectedWorkerId(wId)}
+                  <Text
                     style={[
-                      styles.workerChip,
-                      isSelected && {
-                        backgroundColor: colors.primary,
-                        borderColor: colors.primary,
-                      },
+                      styles.workerChipText,
+                      selectedWorkerId === null ? { color: colors.white } : { color: colors.text },
                     ]}
                   >
-                    <Text
+                    Admin / Unassigned
+                  </Text>
+                </TouchableOpacity>
+
+                {workers.map((w) => {
+                  const wId = w.id || w._id;
+                  const isSelected = selectedWorkerId === wId;
+                  return (
+                    <TouchableOpacity
+                      key={wId}
+                      onPress={() => setSelectedWorkerId(wId)}
                       style={[
-                        styles.workerChipText,
-                        isSelected ? { color: colors.white } : { color: colors.text },
+                        styles.workerChip,
+                        isSelected && {
+                          backgroundColor: colors.primary,
+                          borderColor: colors.primary,
+                        },
                       ]}
                     >
-                      {w.name} ({w.username})
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      <Text
+                        style={[
+                          styles.workerChipText,
+                          isSelected ? { color: colors.white } : { color: colors.text },
+                        ]}
+                      >
+                        {w.name} ({w.username})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-            <Button
-              title="Create Shed"
-              onPress={handleCreateShed}
-              loading={savingShed}
-              style={{ marginTop: 16 }}
-            />
+              <Button
+                title="Create Shed"
+                onPress={handleCreateShed}
+                loading={savingShed}
+                style={{ marginTop: 16 }}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -487,81 +498,83 @@ export default function ShedsListScreen() {
         onRequestClose={() => setShowAssignModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                Assign Worker: {activeShedForAssign?.name}
-              </Text>
-              <TouchableOpacity onPress={() => setShowAssignModal(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+          <View style={[styles.modalContent, { backgroundColor: colors.background, maxHeight: "90%" }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  Assign Worker: {activeShedForAssign?.name}
+                </Text>
+                <TouchableOpacity onPress={() => setShowAssignModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-            <Text
-              style={{
-                color: colors.textSecondary,
-                fontSize: 13,
-                marginBottom: 12,
-              }}
-            >
-              Is shed ke liye worker muntakhib karein jo daily entry aur khata manage karega:
-            </Text>
-
-            <View style={styles.workerSelectWrap}>
-              <TouchableOpacity
-                onPress={() => setAssignWorkerId(null)}
-                style={[
-                  styles.workerChip,
-                  assignWorkerId === null && {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.primary,
-                  },
-                ]}
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 13,
+                  marginBottom: 12,
+                }}
               >
-                <Text
+                Is shed ke liye worker muntakhib karein jo daily entry aur khata manage karega:
+              </Text>
+
+              <View style={styles.workerSelectWrap}>
+                <TouchableOpacity
+                  onPress={() => setAssignWorkerId(null)}
                   style={[
-                    styles.workerChipText,
-                    assignWorkerId === null ? { color: colors.white } : { color: colors.text },
+                    styles.workerChip,
+                    assignWorkerId === null && {
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                    },
                   ]}
                 >
-                  No Worker (Admin Only)
-                </Text>
-              </TouchableOpacity>
-
-              {workers.map((w) => {
-                const wId = w.id || w._id;
-                const isSelected = assignWorkerId === wId;
-                return (
-                  <TouchableOpacity
-                    key={wId}
-                    onPress={() => setAssignWorkerId(wId)}
+                  <Text
                     style={[
-                      styles.workerChip,
-                      isSelected && {
-                        backgroundColor: colors.primary,
-                        borderColor: colors.primary,
-                      },
+                      styles.workerChipText,
+                      assignWorkerId === null ? { color: colors.white } : { color: colors.text },
                     ]}
                   >
-                    <Text
+                    No Worker (Admin Only)
+                  </Text>
+                </TouchableOpacity>
+
+                {workers.map((w) => {
+                  const wId = w.id || w._id;
+                  const isSelected = assignWorkerId === wId;
+                  return (
+                    <TouchableOpacity
+                      key={wId}
+                      onPress={() => setAssignWorkerId(wId)}
                       style={[
-                        styles.workerChipText,
-                        isSelected ? { color: colors.white } : { color: colors.text },
+                        styles.workerChip,
+                        isSelected && {
+                          backgroundColor: colors.primary,
+                          borderColor: colors.primary,
+                        },
                       ]}
                     >
-                      {w.name} ({w.username})
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      <Text
+                        style={[
+                          styles.workerChipText,
+                          isSelected ? { color: colors.white } : { color: colors.text },
+                        ]}
+                      >
+                        {w.name} ({w.username})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-            <Button
-              title="Save Assignment"
-              onPress={handleSaveWorkerAssignment}
-              loading={savingAssign}
-              style={{ marginTop: 20 }}
-            />
+              <Button
+                title="Save Assignment"
+                onPress={handleSaveWorkerAssignment}
+                loading={savingAssign}
+                style={{ marginTop: 20 }}
+              />
+            </ScrollView>
           </View>
         </View>
       </Modal>
