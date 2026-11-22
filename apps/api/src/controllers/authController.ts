@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import { User, Shed } from "../models";
 import { config } from "../config";
 import { AuthRequest } from "../middleware/auth";
@@ -66,7 +65,7 @@ export class AuthController {
         return;
       }
 
-      // 2. Fallback to MongoDB
+      // 2. NeonModel query
       const user = await User.findOne({ username: cleanUsername });
       if (!user) {
         res
@@ -190,7 +189,7 @@ export class AuthController {
         return;
       }
 
-      // 2. Fallback to MongoDB
+      // 2. NeonModel query
       const user = await User.findById(decoded.userId);
       if (!user || user.refreshToken !== refreshToken || !user.isActive) {
         res
@@ -290,64 +289,34 @@ export class AuthController {
       const { username, password, name, phone, role, assignedShedId } = req.body;
       const cleanUsername = (username || "").toLowerCase().trim();
 
-      // Check Neon first
+      // Check Neon PostgreSQL first
       const neonExisting = await NeonUserRepository.findByUsername(cleanUsername);
       if (neonExisting) {
         res.status(409).json({ success: false, error: "Username already exists" });
         return;
       }
 
-      if (mongoose.connection.readyState >= 1) {
-        try {
-          const existing = await User.findOne({ username: cleanUsername });
-          if (existing) {
-            res.status(409).json({ success: false, error: "Username already exists" });
-            return;
-          }
-        } catch (e) {}
-      }
-
       const passwordHash = await bcrypt.hash(password, 10);
 
       // Create in Neon Postgres
-      let createdUser: any;
-      if (config.databaseUrl) {
-        createdUser = await NeonUserRepository.create({
-          username: cleanUsername,
-          passwordHash,
-          name,
-          phone,
-          role,
-          assignedShedId,
-        });
-      }
-
-      // Also create in Mongo if connected
-      if (mongoose.connection.readyState >= 1) {
-        try {
-          const mongoUser = await User.create({
-            username: cleanUsername,
-            passwordHash,
-            name,
-            phone,
-            role,
-            assignedShedId: assignedShedId || null,
-            isActive: true,
-            mustChangePassword: true,
-          });
-          if (!createdUser) createdUser = mongoUser;
-        } catch (e) {}
-      }
+      const createdUser = await NeonUserRepository.create({
+        username: cleanUsername,
+        passwordHash,
+        name,
+        phone,
+        role: role || "worker",
+        assignedShedId: assignedShedId || null,
+      });
 
       res.status(201).json({
         success: true,
         data: {
-          id: createdUser?.id || createdUser?._id,
-          username: createdUser?.username,
-          name: createdUser?.name,
-          phone: createdUser?.phone,
-          role: createdUser?.role,
-          assignedShedId: createdUser?.assignedShedId,
+          id: createdUser.id,
+          username: createdUser.username,
+          name: createdUser.name,
+          phone: createdUser.phone,
+          role: createdUser.role,
+          assignedShedId: createdUser.assignedShedId,
         },
       });
     } catch (err: any) {
@@ -374,20 +343,18 @@ export class AuthController {
         return;
       }
 
-      // 2. Check Mongo if connected
-      if (mongoose.connection.readyState >= 1) {
-        const targetUser = await User.findById(userId);
-        if (targetUser) {
-          targetUser.passwordHash = passwordHash;
-          targetUser.refreshToken = null;
-          await targetUser.save();
+      // 2. NeonModel fallback
+      const targetUser = await User.findById(userId);
+      if (targetUser) {
+        targetUser.passwordHash = passwordHash;
+        targetUser.refreshToken = null;
+        await targetUser.save();
 
-          res.json({
-            success: true,
-            message: `Password for ${targetUser.username} successfully updated`,
-          });
-          return;
-        }
+        res.json({
+          success: true,
+          message: `Password for ${targetUser.username} successfully updated`,
+        });
+        return;
       }
 
       res.status(404).json({ success: false, error: "User not found" });

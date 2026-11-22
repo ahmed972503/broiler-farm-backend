@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { AuditLog } from "../models";
 import { AuditAction } from "@broiler/shared";
 
@@ -6,7 +5,7 @@ export async function logAuditEvent(params: {
   entityType: string;
   entityId: string;
   action: AuditAction;
-  performedBy: mongoose.Types.ObjectId | string;
+  performedBy: string;
   previousState?: any;
   newState?: any;
 }): Promise<void> {
@@ -15,7 +14,7 @@ export async function logAuditEvent(params: {
       entityType: params.entityType,
       entityId: params.entityId.toString(),
       action: params.action,
-      performedBy: new mongoose.Types.ObjectId(params.performedBy.toString()),
+      performedBy: params.performedBy.toString(),
       previousState: params.previousState || null,
       newState: params.newState || null,
       timestamp: new Date(),

@@ -1,4 +1,33 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+export interface Document {
+  id: string;
+  _id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  save: () => Promise<any>;
+  toObject: () => any;
+  toJSON: () => any;
+  [key: string]: any;
+}
+export type ObjectId = string;
+export type Model<T> = any;
+
+interface MockSchemaConstructor {
+  new <T = any>(definition?: any, options?: any): any;
+  Types: {
+    ObjectId: any;
+    Mixed: any;
+  };
+}
+
+const Schema: MockSchemaConstructor = class MockSchema {
+  static Types = {
+    ObjectId: "String",
+    Mixed: "Mixed",
+  };
+  index() {
+    return this;
+  }
+} as any;
 import {
   UserRole,
   ShedStatus,
@@ -25,7 +54,7 @@ export interface IUser extends Document {
   name: string;
   phone: string;
   role: UserRole;
-  assignedShedId?: mongoose.Types.ObjectId | null;
+  assignedShedId?: string | null;
   refreshToken?: string | null;
   isActive: boolean;
   mustChangePassword?: boolean;
@@ -65,8 +94,8 @@ export interface IShed extends Document {
   shedNumber: number;
   capacity: number;
   status: ShedStatus;
-  assignedWorkerId?: mongoose.Types.ObjectId | null;
-  currentBatchId?: mongoose.Types.ObjectId | null;
+  assignedWorkerId?: string | null;
+  currentBatchId?: string | null;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -100,7 +129,7 @@ const ShedSchema = new Schema<IShed>(
 // 3. Batch
 export interface IBatch extends Document {
   batchNumber: string;
-  shedId: mongoose.Types.ObjectId;
+  shedId: string;
   chicksPlaced: number;
   placementDate: string;
   expectedCloseDate: string;
@@ -145,8 +174,8 @@ const BatchSchema = new Schema<IBatch>(
 
 // 4. DailyRecord
 export interface IDailyRecord extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   date: string;
   ageInDays: number;
   openingFeedStockBags: number;
@@ -184,8 +213,8 @@ export interface IDailyRecord extends Document {
   photoUrl?: string;
   isLocked: boolean;
   lockedAt?: Date;
-  createdBy: mongoose.Types.ObjectId;
-  updatedBy?: mongoose.Types.ObjectId;
+  createdBy: string;
+  updatedBy?: string;
   shift?: "day" | "night" | "full";
   clientUpdatedAt?: string;
   createdAt: Date;
@@ -263,8 +292,8 @@ DailyRecordSchema.index({ batchId: 1, date: 1 }, { unique: true });
 
 // 5. WeightRecord
 export interface IWeightRecord extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   date: string;
   ageInDays: number;
   sampleSize: number;
@@ -272,7 +301,7 @@ export interface IWeightRecord extends Document {
   targetWeightGrams: number;
   deviationGrams: number;
   notes?: string;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -338,15 +367,15 @@ const VaccinationTemplateSchema = new Schema<IVaccinationTemplate>(
 );
 
 export interface IVaccinationTask extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   ageInDays: number;
   dueDate: string;
   vaccineName: string;
   route: VaccineRoute;
   status: TaskStatus;
   completedAt?: string;
-  completedBy?: mongoose.Types.ObjectId;
+  completedBy?: string;
   notes?: string;
   clientUpdatedAt?: string;
   createdAt: Date;
@@ -387,8 +416,8 @@ const VaccinationTaskSchema = new Schema<IVaccinationTask>(
 
 // 7. MedicineRecord & DailyMedicineSheet
 export interface IMedicineRecord extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   date: string;
   medicineName: string;
   dosage: string;
@@ -440,8 +469,8 @@ const MedicineRecordSchema = new Schema<IMedicineRecord>(
 );
 
 export interface IDailyMedicineSheet extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   date: string;
   items: Array<{
     name: string;
@@ -454,7 +483,7 @@ export interface IDailyMedicineSheet extends Document {
     route?: string;
     notes?: string;
   }>;
-  recordedBy: mongoose.Types.ObjectId;
+  recordedBy: string;
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -543,14 +572,14 @@ const FeedPurchaseSchema = new Schema<IFeedPurchase>(
 
 export interface IFeedIssue extends Document {
   date: string;
-  shedId: mongoose.Types.ObjectId;
-  batchId: mongoose.Types.ObjectId;
+  shedId: string;
+  batchId: string;
   feedType: FeedType;
   bags: number;
   bagWeightKg: number;
   totalKg: number;
   issuedTo?: string;
-  issuedBy: mongoose.Types.ObjectId;
+  issuedBy: string;
   notes?: string;
   clientUpdatedAt?: string;
   createdAt: Date;
@@ -623,7 +652,7 @@ export interface IFeedTransfer extends Document {
   bags: number;
   bagWeightKg: number;
   notes?: string;
-  recordedBy: mongoose.Types.ObjectId;
+  recordedBy: string;
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -688,7 +717,7 @@ const InventoryItemSchema = new Schema<IInventoryItem>(
 
 // 10. Expense
 export interface IExpense extends Document {
-  batchId?: mongoose.Types.ObjectId | null;
+  batchId?: string | null;
   category: ExpenseCategory;
   amount: number;
   date: string;
@@ -696,7 +725,7 @@ export interface IExpense extends Document {
   receiptNo?: string;
   paymentMethod: PaymentMethod;
   paidTo?: string;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -742,8 +771,8 @@ const ExpenseSchema = new Schema<IExpense>(
 
 // 11. Sale & BuyerPayment
 export interface ISale extends Document {
-  batchId: mongoose.Types.ObjectId;
-  shedId: mongoose.Types.ObjectId;
+  batchId: string;
+  shedId: string;
   lotNumber: number;
   buyerName: string;
   buyerPhone?: string;
@@ -760,7 +789,7 @@ export interface ISale extends Document {
   paymentStatus: PaymentStatus;
   vehicleNo?: string;
   notes?: string;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -807,13 +836,13 @@ const SaleSchema = new Schema<ISale>(
 export interface IBuyerPayment extends Document {
   buyerName: string;
   buyerPhone?: string;
-  saleId?: mongoose.Types.ObjectId;
+  saleId?: string;
   date: string;
   amount: number;
   paymentMethod: PaymentMethod;
   receiptNo?: string;
   notes?: string;
-  receivedBy: mongoose.Types.ObjectId;
+  receivedBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -842,7 +871,7 @@ export interface IStaff extends Document {
   name: string;
   phone: string;
   role: StaffRole;
-  assignedShedId?: mongoose.Types.ObjectId | null;
+  assignedShedId?: string | null;
   dailyWage: number;
   status: "active" | "inactive";
   joiningDate: string;
@@ -870,13 +899,13 @@ const StaffSchema = new Schema<IStaff>(
 );
 
 export interface IAttendance extends Document {
-  staffId: mongoose.Types.ObjectId;
+  staffId: string;
   date: string;
   status: AttendanceStatus;
   dailyWageAmount: number;
   advanceDeduction: number;
   notes?: string;
-  recordedBy: mongoose.Types.ObjectId;
+  recordedBy: string;
   clientUpdatedAt?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -907,7 +936,7 @@ const AttendanceSchema = new Schema<IAttendance>(
 AttendanceSchema.index({ staffId: 1, date: 1 }, { unique: true });
 
 export interface IStaffAdvance extends Document {
-  staffId: mongoose.Types.ObjectId;
+  staffId: string;
   date: string;
   amount: number;
   reason?: string;
@@ -938,12 +967,12 @@ export interface IAlert extends Document {
   severity: AlertSeverity;
   title: string;
   message: string;
-  shedId?: mongoose.Types.ObjectId;
+  shedId?: string;
   shedNumber?: number;
-  batchId?: mongoose.Types.ObjectId;
+  batchId?: string;
   isResolved: boolean;
   resolvedAt?: Date;
-  resolvedBy?: mongoose.Types.ObjectId;
+  resolvedBy?: string;
   createdAt: Date;
 }
 
@@ -987,7 +1016,7 @@ export interface IAuditLog extends Document {
   entityType: string;
   entityId: string;
   action: AuditAction;
-  performedBy: mongoose.Types.ObjectId;
+  performedBy: string;
   previousState?: any;
   newState?: any;
   timestamp: Date;
@@ -1071,71 +1100,28 @@ const FarmSettingsSchema = new Schema<IFarmSettings>(
   { timestamps: true },
 );
 
-export const User = mongoose.model<IUser>("User", UserSchema);
-export const Shed = mongoose.model<IShed>("Shed", ShedSchema);
-export const Batch = mongoose.model<IBatch>("Batch", BatchSchema);
-export const DailyRecord = mongoose.model<IDailyRecord>(
-  "DailyRecord",
-  DailyRecordSchema,
-);
-export const WeightRecord = mongoose.model<IWeightRecord>(
-  "WeightRecord",
-  WeightRecordSchema,
-);
-export const VaccinationTemplate = mongoose.model<IVaccinationTemplate>(
-  "VaccinationTemplate",
-  VaccinationTemplateSchema,
-);
-export const VaccinationTask = mongoose.model<IVaccinationTask>(
-  "VaccinationTask",
-  VaccinationTaskSchema,
-);
-export const MedicineRecord = mongoose.model<IMedicineRecord>(
-  "MedicineRecord",
-  MedicineRecordSchema,
-);
-export const DailyMedicineSheet = mongoose.model<IDailyMedicineSheet>(
-  "DailyMedicineSheet",
-  DailyMedicineSheetSchema,
-);
-export const FeedPurchase = mongoose.model<IFeedPurchase>(
-  "FeedPurchase",
-  FeedPurchaseSchema,
-);
-export const FeedIssue = mongoose.model<IFeedIssue>(
-  "FeedIssue",
-  FeedIssueSchema,
-);
-export const FeedStock = mongoose.model<IFeedStock>(
-  "FeedStock",
-  FeedStockSchema,
-);
-export const FeedTransfer = mongoose.model<IFeedTransfer>(
-  "FeedTransfer",
-  FeedTransferSchema,
-);
-export const InventoryItem = mongoose.model<IInventoryItem>(
-  "InventoryItem",
-  InventoryItemSchema,
-);
-export const Expense = mongoose.model<IExpense>("Expense", ExpenseSchema);
-export const Sale = mongoose.model<ISale>("Sale", SaleSchema);
-export const BuyerPayment = mongoose.model<IBuyerPayment>(
-  "BuyerPayment",
-  BuyerPaymentSchema,
-);
-export const Staff = mongoose.model<IStaff>("Staff", StaffSchema);
-export const Attendance = mongoose.model<IAttendance>(
-  "Attendance",
-  AttendanceSchema,
-);
-export const StaffAdvance = mongoose.model<IStaffAdvance>(
-  "StaffAdvance",
-  StaffAdvanceSchema,
-);
-export const Alert = mongoose.model<IAlert>("Alert", AlertSchema);
-export const AuditLog = mongoose.model<IAuditLog>("AuditLog", AuditLogSchema);
-export const FarmSettings = mongoose.model<IFarmSettings>(
-  "FarmSettings",
-  FarmSettingsSchema,
-);
+import { createNeonModel, NeonModel } from "../config/neonModel";
+
+export const User: NeonModel<IUser> = createNeonModel<IUser>("users");
+export const Shed: NeonModel<IShed> = createNeonModel<IShed>("sheds");
+export const Batch: NeonModel<IBatch> = createNeonModel<IBatch>("batches");
+export const DailyRecord: NeonModel<IDailyRecord> = createNeonModel<IDailyRecord>("daily_records");
+export const WeightRecord: NeonModel<IWeightRecord> = createNeonModel<IWeightRecord>("weight_records");
+export const VaccinationTemplate: NeonModel<IVaccinationTemplate> = createNeonModel<IVaccinationTemplate>("vaccination_templates");
+export const VaccinationTask: NeonModel<IVaccinationTask> = createNeonModel<IVaccinationTask>("vaccination_tasks");
+export const MedicineRecord: NeonModel<IMedicineRecord> = createNeonModel<IMedicineRecord>("medicine_records");
+export const DailyMedicineSheet: NeonModel<IDailyMedicineSheet> = createNeonModel<IDailyMedicineSheet>("daily_medicine_sheets");
+export const FeedPurchase: NeonModel<IFeedPurchase> = createNeonModel<IFeedPurchase>("feed_purchases");
+export const FeedIssue: NeonModel<IFeedIssue> = createNeonModel<IFeedIssue>("feed_issues");
+export const FeedStock: NeonModel<IFeedStock> = createNeonModel<IFeedStock>("feed_stock");
+export const FeedTransfer: NeonModel<IFeedTransfer> = createNeonModel<IFeedTransfer>("feed_transfers");
+export const InventoryItem: NeonModel<IInventoryItem> = createNeonModel<IInventoryItem>("inventory_items");
+export const Expense: NeonModel<IExpense> = createNeonModel<IExpense>("expenses");
+export const Sale: NeonModel<ISale> = createNeonModel<ISale>("sales");
+export const BuyerPayment: NeonModel<IBuyerPayment> = createNeonModel<IBuyerPayment>("buyer_payments");
+export const Staff: NeonModel<IStaff> = createNeonModel<IStaff>("staff");
+export const Attendance: NeonModel<IAttendance> = createNeonModel<IAttendance>("attendance");
+export const StaffAdvance: NeonModel<IStaffAdvance> = createNeonModel<IStaffAdvance>("staff_advances");
+export const Alert: NeonModel<IAlert> = createNeonModel<IAlert>("alerts");
+export const AuditLog: NeonModel<IAuditLog> = createNeonModel<IAuditLog>("audit_logs");
+export const FarmSettings: NeonModel<IFarmSettings> = createNeonModel<IFarmSettings>("farm_settings");

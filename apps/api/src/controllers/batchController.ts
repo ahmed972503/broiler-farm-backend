@@ -42,9 +42,15 @@ export class BatchController {
       }
 
       // Worker permission check
+      const shedIdStr = (
+        (batch.shedId as any)?._id ||
+        (batch.shedId as any)?.id ||
+        batch.shedId ||
+        ""
+      ).toString();
       if (
         req.user?.role === "worker" &&
-        batch.shedId._id.toString() !== req.user.assignedShedId?.toString()
+        shedIdStr !== req.user.assignedShedId?.toString()
       ) {
         res.status(403).json({
           success: false,

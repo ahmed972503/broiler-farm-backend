@@ -42,7 +42,7 @@ export const authenticate = async (
       return next();
     }
 
-    // 2. Fallback to Mongo
+    // 2. NeonModel fallback
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
       res

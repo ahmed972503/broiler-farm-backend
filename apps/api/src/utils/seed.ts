@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { initNeonDatabase } from "../config/postgres";
 import {
   User,
   Shed,
@@ -43,15 +43,9 @@ export async function seedDatabase() {
     );
   }
 
-  console.log("[Seed] Connecting to MongoDB...");
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 5000 });
-  }
-
-  console.log("[Seed] Clearing existing collections...");
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
+  console.log("[Seed] Connecting to Neon Cloud PostgreSQL...");
+  if (config.databaseUrl) {
+    await initNeonDatabase();
   }
 
   console.log("[Seed] Seeding Farm Settings...");
@@ -621,19 +615,7 @@ if (require.main === module) {
   seedDatabase()
     .then(() => process.exit(0))
     .catch((err) => {
-      if (
-        err.name === "MongooseServerSelectionError" ||
-        (err.message && err.message.includes("ECONNREFUSED"))
-      ) {
-        console.error("\n========================================================");
-        console.error("  ❌ [ERROR] MongoDB is NOT running on port 27017!");
-        console.error("========================================================");
-        console.error("  Please start MongoDB first in another terminal:");
-        console.error("     npm run dev:mongo");
-        console.error("  Keep that terminal open, then run 'npm run seed' again.\n");
-      } else {
-        console.error("[Seed Error]:", err);
-      }
+      console.error("[Seed Error]:", err);
       process.exit(1);
     });
 }

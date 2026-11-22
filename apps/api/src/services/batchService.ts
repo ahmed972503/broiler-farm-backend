@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import {
   Batch,
   Shed,
@@ -57,7 +56,7 @@ export class BatchService {
 
     const batch = await Batch.create({
       batchNumber: params.batchNumber,
-      shedId: new mongoose.Types.ObjectId(params.shedId),
+      shedId: params.shedId,
       chicksPlaced: params.chicksPlaced,
       placementDate: params.placementDate,
       expectedCloseDate: params.expectedCloseDate,
@@ -105,7 +104,7 @@ export class BatchService {
       description: `Chick placement purchase: ${params.chicksPlaced} chicks @ PKR ${params.chickRate} from ${params.supplier}`,
       paymentMethod: "cash",
       paidTo: params.supplier,
-      createdBy: new mongoose.Types.ObjectId(params.userId),
+      createdBy: params.userId,
     });
 
     await logAuditEvent({

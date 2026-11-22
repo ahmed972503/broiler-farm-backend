@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import {
   Alert,
   Batch,
@@ -20,9 +19,9 @@ export class AlertService {
     severity: AlertSeverity;
     title: string;
     message: string;
-    shedId?: mongoose.Types.ObjectId;
+    shedId?: string;
     shedNumber?: number;
-    batchId?: mongoose.Types.ObjectId;
+    batchId?: string;
   }): Promise<void> {
     const existing = await Alert.findOne({
       type: params.type,
@@ -49,9 +48,6 @@ export class AlertService {
    * Runs the complete alert audit sweep across all active flocks and farm assets
    */
   static async runAlertSweep(): Promise<void> {
-    if (mongoose.connection.readyState !== 1) {
-      return;
-    }
     const settings = (await FarmSettings.findOne()) || {
       alertThresholds: {
         mortalitySpikePercentDaily: 1.0,
@@ -116,13 +112,15 @@ export class AlertService {
           (todayRecord.mortalityCount / liveBirds) * 100;
         const spikeThreshold = thresholds.mortalitySpikePercentDaily || 1.0;
 
+        const currentShedId = ((batch.shedId as any)?._id || (batch.shedId as any)?.id || batch.shedId || "").toString();
+
         if (dailyMortalityPercent >= spikeThreshold) {
           await this.raiseAlert({
             type: "mortality_spike",
             severity: "critical",
             title: `Critical Mortality Spike: Shed ${shed?.shedNumber || ""}`,
             message: `Mortality in Shed ${shed?.shedNumber} reached ${todayRecord.mortalityCount} birds (${dailyMortalityPercent.toFixed(2)}%) today. Immediate veterinary inspection required.`,
-            shedId: batch.shedId?._id,
+            shedId: currentShedId,
             shedNumber: shed?.shedNumber,
             batchId: batch._id as any,
           });
@@ -148,7 +146,7 @@ export class AlertService {
             severity: "warning",
             title: `High Weekly Mortality Alert: Shed ${shed?.shedNumber || ""}`,
             message: `7-day mortality in Shed ${shed?.shedNumber} reached ${past7Mortality} birds (${weeklyMortPercent.toFixed(2)}%). Investigate flock health.`,
-            shedId: batch.shedId?._id,
+            shedId: currentShedId,
             shedNumber: shed?.shedNumber,
             batchId: batch._id as any,
           });
@@ -161,7 +159,7 @@ export class AlertService {
             severity: "critical",
             title: `Feed Stock Shortage: Shed ${shed?.shedNumber || ""}`,
             message: `Daily stock reconciliation flagged a shortage of ${Math.abs(todayRecord.feedStockDiscrepancyBags)} bags in Shed ${shed?.shedNumber}. Physical stock does not match calculated balance.`,
-            shedId: batch.shedId?._id,
+            shedId: currentShedId,
             shedNumber: shed?.shedNumber,
             batchId: batch._id as any,
           });
@@ -182,7 +180,7 @@ export class AlertService {
             severity: "warning",
             title: `Missed ${missingShift} Shift Entry: Shed ${shed?.shedNumber || ""}`,
             message: `Shed ${shed?.shedNumber} is missing ${missingShift} shift log entries. Complete both Day and Night shift records.`,
-            shedId: batch.shedId?._id,
+            shedId: currentShedId,
             shedNumber: shed?.shedNumber,
             batchId: batch._id as any,
           });
@@ -198,7 +196,7 @@ export class AlertService {
             severity: "warning",
             title: `Abnormal Temperature: Shed ${shed?.shedNumber || ""}`,
             message: `Shed ${shed?.shedNumber} temperature recorded Min ${todayRecord.minTemp}°C / Max ${todayRecord.maxTemp}°C outside optimal range (${thresholds.tempMinCelsius}°C - ${thresholds.tempMaxCelsius}°C).`,
-            shedId: batch.shedId?._id,
+            shedId: currentShedId,
             shedNumber: shed?.shedNumber,
             batchId: batch._id as any,
           });
@@ -222,7 +220,7 @@ export class AlertService {
           ? `Vaccine Overdue: ${task.vaccineName}`
           : `Vaccine Due Today: ${task.vaccineName}`,
         message: `Shed ${shed?.shedNumber || ""} requires ${task.vaccineName} (${task.route}). Due: ${task.dueDate}.`,
-        shedId: task.shedId?._id,
+        shedId: ((task.shedId as any)?._id || (task.shedId as any)?.id || task.shedId || "").toString(),
         shedNumber: shed?.shedNumber,
         batchId: task.batchId,
       });

@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose";
 import app, { createApp } from "./app";
 import { config } from "./config";
 import { CronService } from "./services/cronService";
@@ -11,15 +10,6 @@ async function bootstrap() {
     if (config.databaseUrl) {
       console.log("[Neon Postgres] Connecting to Neon database...");
       await initNeonDatabase();
-    }
-
-    // 2. Connect to MongoDB if available
-    try {
-      console.log("[Database] Connecting to MongoDB at", config.mongodbUri);
-      await mongoose.connect(config.mongodbUri);
-      console.log("[Database] Connected successfully to MongoDB");
-    } catch (mErr: any) {
-      console.warn("[Database] MongoDB connection skipped/unavailable:", mErr.message);
     }
 
     // Start background scheduled jobs if not in serverless

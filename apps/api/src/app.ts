@@ -7,13 +7,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { initNeonDatabase } from "./config/postgres";
 import { config } from "./config";
-import mongoose from "mongoose";
-
-// Disable Mongoose command buffering in serverless to prevent 10000ms timeouts when Mongo is not running
-mongoose.set("bufferCommands", false);
-
 let isNeonInitialized = false;
-let isMongoConnecting = false;
 
 async function ensureDatabases() {
   if (!isNeonInitialized && config.databaseUrl) {
@@ -22,17 +16,6 @@ async function ensureDatabases() {
       isNeonInitialized = true;
     } catch (err) {
       console.error("[Neon Init Error]:", err);
-    }
-  }
-
-  if (config.mongodbUri && mongoose.connection.readyState < 1 && !isMongoConnecting) {
-    try {
-      isMongoConnecting = true;
-      await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 3000 });
-    } catch (mErr: any) {
-      console.warn("[Mongo Serverless]:", mErr.message);
-    } finally {
-      isMongoConnecting = false;
     }
   }
 }

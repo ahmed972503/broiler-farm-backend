@@ -8,18 +8,18 @@ export function errorHandler(
 ): void {
   console.error("[API Error]:", err);
 
-  // Mongoose duplicate key error (E11000)
-  if (err.code === 11000) {
+  // Duplicate key error (Postgres 23505 or legacy 11000)
+  if (err.code === 11000 || err.code === "23505") {
     const fields = Object.keys(err.keyValue || {});
     res.status(409).json({
       success: false,
-      error: `Duplicate entry for ${fields.join(", ")}: already exists`,
+      error: fields.length > 0 ? `Duplicate entry for ${fields.join(", ")}: already exists` : (err.detail || "Duplicate record already exists"),
       fields: err.keyValue,
     });
     return;
   }
 
-  // Mongoose CastError (invalid ObjectId)
+  // CastError or invalid format
   if (err.name === "CastError") {
     res.status(400).json({
       success: false,

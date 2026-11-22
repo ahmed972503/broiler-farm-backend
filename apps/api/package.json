@@ -8,7 +8,6 @@
     "build": "tsc -b",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "dev:mongo": "ts-node-dev --transpile-only src/utils/run-local-mongo.ts",
     "type-check": "tsc --noEmit",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
     "seed": "ts-node-dev --transpile-only src/utils/seed.ts"

@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import {
   DailyRecord,
   WeightRecord,
@@ -228,7 +227,7 @@ export class SyncService {
         closingBirds: summary.closingBirds,
         customColumnES:
           payload.customColumnES !== undefined ? payload.customColumnES : null,
-        createdBy: new mongoose.Types.ObjectId(userId),
+        createdBy: userId,
         clientUpdatedAt: item.clientTimestamp,
       });
     } else {
@@ -340,12 +339,12 @@ export class SyncService {
         mergedDayFeed > 0 && mergedNightFeed > 0
           ? "full"
           : payload.shift || record.shift;
-      record.updatedBy = new mongoose.Types.ObjectId(userId);
+      record.updatedBy = userId;
       record.clientUpdatedAt = item.clientTimestamp;
 
       await record.save();
     }
-    return record._id.toString();
+    return record!._id.toString();
   }
 
   private static async handleWeightRecordSync(
@@ -365,14 +364,14 @@ export class SyncService {
         ageInDays,
         targetWeightGrams: target,
         deviationGrams: deviation,
-        createdBy: new mongoose.Types.ObjectId(userId),
+        createdBy: userId,
         clientUpdatedAt: item.clientTimestamp,
       });
     } else {
       Object.assign(record, payload, { clientUpdatedAt: item.clientTimestamp });
       await record.save();
     }
-    return record._id.toString();
+    return record!._id.toString();
   }
 
   private static async handleVaccinationTaskSync(
@@ -386,7 +385,7 @@ export class SyncService {
     task.status = payload.status || "completed";
     task.completedAt =
       payload.completedAt || new Date().toISOString().split("T")[0];
-    task.completedBy = new mongoose.Types.ObjectId(userId);
+    task.completedBy = userId;
     task.notes = payload.notes || task.notes;
     task.clientUpdatedAt = item.clientTimestamp;
     await task.save();
@@ -418,7 +417,7 @@ export class SyncService {
     if (!sheet) {
       sheet = await DailyMedicineSheet.create({
         ...payload,
-        recordedBy: new mongoose.Types.ObjectId(userId),
+        recordedBy: userId,
         clientUpdatedAt: item.clientTimestamp,
       });
     } else {
@@ -426,7 +425,7 @@ export class SyncService {
       sheet.clientUpdatedAt = item.clientTimestamp;
       await sheet.save();
     }
-    return sheet._id.toString();
+    return sheet!._id.toString();
   }
 
   private static async handleFeedIssueSync(
@@ -441,7 +440,7 @@ export class SyncService {
       ...payload,
       bagWeightKg,
       totalKg,
-      issuedBy: new mongoose.Types.ObjectId(userId),
+      issuedBy: userId,
       clientUpdatedAt: item.clientTimestamp,
     });
 
@@ -466,7 +465,7 @@ export class SyncService {
     const transfer = await FeedTransfer.create({
       ...payload,
       brand,
-      recordedBy: new mongoose.Types.ObjectId(userId),
+      recordedBy: userId,
       clientUpdatedAt: item.clientTimestamp,
     });
 
@@ -494,7 +493,7 @@ export class SyncService {
     const payload = item.payload;
     const expense = await Expense.create({
       ...payload,
-      createdBy: new mongoose.Types.ObjectId(userId),
+      createdBy: userId,
     });
     return expense._id.toString();
   }
@@ -511,14 +510,14 @@ export class SyncService {
     if (!record) {
       record = await Attendance.create({
         ...payload,
-        recordedBy: new mongoose.Types.ObjectId(userId),
+        recordedBy: userId,
         clientUpdatedAt: item.clientTimestamp,
       });
     } else {
       Object.assign(record, payload, { clientUpdatedAt: item.clientTimestamp });
       await record.save();
     }
-    return record._id.toString();
+    return record!._id.toString();
   }
 
   private static async handleSaleSync(
@@ -555,7 +554,7 @@ export class SyncService {
       balanceAmount,
       isManualBirdCountOverride: liftingCalc.isOverridden,
       overrideReason: liftingCalc.overrideReason || payload.overrideReason,
-      createdBy: new mongoose.Types.ObjectId(userId),
+      createdBy: userId,
     });
 
     return sale._id.toString();

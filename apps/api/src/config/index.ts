@@ -11,8 +11,6 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env.local") });
 export const config = {
   port: parseInt(process.env.PORT || "5000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
-  mongodbUri:
-    process.env.MONGODB_URI || "mongodb://localhost:27017/broiler_farm",
   databaseUrl:
     process.env.DATABASE_URL ||
     process.env.DATABASE_URL_UNPOOLED ||
