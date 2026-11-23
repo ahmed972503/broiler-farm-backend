@@ -336,15 +336,15 @@ export default function WorkerWeightScreen() {
                 styles.comparisonBox,
                 {
                   backgroundColor:
-                    comparison.status === "ABOVE"
+                    comparison.performanceStatus === "above_target"
                       ? "#ECFDF5"
-                      : comparison.status === "BELOW"
+                      : comparison.performanceStatus === "below_target"
                         ? "#FEF2F2"
                         : "#EFF6FF",
                   borderColor:
-                    comparison.status === "ABOVE"
+                    comparison.performanceStatus === "above_target"
                       ? "#10B981"
-                      : comparison.status === "BELOW"
+                      : comparison.performanceStatus === "below_target"
                         ? "#EF4444"
                         : "#3B82F6",
                 },
@@ -355,18 +355,18 @@ export default function WorkerWeightScreen() {
                   fontWeight: "700",
                   fontSize: 12,
                   color:
-                    comparison.status === "ABOVE"
+                    comparison.performanceStatus === "above_target"
                       ? "#047857"
-                      : comparison.status === "BELOW"
+                      : comparison.performanceStatus === "below_target"
                         ? "#B91C1C"
                         : "#1D4ED8",
                 }}
               >
                 Cobb 500 Standard (Day {currentAge}): {comparison.targetGrams}g •{" "}
-                {comparison.status === "ABOVE"
-                  ? `+${comparison.differenceGrams}g Aage (Above Target)`
-                  : comparison.status === "BELOW"
-                    ? `${comparison.differenceGrams}g Peeche (Below Target)`
+                {comparison.performanceStatus === "above_target"
+                  ? `+${comparison.deviationGrams}g Aage (Above Target)`
+                  : comparison.performanceStatus === "below_target"
+                    ? `${comparison.deviationGrams}g Peeche (Below Target)`
                     : "Target Ke Barabar"}
               </Text>
             </View>

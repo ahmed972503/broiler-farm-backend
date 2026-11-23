@@ -10,6 +10,7 @@ import {
   Modal,
   useWindowDimensions,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../src/theme";
 import { Card, Badge, Button, Input } from "../../../src/components/ui";
 import { apiFetch } from "../../../src/api/client";

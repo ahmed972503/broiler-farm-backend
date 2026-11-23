@@ -593,7 +593,7 @@ export default function DailyEntryScreen() {
                 Sirf Khuraak aur Amwaat darj karein, hisab khud ho jaye ga!
               </Text>
             </View>
-            <Badge label="Active Shed" variant="primary" size="sm" />
+            <Badge label="Active Shed" variant="info" size="sm" />
           </View>
 
           {/* Shift Switcher */}

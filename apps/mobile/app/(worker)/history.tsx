@@ -180,7 +180,7 @@ export default function WorkerHistoryScreen() {
         setFeedOutList([newOut, ...feedOutList]);
       }
 
-      await OfflineStore.enqueueMutation("FEED_LEDGER", "CREATE", {
+      await OfflineStore.enqueueMutation("FEED_TRANSFER", "CREATE", {
         type: transType,
         party: partyName.trim(),
         bags: numBags,
