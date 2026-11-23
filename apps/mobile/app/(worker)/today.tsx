@@ -207,48 +207,492 @@ function time24To12(time24: string): string {
 }
 
 // -------------------------------------------------------------------------
-// DATE SELECTOR COMPONENT (SELECTION INSTEAD OF MANUAL TYPING)
+// CALENDAR PICKER MODAL (PURE VISUAL TOUCH SELECTION - ZERO KEYBOARD INPUT)
+// -------------------------------------------------------------------------
+function CalendarPickerModal({
+  visible,
+  currentISO,
+  onClose,
+  onSelectDate,
+}: {
+  visible: boolean;
+  currentISO: string;
+  onClose: () => void;
+  onSelectDate: (iso: string, formatted: string) => void;
+}) {
+  const initialDate = currentISO ? new Date(currentISO) : new Date(2026, 10, 23);
+  const [viewYear, setViewYear] = useState(
+    isNaN(initialDate.getFullYear()) ? 2026 : initialDate.getFullYear()
+  );
+  const [viewMonth, setViewMonth] = useState(
+    isNaN(initialDate.getMonth()) ? 10 : initialDate.getMonth()
+  );
+  const [tempSelectedISO, setTempSelectedISO] = useState(currentISO || "2026-11-23");
+
+  // Keep state updated when modal opens with new ISO
+  React.useEffect(() => {
+    if (visible && currentISO) {
+      setTempSelectedISO(currentISO);
+      const d = new Date(currentISO);
+      if (!isNaN(d.getFullYear())) {
+        setViewYear(d.getFullYear());
+        setViewMonth(d.getMonth());
+      }
+    }
+  }, [visible, currentISO]);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const weekDays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
+  // Monday as index 0:
+  const startOffset = (firstDayIndex + 6) % 7;
+
+  const quickDates = [
+    { label: "Aaj (Today)", iso: "2026-11-23", formatted: "23-Nov-2026" },
+    { label: "Kal (Yesterday)", iso: "2026-11-22", formatted: "22-Nov-2026" },
+    { label: "21-Nov (Day 26)", iso: "2026-11-21", formatted: "21-Nov-2026" },
+    { label: "20-Nov (Day 25)", iso: "2026-11-20", formatted: "20-Nov-2026" },
+  ];
+
+  return (
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { maxWidth: 420 }]}>
+          {/* Header */}
+          <View style={[styles.modalHeader, { backgroundColor: "#065F46" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="calendar" size={20} color="#FFFFFF" />
+              <Text style={styles.modalTitle}>Tareekh Chunein (Calendar Picker)</Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ padding: 16 }}>
+            {/* Selected Date Preview Banner */}
+            <View style={styles.calendarSelectedBanner}>
+              <Text style={styles.calendarSelectedLabel}>Muntakhab Shuda Tareekh (Selected Date):</Text>
+              <Text style={styles.calendarSelectedValue}>
+                {isoToFormattedDate(tempSelectedISO)}
+              </Text>
+            </View>
+
+            {/* Month & Year Navigation */}
+            <View style={styles.calendarMonthRow}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
+                <Ionicons name="chevron-back" size={20} color="#0F172A" />
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthTitle}>
+                {monthNames[viewMonth]} {viewYear}
+              </Text>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
+                <Ionicons name="chevron-forward" size={20} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Weekdays Header */}
+            <View style={styles.calendarWeekRow}>
+              {weekDays.map((wd) => (
+                <View key={wd} style={styles.calWeekCell}>
+                  <Text style={styles.calWeekText}>{wd}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Days Grid */}
+            <View style={styles.calendarGrid}>
+              {Array.from({ length: startOffset }).map((_, idx) => (
+                <View key={`empty-${idx}`} style={styles.calDayCellEmpty} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, idx) => {
+                const dayNum = idx + 1;
+                const mStr = viewMonth + 1 < 10 ? `0${viewMonth + 1}` : `${viewMonth + 1}`;
+                const dStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+                const cellISO = `${viewYear}-${mStr}-${dStr}`;
+                const isSelected = cellISO === tempSelectedISO;
+
+                return (
+                  <TouchableOpacity
+                    key={`day-${dayNum}`}
+                    onPress={() => setTempSelectedISO(cellISO)}
+                    style={[styles.calDayCell, isSelected && styles.calDayCellActive]}
+                  >
+                    <Text
+                      style={[styles.calDayText, isSelected && styles.calDayTextActive]}
+                    >
+                      {dayNum}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Fast Quick Chips */}
+            <Text style={[styles.fieldLabelText, { fontSize: 10, marginTop: 12 }]}>
+              TEZ TAREEN SELECTION (QUICK PICK):
+            </Text>
+            <View style={styles.chipRow}>
+              {quickDates.map((q) => {
+                const isSelected = tempSelectedISO === q.iso;
+                return (
+                  <TouchableOpacity
+                    key={q.iso}
+                    onPress={() => setTempSelectedISO(q.iso)}
+                    style={[
+                      styles.quickChip,
+                      isSelected && styles.quickChipActiveGreen,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        isSelected && styles.quickChipTextActive,
+                      ]}
+                    >
+                      {q.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Modal Action Buttons */}
+            <View style={[styles.modalActionRow, { marginTop: 16 }]}>
+              <TouchableOpacity onPress={onClose} style={styles.modalCancelBtn}>
+                <Text style={styles.modalCancelText}>Radd Karein</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  onSelectDate(tempSelectedISO, isoToFormattedDate(tempSelectedISO));
+                  onClose();
+                }}
+                style={styles.modalSaveBtnGreen}
+              >
+                <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.modalSaveText}>Tareekh Tay Karein</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// -------------------------------------------------------------------------
+// TIME PICKER MODAL (PURE VISUAL TOUCH SELECTION - ZERO KEYBOARD INPUT)
+// -------------------------------------------------------------------------
+function TimePickerModal({
+  visible,
+  title,
+  initialTime12,
+  onClose,
+  onSelectTime,
+}: {
+  visible: boolean;
+  title: string;
+  initialTime12: string;
+  onClose: () => void;
+  onSelectTime: (time12: string, time24: string) => void;
+}) {
+  const parseTime = (str: string) => {
+    let hour = "08";
+    let minute = "00";
+    let ampm = "AM";
+    if (str && str.includes(":") && (str.includes("AM") || str.includes("PM"))) {
+      const parts = str.trim().split(" ");
+      ampm = parts[1] || "AM";
+      const hm = parts[0].split(":");
+      hour = hm[0] || "08";
+      minute = hm[1] || "00";
+    }
+    return { hour: parseInt(hour, 10) || 8, minute, ampm };
+  };
+
+  const parsed = parseTime(initialTime12);
+  const [selectedHour, setSelectedHour] = useState(parsed.hour);
+  const [selectedMinute, setSelectedMinute] = useState(parsed.minute);
+  const [selectedAmPm, setSelectedAmPm] = useState(parsed.ampm);
+
+  React.useEffect(() => {
+    if (visible) {
+      const p = parseTime(initialTime12);
+      setSelectedHour(p.hour);
+      setSelectedMinute(p.minute);
+      setSelectedAmPm(p.ampm);
+    }
+  }, [visible, initialTime12]);
+
+  const hStr = selectedHour < 10 ? `0${selectedHour}` : `${selectedHour}`;
+  const currentTime12 = `${hStr}:${selectedMinute} ${selectedAmPm}`;
+
+  const hoursList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const minutesList = ["00", "15", "30", "45"];
+
+  const quickTimes = [
+    { label: "06:00 AM (Subah Sadiq)", h: 6, m: "00", ap: "AM" },
+    { label: "08:00 AM (Subah Entry)", h: 8, m: "00", ap: "AM" },
+    { label: "02:00 PM (Dopehar Shift)", h: 2, m: "00", ap: "PM" },
+    { label: "06:00 PM (Sham Entry)", h: 6, m: "00", ap: "PM" },
+    { label: "09:00 PM (Raat Shift)", h: 9, m: "00", ap: "PM" },
+    { label: "11:59 PM (Raat Khatam)", h: 11, m: "59", ap: "PM" },
+  ];
+
+  const handleConfirm = () => {
+    let h24 = selectedHour;
+    if (selectedAmPm === "PM" && h24 < 12) h24 += 12;
+    if (selectedAmPm === "AM" && h24 === 12) h24 = 0;
+    const h24Str = h24 < 10 ? `0${h24}` : `${h24}`;
+    const time24 = `${h24Str}:${selectedMinute}`;
+    onSelectTime(currentTime12, time24);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { maxWidth: 420 }]}>
+          {/* Header */}
+          <View style={[styles.modalHeader, { backgroundColor: "#2563EB" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons name="time" size={20} color="#FFFFFF" />
+              <Text style={styles.modalTitle}>{title}</Text>
+            </View>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ padding: 16 }}>
+            {/* Digital Clock Display Card */}
+            <View style={styles.timeClockBanner}>
+              <Text style={styles.timeClockBannerLabel}>Muntakhab Shuda Waqt (Selected Time):</Text>
+              <Text style={styles.timeClockBannerBig}>{currentTime12}</Text>
+            </View>
+
+            {/* Quick 1-Tap Presets */}
+            <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>
+              TEZ WAQT PRESETS (QUICK SELECT):
+            </Text>
+            <View style={[styles.chipRow, { marginBottom: 12 }]}>
+              {quickTimes.map((q) => {
+                const isActive =
+                  selectedHour === q.h &&
+                  selectedMinute === q.m &&
+                  selectedAmPm === q.ap;
+                return (
+                  <TouchableOpacity
+                    key={q.label}
+                    onPress={() => {
+                      setSelectedHour(q.h);
+                      setSelectedMinute(q.m);
+                      setSelectedAmPm(q.ap);
+                    }}
+                    style={[
+                      styles.quickChip,
+                      isActive && { backgroundColor: "#2563EB", borderColor: "#000000" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        isActive && { color: "#FFFFFF" },
+                      ]}
+                    >
+                      {q.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* AM / PM Toggle */}
+            <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>PEHR (AM / PM):</Text>
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+              <TouchableOpacity
+                onPress={() => setSelectedAmPm("AM")}
+                style={[
+                  styles.ampmToggleBtn,
+                  selectedAmPm === "AM" && styles.ampmToggleBtnActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.ampmToggleText,
+                    selectedAmPm === "AM" && styles.ampmToggleTextActive,
+                  ]}
+                >
+                  AM (Subah / Din)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setSelectedAmPm("PM")}
+                style={[
+                  styles.ampmToggleBtn,
+                  selectedAmPm === "PM" && styles.ampmToggleBtnActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.ampmToggleText,
+                    selectedAmPm === "PM" && styles.ampmToggleTextActive,
+                  ]}
+                >
+                  PM (Dopehar / Sham / Raat)
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Hours Selector Grid */}
+            <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>GHANTA CHUNEIN (SELECT HOUR):</Text>
+            <View style={styles.timeNumberGrid}>
+              {hoursList.map((h) => {
+                const isSelected = selectedHour === h;
+                const valStr = h < 10 ? `0${h}` : `${h}`;
+                return (
+                  <TouchableOpacity
+                    key={`h-${h}`}
+                    onPress={() => setSelectedHour(h)}
+                    style={[
+                      styles.timeNumberBtn,
+                      isSelected && styles.timeNumberBtnActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.timeNumberText,
+                        isSelected && styles.timeNumberTextActive,
+                      ]}
+                    >
+                      {valStr}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Minutes Selector Grid */}
+            <Text style={[styles.fieldLabelText, { fontSize: 10, marginTop: 10 }]}>
+              MINUTE CHUNEIN (SELECT MINUTE):
+            </Text>
+            <View style={styles.timeNumberGrid}>
+              {minutesList.map((m) => {
+                const isSelected = selectedMinute === m;
+                return (
+                  <TouchableOpacity
+                    key={`m-${m}`}
+                    onPress={() => setSelectedMinute(m)}
+                    style={[
+                      styles.timeNumberBtnMinute,
+                      isSelected && styles.timeNumberBtnActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.timeNumberText,
+                        isSelected && styles.timeNumberTextActive,
+                      ]}
+                    >
+                      :{m}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Action Buttons */}
+            <View style={[styles.modalActionRow, { marginTop: 16 }]}>
+              <TouchableOpacity onPress={onClose} style={styles.modalCancelBtn}>
+                <Text style={styles.modalCancelText}>Radd Karein</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleConfirm} style={styles.modalSaveBtnBlue}>
+                <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.modalSaveText}>Waqt Tay Karein</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// -------------------------------------------------------------------------
+// DATE SELECTOR COMPONENT (100% SELECTABLE PICKER UI - ZERO EDITABLE TEXT)
 // -------------------------------------------------------------------------
 function DateSelector({
   label,
   isoValue,
+  formattedValue,
   onSelectDate,
   containerStyle,
 }: {
   label: string;
   isoValue: string;
+  formattedValue: string;
   onSelectDate: (iso: string, formatted: string) => void;
   containerStyle?: any;
 }) {
+  const [showCalendar, setShowCalendar] = useState(false);
+
   const quickDates = [
     { label: "Aaj (Today)", iso: "2026-11-23", formatted: "23-Nov-2026" },
     { label: "Kal (Yesterday)", iso: "2026-11-22", formatted: "22-Nov-2026" },
-    { label: "21-Nov", iso: "2026-11-21", formatted: "21-Nov-2026" },
+    { label: "21-Nov (Day 26)", iso: "2026-11-21", formatted: "21-Nov-2026" },
   ];
 
   return (
     <View style={[{ marginBottom: 14 }, containerStyle]}>
       <Text style={styles.fieldLabelText}>{label}</Text>
-      <View style={styles.blackInputBox}>
-        <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
-          <Ionicons name="calendar" size={18} color="#059669" style={{ marginRight: 8 }} />
-          <TextInput
-            value={isoValue}
-            onChangeText={(val) => {
-              const formatted = isoToFormattedDate(val);
-              onSelectDate(val, formatted);
-            }}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#64748B"
-            style={styles.pickerInputText}
-            {...(Platform.OS === "web"
-              ? ({
-                type: "date",
-              } as any)
-              : {})}
-          />
+
+      {/* Pure Touch Picker UI with 2px Solid Black Border - Zero TextInput */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setShowCalendar(true)}
+        style={styles.pickerBox}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={styles.pickerIconCircleGreen}>
+            <Ionicons name="calendar" size={18} color="#FFFFFF" />
+          </View>
+          <View>
+            <Text style={styles.pickerValueBig}>{formattedValue || isoToFormattedDate(isoValue)}</Text>
+            <Text style={styles.pickerValueSub}>Tap to open Calendar Picker</Text>
+          </View>
         </View>
-      </View>
+
+        <View style={styles.pickerBadgeGreen}>
+          <Text style={styles.pickerBadgeTextGreen}>PICK DATE</Text>
+          <Ionicons name="chevron-down" size={14} color="#059669" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Fast Quick Chips */}
       <View style={styles.chipRow}>
         {quickDates.map((q) => {
           const isSelected = isoValue === q.iso;
@@ -273,12 +717,20 @@ function DateSelector({
           );
         })}
       </View>
+
+      {/* Interactive Calendar Modal */}
+      <CalendarPickerModal
+        visible={showCalendar}
+        currentISO={isoValue}
+        onClose={() => setShowCalendar(false)}
+        onSelectDate={onSelectDate}
+      />
     </View>
   );
 }
 
 // -------------------------------------------------------------------------
-// TIME RANGE SELECTOR (SELECTION INSTEAD OF MANUAL TYPING)
+// TIME RANGE SELECTOR (100% SELECTABLE PICKER UI - ZERO EDITABLE TEXT)
 // -------------------------------------------------------------------------
 function TimeRangeSelector({
   start24,
@@ -293,6 +745,8 @@ function TimeRangeSelector({
   end12: string;
   onSelectTimes: (s24: string, e24: string, s12: string, e12: string) => void;
 }) {
+  const [activePickerTarget, setActivePickerTarget] = useState<"start" | "end" | null>(null);
+
   const shifts = [
     {
       title: "Subah Shift",
@@ -366,56 +820,68 @@ function TimeRangeSelector({
         })}
       </View>
 
-      {/* Start Time & End Time Pickers */}
+      {/* Start Time & End Time - Pure Selectable Picker UI with 2px Solid Black Border */}
       <View style={styles.formRow}>
         <View style={{ flex: 1, marginRight: 10 }}>
           <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>SHURU WAQT (START TIME)</Text>
-          <View style={styles.blackInputBox}>
-            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
-              <Ionicons name="time" size={18} color="#2563EB" style={{ marginRight: 8 }} />
-              <TextInput
-                value={start24}
-                onChangeText={(val) => {
-                  const s12 = time24To12(val);
-                  onSelectTimes(val, end24, s12, end12);
-                }}
-                placeholder="08:00"
-                placeholderTextColor="#64748B"
-                style={styles.pickerInputText}
-                {...(Platform.OS === "web"
-                  ? ({
-                    type: "time",
-                  } as any)
-                  : {})}
-              />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActivePickerTarget("start")}
+            style={styles.pickerBox}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={styles.pickerIconCircleBlue}>
+                <Ionicons name="time" size={16} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text style={styles.pickerValueTime}>{start12}</Text>
+                <Text style={styles.pickerValueSub}>Tap to change</Text>
+              </View>
             </View>
-          </View>
+            <Ionicons name="chevron-down" size={16} color="#2563EB" />
+          </TouchableOpacity>
         </View>
 
         <View style={{ flex: 1 }}>
           <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>KHATAM WAQT (END TIME)</Text>
-          <View style={styles.blackInputBox}>
-            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
-              <Ionicons name="time" size={18} color="#2563EB" style={{ marginRight: 8 }} />
-              <TextInput
-                value={end24}
-                onChangeText={(val) => {
-                  const e12 = time24To12(val);
-                  onSelectTimes(start24, val, start12, e12);
-                }}
-                placeholder="14:00"
-                placeholderTextColor="#64748B"
-                style={styles.pickerInputText}
-                {...(Platform.OS === "web"
-                  ? ({
-                    type: "time",
-                  } as any)
-                  : {})}
-              />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setActivePickerTarget("end")}
+            style={styles.pickerBox}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={styles.pickerIconCircleBlue}>
+                <Ionicons name="time" size={16} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text style={styles.pickerValueTime}>{end12}</Text>
+                <Text style={styles.pickerValueSub}>Tap to change</Text>
+              </View>
             </View>
-          </View>
+            <Ionicons name="chevron-down" size={16} color="#2563EB" />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Time Picker Modal for Start / End */}
+      <TimePickerModal
+        visible={activePickerTarget !== null}
+        title={
+          activePickerTarget === "start"
+            ? "Shuru Waqt Tay Karein (Start Time)"
+            : "Khatam Waqt Tay Karein (End Time)"
+        }
+        initialTime12={activePickerTarget === "start" ? start12 : end12}
+        onClose={() => setActivePickerTarget(null)}
+        onSelectTime={(newTime12, newTime24) => {
+          if (activePickerTarget === "start") {
+            onSelectTimes(newTime24, end24, newTime12, end12);
+          } else {
+            onSelectTimes(start24, newTime24, start12, newTime12);
+          }
+          setActivePickerTarget(null);
+        }}
+      />
     </View>
   );
 }
@@ -1444,10 +1910,11 @@ export default function UserDashboardScreen() {
             </View>
 
             <ScrollView style={{ padding: 14 }}>
-              {/* Date Selection (Calendar Picker + Quick Chips) */}
+              {/* Date Selection (Pure Touch Calendar Picker + Quick Chips) */}
               <DateSelector
                 label="Tareekh Selection (Date)"
                 isoValue={feedDateISO}
+                formattedValue={feedDate}
                 onSelectDate={(iso, formatted) => {
                   setFeedDateISO(iso);
                   setFeedDate(formatted);
@@ -1576,10 +2043,11 @@ export default function UserDashboardScreen() {
             </View>
 
             <ScrollView style={{ padding: 14 }}>
-              {/* Date Selection (Calendar Picker + Quick Chips) */}
+              {/* Date Selection (Pure Touch Calendar Picker + Quick Chips) */}
               <DateSelector
                 label="Tareekh Selection (Date)"
                 isoValue={choozaDateISO}
+                formattedValue={choozaDate}
                 onSelectDate={(iso, formatted) => {
                   setChoozaDateISO(iso);
                   setChoozaDate(formatted);
@@ -2455,5 +2923,251 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "800",
+  },
+  modalSaveBtnBlue: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  pickerBox: {
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "#000000",
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    ...(Platform.OS === "web"
+      ? ({
+        cursor: "pointer",
+        userSelect: "none",
+      } as any)
+      : {}),
+  },
+  pickerIconCircleGreen: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#059669",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerIconCircleBlue: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerValueBig: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  pickerValueTime: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  pickerValueSub: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  pickerBadgeGreen: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#059669",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  pickerBadgeTextGreen: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#059669",
+  },
+  calendarSelectedBanner: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1.5,
+    borderColor: "#059669",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  calendarSelectedLabel: {
+    fontSize: 11,
+    color: "#065F46",
+    fontWeight: "700",
+  },
+  calendarSelectedValue: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#065F46",
+    marginTop: 2,
+  },
+  calendarMonthRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  calendarMonthTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  calNavBtn: {
+    padding: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#F8FAFC",
+  },
+  calendarWeekRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 6,
+    paddingVertical: 6,
+    marginBottom: 6,
+  },
+  calWeekCell: {
+    flex: 1,
+    alignItems: "center",
+  },
+  calWeekText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#475569",
+  },
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  calDayCellEmpty: {
+    width: "14.28%",
+    height: 38,
+  },
+  calDayCell: {
+    width: "14.28%",
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    marginVertical: 2,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+  },
+  calDayCellActive: {
+    backgroundColor: "#059669",
+  },
+  calDayText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  calDayTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "900",
+  },
+  timeClockBanner: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1.5,
+    borderColor: "#2563EB",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  timeClockBannerLabel: {
+    fontSize: 11,
+    color: "#1E40AF",
+    fontWeight: "700",
+  },
+  timeClockBannerBig: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#1E40AF",
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  ampmToggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "#CBD5E1",
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+  },
+  ampmToggleBtnActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#000000",
+  },
+  ampmToggleText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#475569",
+  },
+  ampmToggleTextActive: {
+    color: "#FFFFFF",
+  },
+  timeNumberGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 6,
+  },
+  timeNumberBtn: {
+    width: "22%",
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+  },
+  timeNumberBtnMinute: {
+    width: "22%",
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : {}),
+  },
+  timeNumberBtnActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#000000",
+  },
+  timeNumberText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  timeNumberTextActive: {
+    color: "#FFFFFF",
   },
 });
