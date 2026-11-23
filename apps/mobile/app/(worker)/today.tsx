@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,13 +10,14 @@ import {
   Platform,
   Linking,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
 import { OfflineStore } from "../../src/db/offlineStore";
 import { useSyncStore } from "../../src/store/useSyncStore";
-import { apiFetch, API_BASE_URL } from "../../src/api/client";
+import { API_BASE_URL } from "../../src/api/client";
 
 // =========================================================================
 // TYPES
@@ -53,7 +54,7 @@ interface MedicalGuideItem {
   instructions: string;
 }
 
-// Initial Sample Data matching actual farm history
+// Initial Sample Data matching actual farm history from notebook registers
 const INITIAL_FEED_LOG: FeedEntry[] = [
   {
     id: "f-1",
@@ -84,6 +85,16 @@ const INITIAL_FEED_LOG: FeedEntry[] = [
     receivedBags: 200,
     usedBags: 22,
     remainingBags: 178,
+  },
+  {
+    id: "f-4",
+    date: "20-Nov-2026",
+    dayNumber: 25,
+    timeRange: "08:00 AM - 02:00 PM",
+    targetFlock: "Shed 1 (Cobb 500)",
+    receivedBags: 200,
+    usedBags: 20,
+    remainingBags: 180,
   },
 ];
 
@@ -120,6 +131,17 @@ const INITIAL_CHOOZA_LOG: ChoozaEntry[] = [
     totalMort24h: 72,
     deathReason: "Kamzori",
     remainingBirds: 19384,
+  },
+  {
+    id: "c-4",
+    date: "20-Nov-2026",
+    dayNumber: 25,
+    chicksPlaced: 19888,
+    mortDay: 22,
+    mortNight: 20,
+    totalMort24h: 42,
+    deathReason: "Normal",
+    remainingBirds: 19456,
   },
 ];
 
@@ -159,7 +181,7 @@ const INITIAL_MEDICAL_GUIDE: MedicalGuideItem[] = [
 ];
 
 export default function UserDashboardScreen() {
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing } = useTheme();
   const { user, token } = useAuthStore();
   const { syncWithServer } = useSyncStore();
 
@@ -167,8 +189,21 @@ export default function UserDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // -------------------------------------------------------------------------
-  // 1. FEED CALCULATION STATE
+  // 1. DATA STATE
   // -------------------------------------------------------------------------
+  const [feedLog, setFeedLog] = useState<FeedEntry[]>(INITIAL_FEED_LOG);
+  const [choozaLog, setChoozaLog] = useState<ChoozaEntry[]>(INITIAL_CHOOZA_LOG);
+  const [medicalList, setMedicalList] = useState<MedicalGuideItem[]>(INITIAL_MEDICAL_GUIDE);
+  const [searchDiseaseQuery, setSearchDiseaseQuery] = useState("");
+
+  // -------------------------------------------------------------------------
+  // 2. MODAL STATES (For Clean, Fast Data Entry)
+  // -------------------------------------------------------------------------
+  const [showFeedModal, setShowFeedModal] = useState(false);
+  const [showChoozaModal, setShowChoozaModal] = useState(false);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+
+  // Feed Modal Form Inputs
   const [feedDate, setFeedDate] = useState("23-Nov-2026");
   const [feedDay, setFeedDay] = useState("28");
   const [feedTimeStart, setFeedTimeStart] = useState("08:00 AM");
@@ -176,57 +211,53 @@ export default function UserDashboardScreen() {
   const [feedTarget, setFeedTarget] = useState("Shed 1 (Cobb 500)");
   const [feedReceived, setFeedReceived] = useState("200");
   const [feedUsed, setFeedUsed] = useState("25");
-  const [feedLog, setFeedLog] = useState<FeedEntry[]>(INITIAL_FEED_LOG);
 
-  // Calculations for Feed
-  const numReceivedFeed = parseFloat(feedReceived) || 0;
-  const numUsedFeed = parseFloat(feedUsed) || 0;
-  const numRemainingFeed = Math.max(0, numReceivedFeed - numUsedFeed);
-
-  // -------------------------------------------------------------------------
-  // 2. CHOOZA CALCULATION STATE
-  // -------------------------------------------------------------------------
+  // Chooza Modal Form Inputs
   const [choozaDate, setChoozaDate] = useState("23-Nov-2026");
   const [choozaDay, setChoozaDay] = useState("28");
   const [choozaTotalPlaced, setChoozaTotalPlaced] = useState("19888");
   const [choozaMortDay, setChoozaMortDay] = useState("54");
   const [choozaMortNight, setChoozaMortNight] = useState("78");
-  const [choozaDeathReason, setChoozaDeathReason] = useState("Garmi Ka Tanav");
-  const [choozaLog, setChoozaLog] = useState<ChoozaEntry[]>(INITIAL_CHOOZA_LOG);
+  const [choozaDeathReason, setChoozaDeathReason] = useState("Garmi Ka Tanav (Heat Stress)");
 
-  // Calculations for Chooza
-  const numPlacedChicks = parseInt(choozaTotalPlaced, 10) || 0;
-  const numMortDay = parseInt(choozaMortDay, 10) || 0;
-  const numMortNight = parseInt(choozaMortNight, 10) || 0;
-  const totalDailyMort = numMortDay + numMortNight;
-  // Calculate cumulative mortality from existing log
-  const cumulativeMort = choozaLog.reduce((sum, item) => sum + item.totalMort24h, 0) + totalDailyMort;
-  const remainingLiveBirds = Math.max(0, numPlacedChicks - cumulativeMort);
-
-  // -------------------------------------------------------------------------
-  // 3. MEDICAL & DOCTOR GUIDE STATE
-  // -------------------------------------------------------------------------
-  const [medicalList, setMedicalList] = useState<MedicalGuideItem[]>(INITIAL_MEDICAL_GUIDE);
-  const [showAddGuideModal, setShowAddGuideModal] = useState(false);
+  // Doctor Modal Form Inputs
   const [guideDoctorName, setGuideDoctorName] = useState("");
   const [guideDoctorPhone, setGuideDoctorPhone] = useState("");
   const [guideDiseaseName, setGuideDiseaseName] = useState("");
   const [guideSolution, setGuideSolution] = useState("");
   const [guideInstructions, setGuideInstructions] = useState("");
-  const [searchDiseaseQuery, setSearchDiseaseQuery] = useState("");
+
+  // Live Auto-Calculations for Modals
+  const numReceivedFeed = parseFloat(feedReceived) || 0;
+  const numUsedFeed = parseFloat(feedUsed) || 0;
+  const numRemainingFeed = Math.max(0, numReceivedFeed - numUsedFeed);
+
+  const numTotalChicks = parseInt(choozaTotalPlaced, 10) || 19888;
+  const numMortDay = parseInt(choozaMortDay, 10) || 0;
+  const numMortNight = parseInt(choozaMortNight, 10) || 0;
+  const totalDailyMort = numMortDay + numMortNight;
+
+  const previousRemaining = choozaLog[0]?.remainingBirds || numTotalChicks;
+  const modalRemainingBirds = Math.max(0, previousRemaining - totalDailyMort);
+
+  // Aggregate Totals for Table Summaries
+  const totalFeedUsedAll = feedLog.reduce((acc, item) => acc + item.usedBags, 0);
+  const currentFeedStock = feedLog[0]?.remainingBags || 175;
+  const currentLiveBirds = choozaLog[0]?.remainingBirds || 19135;
+  const totalMortalityAll = choozaLog.reduce((acc, item) => acc + item.totalMort24h, 0);
 
   // -------------------------------------------------------------------------
-  // HANDLERS
+  // SAVE HANDLERS
   // -------------------------------------------------------------------------
   const handleSaveFeed = async () => {
-    if (!numUsedFeed || numUsedFeed <= 0) {
-      Alert.alert("Feed Likhein", "Baraye meharbani istemal shuda borian darj karein.");
+    if (!feedUsed || numUsedFeed <= 0) {
+      Alert.alert("Ghalti", "Baraye meherbani istemaal shuda borian (Used Bags) darj karein.");
       return;
     }
 
     const newEntry: FeedEntry = {
-      id: `feed-${Date.now()}`,
-      date: feedDate,
+      id: `f-${Date.now()}`,
+      date: feedDate.trim() || new Date().toISOString().split("T")[0],
       dayNumber: parseInt(feedDay, 10) || 1,
       timeRange: `${feedTimeStart} - ${feedTimeEnd}`,
       targetFlock: feedTarget,
@@ -236,9 +267,10 @@ export default function UserDashboardScreen() {
     };
 
     setFeedLog([newEntry, ...feedLog]);
+    setShowFeedModal(false);
 
     try {
-      await OfflineStore.enqueueMutation("FEED_LEDGER", "CREATE", {
+      await OfflineStore.enqueueMutation("FEED_ISSUE", "CREATE", {
         type: "usage",
         date: feedDate,
         dayNumber: feedDay,
@@ -258,25 +290,26 @@ export default function UserDashboardScreen() {
     }
 
     Alert.alert(
-      "Feed Hisab Mehfooz!",
-      `${numUsedFeed} Borian (${newEntry.timeRange}) darj ho gayi hain.\nBaqi Stock: ${numRemainingFeed} Borian.`,
+      "Feed Entry Table Mein Shamil Ho Gayi!",
+      `Day ${newEntry.dayNumber} • ${newEntry.usedBags} Bori Istemaal • Baqi Stock: ${newEntry.remainingBags} Bags.`,
     );
   };
 
   const handleSaveChooza = async () => {
     const newEntry: ChoozaEntry = {
-      id: `chooza-${Date.now()}`,
-      date: choozaDate,
+      id: `c-${Date.now()}`,
+      date: choozaDate.trim() || new Date().toISOString().split("T")[0],
       dayNumber: parseInt(choozaDay, 10) || 1,
-      chicksPlaced: numPlacedChicks,
+      chicksPlaced: numTotalChicks,
       mortDay: numMortDay,
       mortNight: numMortNight,
       totalMort24h: totalDailyMort,
-      deathReason: choozaDeathReason.trim() || "Wajah Darj Nahi Ki",
-      remainingBirds: remainingLiveBirds,
+      deathReason: choozaDeathReason.trim() || "Normal",
+      remainingBirds: modalRemainingBirds,
     };
 
     setChoozaLog([newEntry, ...choozaLog]);
+    setShowChoozaModal(false);
 
     try {
       await OfflineStore.enqueueMutation("DAILY_RECORD", "CREATE", {
@@ -286,7 +319,7 @@ export default function UserDashboardScreen() {
         mortalityNightShift: numMortNight,
         mortalityCount: totalDailyMort,
         deathReason: choozaDeathReason,
-        remainingBirds: remainingLiveBirds,
+        remainingBirds: modalRemainingBirds,
       });
 
       if (token && user) {
@@ -299,8 +332,8 @@ export default function UserDashboardScreen() {
     }
 
     Alert.alert(
-      "Chooza Hisab Mehfooz!",
-      `Din: ${numMortDay} • Sham: ${numMortNight} • Kul Amwaat: ${totalDailyMort} Chooza.\nBaqi Zinda Chooza: ${remainingLiveBirds}.`,
+      "Chooza Entry Table Mein Shamil Ho Gayi!",
+      `Day ${newEntry.dayNumber} • 24h Amwaat: ${totalDailyMort} • Baqi Zinda Chooza: ${modalRemainingBirds.toLocaleString()}.`,
     );
   };
 
@@ -320,14 +353,47 @@ export default function UserDashboardScreen() {
     };
 
     setMedicalList([newGuide, ...medicalList]);
-    setShowAddGuideModal(false);
+    setShowDoctorModal(false);
     setGuideDiseaseName("");
     setGuideSolution("");
     setGuideInstructions("");
     setGuideDoctorName("");
     setGuideDoctorPhone("");
 
-    Alert.alert("Guide Shamil Ho Gaya!", `${newGuide.diseaseName} ka ilaj aur doctor list mein shamil ho gaya hai.`);
+    Alert.alert("Guide Shamil Ho Gaya!", `${newGuide.diseaseName} ka ilaj table mein shamil ho gaya hai.`);
+  };
+
+  const handleDeleteFeedRow = (id: string) => {
+    Alert.alert("Entry Delete Karein?", "Kya aap waqai is entry ko table se hatana chahtay hain?", [
+      { text: "Nahi", style: "cancel" },
+      {
+        text: "Haan, Delete",
+        style: "destructive",
+        onPress: () => setFeedLog(feedLog.filter((item) => item.id !== id)),
+      },
+    ]);
+  };
+
+  const handleDeleteChoozaRow = (id: string) => {
+    Alert.alert("Entry Delete Karein?", "Kya aap waqai is chooza entry ko table se hatana chahtay hain?", [
+      { text: "Nahi", style: "cancel" },
+      {
+        text: "Haan, Delete",
+        style: "destructive",
+        onPress: () => setChoozaLog(choozaLog.filter((item) => item.id !== id)),
+      },
+    ]);
+  };
+
+  const handleDeleteDoctorRow = (id: string) => {
+    Alert.alert("Record Delete Karein?", "Kya aap waqai is bimari guide ko hatana chahtay hain?", [
+      { text: "Nahi", style: "cancel" },
+      {
+        text: "Haan, Delete",
+        style: "destructive",
+        onPress: () => setMedicalList(medicalList.filter((item) => item.id !== id)),
+      },
+    ]);
   };
 
   const handleCallDoctor = (phone: string, doctorName: string) => {
@@ -355,77 +421,119 @@ export default function UserDashboardScreen() {
   };
 
   // -------------------------------------------------------------------------
-  // PDF REPORT EXPORT FUNCTION (Clean, Instant, Printable Document)
+  // PRINTABLE PROFESSIONAL PDF GENERATOR
   // -------------------------------------------------------------------------
   const handleExportPDF = (type: "feed" | "chooza" | "full") => {
     let reportTitle = "";
     let tableHtml = "";
 
     if (type === "feed") {
-      reportTitle = "Al-Barakah Broiler Farm • Rozana Feed Calculation Report";
+      reportTitle = "Al-Barakah Broiler Farm • Rozana Feed Calculation Table Register";
       tableHtml = `
-        <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-family:Arial, sans-serif;">
-          <tr style="background-color:#065F46; color:#ffffff;">
-            <th>Tareekh & Year</th>
-            <th>Day</th>
-            <th>Waqt (Start - End Time)</th>
-            <th>Flock / Shed</th>
-            <th>Istemal Borian (Used)</th>
-            <th>Baqi Stock (Remaining)</th>
-          </tr>
-          ${feedLog
-            .map(
-              (f) => `
-            <tr>
-              <td>${f.date}</td>
-              <td>Day ${f.dayNumber}</td>
-              <td>${f.timeRange}</td>
-              <td>${f.targetFlock}</td>
-              <td style="color:#059669; font-weight:bold;">${f.usedBags} Bags</td>
-              <td style="font-weight:bold;">${f.remainingBags} Bags</td>
+        <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-family:Arial, sans-serif; font-size:12px;">
+          <thead>
+            <tr style="background-color:#065F46; color:#ffffff;">
+              <th>#</th>
+              <th>Tareekh & Saal</th>
+              <th>Din (Day)</th>
+              <th>Waqt (Start - End)</th>
+              <th>Flock / Shed</th>
+              <th>Feed Aayi (Stock In)</th>
+              <th>Istemaal (Used Bags)</th>
+              <th>Baqi Stock (Balance)</th>
             </tr>
-          `,
-            )
-            .join("")}
+          </thead>
+          <tbody>
+            ${feedLog
+              .map(
+                (f, idx) => `
+              <tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+                <td>${idx + 1}</td>
+                <td><strong>${f.date}</strong></td>
+                <td>Day ${f.dayNumber}</td>
+                <td>${f.timeRange}</td>
+                <td>${f.targetFlock}</td>
+                <td>${f.receivedBags} Bags (${f.receivedBags * 50} kg)</td>
+                <td style="color:#dc2626; font-weight:bold;">${f.usedBags} Bags</td>
+                <td style="color:#059669; font-weight:bold;">${f.remainingBags} Bags</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="background-color:#e2e8f0; font-weight:bold;">
+              <td colspan="5" style="text-align:right;">KUL HISAB (TOTALS):</td>
+              <td>${feedLog[0]?.receivedBags || 200} Bags In</td>
+              <td style="color:#dc2626;">${totalFeedUsedAll} Bags Used</td>
+              <td style="color:#059669;">${currentFeedStock} Bags Baqi</td>
+            </tr>
+          </tfoot>
         </table>
       `;
     } else if (type === "chooza") {
-      reportTitle = "Al-Barakah Broiler Farm • Rozana Chooza & Mortality Report";
+      reportTitle = "Al-Barakah Broiler Farm • Chooza & Mortality Table Register";
       tableHtml = `
-        <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-family:Arial, sans-serif;">
-          <tr style="background-color:#1E293B; color:#ffffff;">
-            <th>Tareekh & Year</th>
-            <th>Day</th>
-            <th>Din Ki Mout</th>
-            <th>Sham Ki Mout</th>
-            <th>24h Total Amwaat</th>
-            <th>Mout Ki Wajah</th>
-            <th>Baqi Zinda Chooza</th>
-          </tr>
-          ${choozaLog
-            .map(
-              (c) => `
-            <tr>
-              <td>${c.date}</td>
-              <td>Day ${c.dayNumber}</td>
-              <td style="color:#DC2626;">${c.mortDay}</td>
-              <td style="color:#DC2626;">${c.mortNight}</td>
-              <td style="color:#B91C1C; font-weight:bold;">${c.totalMort24h}</td>
-              <td>${c.deathReason}</td>
-              <td style="color:#059669; font-weight:bold;">${c.remainingBirds.toLocaleString()}</td>
+        <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-family:Arial, sans-serif; font-size:12px;">
+          <thead>
+            <tr style="background-color:#0F172A; color:#ffffff;">
+              <th>#</th>
+              <th>Tareekh & Saal</th>
+              <th>Din (Day)</th>
+              <th>Kul Shamil (Total Placed)</th>
+              <th>Din Amwaat (Day)</th>
+              <th>Sham Amwaat (Night)</th>
+              <th>24h Kul Amwaat</th>
+              <th>Maut Ki Wajah (Reason)</th>
+              <th>Baqi Zinda Chooza</th>
             </tr>
-          `,
-            )
-            .join("")}
+          </thead>
+          <tbody>
+            ${choozaLog
+              .map(
+                (c, idx) => `
+              <tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+                <td>${idx + 1}</td>
+                <td><strong>${c.date}</strong></td>
+                <td>Day ${c.dayNumber}</td>
+                <td>${c.chicksPlaced.toLocaleString()}</td>
+                <td style="color:#dc2626;">${c.mortDay}</td>
+                <td style="color:#dc2626;">${c.mortNight}</td>
+                <td style="color:#b91c1c; font-weight:bold;">${c.totalMort24h}</td>
+                <td>${c.deathReason}</td>
+                <td style="color:#059669; font-weight:bold;">${c.remainingBirds.toLocaleString()}</td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="background-color:#e2e8f0; font-weight:bold;">
+              <td colspan="4" style="text-align:right;">KUL AMWAAT SUMMARY:</td>
+              <td colspan="3" style="color:#b91c1c;">Kul Amwaat: ${totalMortalityAll} Chooza</td>
+              <td colspan="2" style="color:#059669;">Baqi Zinda: ${currentLiveBirds.toLocaleString()} Birds</td>
+            </tr>
+          </tfoot>
         </table>
       `;
     } else {
-      reportTitle = "Al-Barakah Broiler Farm • Mukammal Rozana Working Report";
+      reportTitle = "Al-Barakah Broiler Farm • Mukammal Rozana Working Report (Feed + Chooza + Medical)";
       tableHtml = `
-        <h3 style="color:#065F46;">1. Feed Calculation (Khuraak)</h3>
-        <p>Baqi Maujood Feed: <strong>${feedLog[0]?.remainingBags || 175} Bags</strong></p>
-        <h3 style="color:#1E293B;">2. Chooza Status (Flock)</h3>
-        <p>Zinda Chooza: <strong>${choozaLog[0]?.remainingBirds || 19135} Birds</strong></p>
+        <h3 style="color:#065F46; border-bottom:2px solid #065F46; padding-bottom:4px;">1. Feed Calculation Table</h3>
+        <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-size:11px; margin-bottom:20px;">
+          <tr style="background-color:#065F46; color:#fff;"><th>Tareekh</th><th>Din</th><th>Waqt</th><th>Shed</th><th>Aayi Feed</th><th>Istemaal</th><th>Baqi Stock</th></tr>
+          ${feedLog.map((f) => `<tr><td>${f.date}</td><td>Day ${f.dayNumber}</td><td>${f.timeRange}</td><td>${f.targetFlock}</td><td>${f.receivedBags} Bags</td><td style="color:#dc2626; font-weight:bold;">${f.usedBags}</td><td style="color:#059669; font-weight:bold;">${f.remainingBags}</td></tr>`).join("")}
+        </table>
+
+        <h3 style="color:#0F172A; border-bottom:2px solid #0F172A; padding-bottom:4px;">2. Chooza & Mortality Table</h3>
+        <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:center; font-size:11px; margin-bottom:20px;">
+          <tr style="background-color:#0F172A; color:#fff;"><th>Tareekh</th><th>Din</th><th>Kul Chooza</th><th>Din Maut</th><th>Sham Maut</th><th>24h Total</th><th>Wajah</th><th>Zinda Chooza</th></tr>
+          ${choozaLog.map((c) => `<tr><td>${c.date}</td><td>Day ${c.dayNumber}</td><td>${c.chicksPlaced}</td><td>${c.mortDay}</td><td>${c.mortNight}</td><td style="color:#b91c1c; font-weight:bold;">${c.totalMort24h}</td><td>${c.deathReason}</td><td style="color:#059669; font-weight:bold;">${c.remainingBirds.toLocaleString()}</td></tr>`).join("")}
+        </table>
+
+        <h3 style="color:#7C3AED; border-bottom:2px solid #7C3AED; padding-bottom:4px;">3. Doctor & Tibbi Directory</h3>
+        <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; text-align:left; font-size:11px;">
+          <tr style="background-color:#7C3AED; color:#fff;"><th>Bimari</th><th>Tajweez Karda Dawaai</th><th>Tareeqa-e-Istemal</th><th>Doctor</th><th>Rabta</th></tr>
+          ${medicalList.map((m) => `<tr><td><strong>${m.diseaseName}</strong></td><td>${m.medicineSolution}</td><td>${m.instructions}</td><td>${m.doctorName}</td><td>${m.doctorPhone}</td></tr>`).join("")}
+        </table>
       `;
     }
 
@@ -435,16 +543,20 @@ export default function UserDashboardScreen() {
         <head>
           <title>${reportTitle}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #0F172A; }
-            h1 { color: #065F46; margin-bottom: 4px; }
-            p { margin-top: 0; color: #64748B; font-size: 13px; }
-            .header-banner { border-bottom: 2px solid #065F46; padding-bottom: 10px; margin-bottom: 16px; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; margin: 25px; color: #1e293b; }
+            .header { text-align: center; border-bottom: 3px double #065f46; padding-bottom: 12px; margin-bottom: 20px; }
+            .farm-name { font-size: 22px; font-weight: 900; color: #065f46; text-transform: uppercase; margin: 0; }
+            .meta { font-size: 13px; color: #475569; margin-top: 6px; }
+            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #e2e8f0; }
           </style>
         </head>
         <body>
-          <div class="header-banner">
-            <h1>AL-BARAKAH BROILER FARM</h1>
-            <p><strong>${reportTitle}</strong> • Generated on ${new Date().toLocaleString()} by ${user?.name || "Employee"}</p>
+          <div class="header">
+            <h1 class="farm-name">Al-Barakah Broiler Farm</h1>
+            <div class="meta">
+              <strong>Official Daily Farm Register Report</strong> • Batch: Cobb 500 • Shed 1 • Day 28<br/>
+              Printed on: ${new Date().toLocaleString()} • Worker: ${user?.name || "Ali Ahmed"}
+            </div>
           </div>
           ${tableHtml}
         </body>
@@ -464,7 +576,7 @@ export default function UserDashboardScreen() {
     } else {
       Alert.alert(
         "PDF Report Tayyar Hai!",
-        `${reportTitle}\n\nTamam data record mehfooz hai aur print/PDF ke liye ready hai.`,
+        `${reportTitle}\n\nTamam table data register print aur PDF export ke liye ready hai.`,
       );
     }
   };
@@ -472,17 +584,18 @@ export default function UserDashboardScreen() {
   const filteredMedicalList = medicalList.filter(
     (item) =>
       item.diseaseName.toLowerCase().includes(searchDiseaseQuery.toLowerCase()) ||
-      item.medicineSolution.toLowerCase().includes(searchDiseaseQuery.toLowerCase()),
+      item.medicineSolution.toLowerCase().includes(searchDiseaseQuery.toLowerCase()) ||
+      item.doctorName.toLowerCase().includes(searchDiseaseQuery.toLowerCase()),
   );
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#F8FAFC" }}
+      style={{ flex: 1, backgroundColor: "#F1F5F9" }}
       contentContainerStyle={[
         styles.container,
         {
           padding: spacing.base,
-          maxWidth: 900,
+          maxWidth: 1200,
           alignSelf: "center",
           width: "100%",
         },
@@ -499,41 +612,45 @@ export default function UserDashboardScreen() {
       }
     >
       {/* ========================================================================= */}
-      {/* TOP USER DASHBOARD BANNER */}
+      {/* 1. PROFESSIONAL TOP HEADER & FARM SUMMARY */}
       {/* ========================================================================= */}
       <View style={styles.topHeaderCard}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.farmTitle}>AL-BARAKAH BROILER FARM</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <MaterialCommunityIcons name="home-analytics" size={24} color="#A7F3D0" />
+            <Text style={styles.farmTitle}>AL-BARAKAH BROILER FARM</Text>
+          </View>
           <Text style={styles.userRoleText}>
-            Employee Dashboard • {user?.name || "Ali Ahmed"} (Shed 1)
+            Professional Farm Register & Dashboard • Worker: {user?.name || "Ali Ahmed"} (Shed 1)
           </Text>
-          <Text style={styles.flockInfoText}>
-            Active Batch: Cobb 500 • Placed: 19,888 Chicks • Day 28
-          </Text>
+        </View>
+
+        <View style={styles.batchBadge}>
+          <Text style={styles.batchBadgeText}>Batch: Cobb 500 • Day 28</Text>
         </View>
       </View>
 
-      {/* Quick Status KPI Summary */}
+      {/* 2. STATS & KPI BAR */}
       <View style={styles.kpiRow}>
         <View style={[styles.kpiCard, { borderLeftColor: "#059669" }]}>
-          <Text style={styles.kpiLabel}>BAQI FEED</Text>
+          <Text style={styles.kpiLabel}>BAQI FEED STOCK</Text>
           <Text style={[styles.kpiValue, { color: "#065F46" }]}>
-            {feedLog[0]?.remainingBags || 175} Bags
+            {currentFeedStock} Bags
           </Text>
-          <Text style={styles.kpiSub}>Available in Shed</Text>
+          <Text style={styles.kpiSub}>Available in Shed 1 ({currentFeedStock * 50} kg)</Text>
         </View>
 
         <View style={[styles.kpiCard, { borderLeftColor: "#2563EB" }]}>
-          <Text style={styles.kpiLabel}>ZINDA CHOOZA</Text>
+          <Text style={styles.kpiLabel}>ZINDA CHOOZA (LIVE)</Text>
           <Text style={[styles.kpiValue, { color: "#1E40AF" }]}>
-            {(choozaLog[0]?.remainingBirds || 19135).toLocaleString()}
+            {currentLiveBirds.toLocaleString()}
           </Text>
-          <Text style={styles.kpiSub}>Total Live Birds</Text>
+          <Text style={styles.kpiSub}>Total Live Birds (Pl: 19,888)</Text>
         </View>
 
         <View style={[styles.kpiCard, { borderLeftColor: "#D97706" }]}>
           <Text style={styles.kpiLabel}>DOCTOR ON CALL</Text>
-          <Text style={[styles.kpiValue, { color: "#B45309", fontSize: 14 }]}>
+          <Text style={[styles.kpiValue, { color: "#B45309", fontSize: 15 }]}>
             Dr. Ahsan
           </Text>
           <TouchableOpacity
@@ -541,13 +658,13 @@ export default function UserDashboardScreen() {
             style={styles.quickCallPill}
           >
             <Ionicons name="call" size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
-            <Text style={styles.quickCallText}>Call</Text>
+            <Text style={styles.quickCallText}>Direct Call (0300-5551234)</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* ========================================================================= */}
-      {/* 3 CORE PORTIONS SWITCHER */}
+      {/* 3. PRO SEGMENTED TAB SWITCHER */}
       {/* ========================================================================= */}
       <View style={styles.segmentedNav}>
         <TouchableOpacity
@@ -569,7 +686,7 @@ export default function UserDashboardScreen() {
               activeTab === "feed" && styles.segmentBtnTextActive,
             ]}
           >
-            1. Feed Calculation
+            1. Feed Calculation Table
           </Text>
         </TouchableOpacity>
 
@@ -592,7 +709,7 @@ export default function UserDashboardScreen() {
               activeTab === "chooza" && styles.segmentBtnTextActive,
             ]}
           >
-            2. Chooza Calculation
+            2. Chooza Calculation Table
           </Text>
         </TouchableOpacity>
 
@@ -615,400 +732,735 @@ export default function UserDashboardScreen() {
               activeTab === "doctor" && styles.segmentBtnTextActive,
             ]}
           >
-            3. Doctor & Medical
+            3. Doctor & Medical Table
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* ========================================================================= */}
-      {/* PORTION 1: FEED CALCULATION (KHURAAK KA HISAB) */}
+      {/* TAB 1: FEED CALCULATION TABLE VIEW (HERO TABLE) */}
       {/* ========================================================================= */}
       {activeTab === "feed" && (
         <View style={styles.portionWrapper}>
-          <View style={styles.portionHeaderRow}>
+          {/* Action Header Bar */}
+          <View style={styles.tableToolbar}>
             <View>
-              <Text style={styles.portionTitle}>Feed Calculation (Khuraak Ka Hisab)</Text>
-              <Text style={styles.portionSub}>
-                Har din aur exact waqt (Minute-by-minute) ki feed entry aur baqi stock
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.tableTitle}>Feed Calculation Register</Text>
+                <View style={styles.recordBadgeGreen}>
+                  <Text style={styles.recordBadgeTextGreen}>{feedLog.length} Entries</Text>
+                </View>
+              </View>
+              <Text style={styles.tableSub}>
+                Har din aur exact waqt (Minute-by-minute) ki feed bori aur stock hisab
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => handleExportPDF("feed")}
-              style={styles.pdfButton}
-            >
-              <Ionicons name="document-text-outline" size={15} color="#065F46" style={{ marginRight: 4 }} />
-              <Text style={styles.pdfButtonText}>Feed PDF</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Feed Entry Card */}
-          <View style={styles.entryFormCard}>
-            <View style={styles.formRow}>
-              <View style={{ flex: 1.2, marginRight: 8 }}>
-                <Text style={styles.inputTitle}>Tareekh & Year (Date):</Text>
-                <TextInput
-                  value={feedDate}
-                  onChangeText={setFeedDate}
-                  placeholder="e.g. 23-Nov-2026"
-                  style={styles.textInput}
-                />
-              </View>
-
-              <View style={{ flex: 0.8 }}>
-                <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
-                <TextInput
-                  value={feedDay}
-                  onChangeText={setFeedDay}
-                  placeholder="28"
-                  keyboardType="number-pad"
-                  style={styles.textInput}
-                />
-              </View>
-            </View>
-
-            {/* Exact Time Slot: "Kiss time sy kiss time tk use hoi" */}
-            <View style={styles.formRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.inputTitle}>Shuru Waqt (Start Time):</Text>
-                <TextInput
-                  value={feedTimeStart}
-                  onChangeText={setFeedTimeStart}
-                  placeholder="e.g. 08:00 AM"
-                  style={styles.textInput}
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputTitle}>Khatam Waqt (End Time):</Text>
-                <TextInput
-                  value={feedTimeEnd}
-                  onChangeText={setFeedTimeEnd}
-                  placeholder="e.g. 02:00 PM"
-                  style={styles.textInput}
-                />
-              </View>
-            </View>
-
-            {/* Target & Bags */}
-            <View style={styles.formRow}>
-              <View style={{ flex: 1.2, marginRight: 8 }}>
-                <Text style={styles.inputTitle}>Kin Ke Liye Use Hui (Flock/Shed):</Text>
-                <TextInput
-                  value={feedTarget}
-                  onChangeText={setFeedTarget}
-                  placeholder="e.g. Shed 1 (Cobb 500)"
-                  style={styles.textInput}
-                />
-              </View>
-
-              <View style={{ flex: 0.8 }}>
-                <Text style={styles.inputTitle}>Feed Aayi (Received Bags):</Text>
-                <TextInput
-                  value={feedReceived}
-                  onChangeText={setFeedReceived}
-                  placeholder="200"
-                  keyboardType="numeric"
-                  style={styles.textInput}
-                />
-              </View>
-            </View>
-
-            <View style={{ marginVertical: 4 }}>
-              <Text style={styles.inputTitle}>Is Waqt Kitni Bori Use Hui (Used Bags):</Text>
-              <TextInput
-                value={feedUsed}
-                onChangeText={setFeedUsed}
-                placeholder="e.g. 25"
-                keyboardType="numeric"
-                style={[styles.textInput, { fontSize: 16, fontWeight: "700" }]}
-              />
-            </View>
-
-            {/* Live Auto Calculation Box */}
-            <View style={styles.calcSummaryBoxGreen}>
-              <View style={styles.calcSummaryRow}>
-                <Text style={styles.calcLabel}>Kul Stock (Received):</Text>
-                <Text style={styles.calcVal}>{numReceivedFeed} Bags ({numReceivedFeed * 50} kg)</Text>
-              </View>
-              <View style={styles.calcSummaryRow}>
-                <Text style={styles.calcLabel}>Istemal (Used Feed):</Text>
-                <Text style={[styles.calcVal, { color: "#DC2626" }]}>
-                  -{numUsedFeed} Bags ({numUsedFeed * 50} kg)
-                </Text>
-              </View>
-              <View style={[styles.calcSummaryRow, styles.calcBorderTop]}>
-                <Text style={[styles.calcLabel, { fontWeight: "800", color: "#065F46" }]}>
-                  Baqi Bachi Hui Feed (Remaining):
-                </Text>
-                <Text style={[styles.calcValBold, { color: "#065F46", fontSize: 16 }]}>
-                  {numRemainingFeed} Bags ({numRemainingFeed * 50} kg)
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleSaveFeed}
-              style={styles.primarySaveBtn}
-            >
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.primarySaveBtnText}>Feed Record Darj Karein</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Daily Feed Entries Log Table (Shown Below) */}
-          <View style={styles.tableCard}>
-            <View style={styles.tableHeadRowFeed}>
-              <Text style={[styles.tableHeadText, { width: 95 }]}>DATE</Text>
-              <Text style={[styles.tableHeadText, { width: 50 }]}>DAY</Text>
-              <Text style={[styles.tableHeadText, { width: 140 }]}>TIME (DURATION)</Text>
-              <Text style={[styles.tableHeadText, { flex: 1, textAlign: "left", paddingLeft: 6 }]}>FLOCK / SHED</Text>
-              <Text style={[styles.tableHeadText, { width: 80 }]}>USED</Text>
-              <Text style={[styles.tableHeadText, { width: 80 }]}>REMAINING</Text>
-            </View>
-
-            {feedLog.map((f, idx) => (
-              <View
-                key={f.id}
-                style={[
-                  styles.tableRow,
-                  { backgroundColor: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" },
-                ]}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowFeedModal(true)}
+                style={styles.actionBtnPrimaryGreen}
               >
-                <Text style={[styles.tableCellText, { width: 95, fontWeight: "700" }]}>{f.date}</Text>
-                <Text style={[styles.tableCellText, { width: 50 }]}>Day {f.dayNumber}</Text>
-                <Text style={[styles.tableCellText, { width: 140, fontSize: 11, color: "#2563EB" }]}>
-                  {f.timeRange}
-                </Text>
-                <Text style={[styles.tableCellText, { flex: 1, textAlign: "left", paddingLeft: 6 }]}>
-                  {f.targetFlock}
-                </Text>
-                <Text style={[styles.tableCellText, { width: 80, fontWeight: "800", color: "#DC2626" }]}>
-                  {f.usedBags} bags
-                </Text>
-                <Text style={[styles.tableCellText, { width: 80, fontWeight: "800", color: "#065F46" }]}>
-                  {f.remainingBags} bags
-                </Text>
+                <Ionicons name="add-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.actionBtnTextWhite}>+ Nayi Feed Entry</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleExportPDF("feed")}
+                style={styles.actionBtnOutline}
+              >
+                <Ionicons name="document-text-outline" size={15} color="#065F46" style={{ marginRight: 4 }} />
+                <Text style={styles.actionBtnTextGreen}>Feed PDF</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* SPREADSHEET REGISTER TABLE */}
+          <View style={styles.tableContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View style={{ minWidth: 920 }}>
+                {/* Table Header */}
+                <View style={styles.tableHeadFeed}>
+                  <Text style={[styles.thCell, { width: 45 }]}>#</Text>
+                  <Text style={[styles.thCell, { width: 115 }]}>TAREEKH (DATE)</Text>
+                  <Text style={[styles.thCell, { width: 85 }]}>DIN (DAY)</Text>
+                  <Text style={[styles.thCell, { width: 165 }]}>WAQT (FROM - TO)</Text>
+                  <Text style={[styles.thCell, { width: 160, textAlign: "left", paddingLeft: 8 }]}>FLOCK / SHED</Text>
+                  <Text style={[styles.thCell, { width: 120 }]}>FEED AAYI (IN)</Text>
+                  <Text style={[styles.thCell, { width: 110 }]}>ISTEMAAL (USED)</Text>
+                  <Text style={[styles.thCell, { width: 120 }]}>BAQI STOCK</Text>
+                  <Text style={[styles.thCell, { width: 70 }]}>ACTION</Text>
+                </View>
+
+                {/* Table Rows */}
+                {feedLog.map((row, index) => (
+                  <View
+                    key={row.id}
+                    style={[
+                      styles.tableRow,
+                      { backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F8FAFC" },
+                    ]}
+                  >
+                    <Text style={[styles.tdCell, { width: 45, color: "#64748B", fontWeight: "600" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[styles.tdCell, { width: 115, fontWeight: "700" }]}>
+                      {row.date}
+                    </Text>
+                    <View style={{ width: 85, alignItems: "center" }}>
+                      <View style={styles.dayPill}>
+                        <Text style={styles.dayPillText}>Day {row.dayNumber}</Text>
+                      </View>
+                    </View>
+                    <View style={{ width: 165, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                      <Ionicons name="time-outline" size={12} color="#2563EB" style={{ marginRight: 4 }} />
+                      <Text style={[styles.tdCell, { color: "#2563EB", fontWeight: "600" }]}>
+                        {row.timeRange}
+                      </Text>
+                    </View>
+                    <Text style={[styles.tdCell, { width: 160, textAlign: "left", paddingLeft: 8 }]}>
+                      {row.targetFlock}
+                    </Text>
+                    <Text style={[styles.tdCell, { width: 120, fontWeight: "600" }]}>
+                      {row.receivedBags} Bags
+                    </Text>
+                    <View style={{ width: 110, alignItems: "center" }}>
+                      <View style={styles.usedBadge}>
+                        <Text style={styles.usedBadgeText}>-{row.usedBags} Bags</Text>
+                      </View>
+                    </View>
+                    <View style={{ width: 120, alignItems: "center" }}>
+                      <View style={styles.balanceBadge}>
+                        <Text style={styles.balanceBadgeText}>{row.remainingBags} Bags</Text>
+                      </View>
+                    </View>
+                    <View style={{ width: 70, alignItems: "center" }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteFeedRow(row.id)}
+                        style={styles.deleteIconBtn}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Table Footer Totals */}
+                <View style={styles.tableFooter}>
+                  <Text style={[styles.tfCell, { width: 410, textAlign: "right", paddingRight: 16 }]}>
+                    KUL HISAB (SUMMARY TOTALS):
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 120 }]}>
+                    {feedLog[0]?.receivedBags || 200} Bags In
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 110, color: "#DC2626" }]}>
+                    {totalFeedUsedAll} Bags Used
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 120, color: "#065F46" }]}>
+                    {currentFeedStock} Bags Baqi
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 70 }]}>-</Text>
+                </View>
               </View>
-            ))}
+            </ScrollView>
           </View>
         </View>
       )}
 
       {/* ========================================================================= */}
-      {/* PORTION 2: CHOOZA CALCULATION (FLOCK & MORTALITY HISAB) */}
+      {/* TAB 2: CHOOZA CALCULATION TABLE VIEW (HERO TABLE) */}
       {/* ========================================================================= */}
       {activeTab === "chooza" && (
         <View style={styles.portionWrapper}>
-          <View style={styles.portionHeaderRow}>
+          {/* Action Header Bar */}
+          <View style={styles.tableToolbar}>
             <View>
-              <Text style={styles.portionTitle}>Chooza Calculation (Flock & Amwaat)</Text>
-              <Text style={styles.portionSub}>
-                Kitna chooza aaya, din aur sham ki amwaat, wajah aur baqi chooza
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.tableTitle}>Chooza & Amwaat Register</Text>
+                <View style={styles.recordBadgeDark}>
+                  <Text style={styles.recordBadgeTextDark}>{choozaLog.length} Records</Text>
+                </View>
+              </View>
+              <Text style={styles.tableSub}>
+                Kitna chooza aaya, din aur raat ki amwaat, maut ki wajah aur zinda chooza
               </Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => handleExportPDF("chooza")}
-              style={styles.pdfButton}
-            >
-              <Ionicons name="document-text-outline" size={15} color="#1E293B" style={{ marginRight: 4 }} />
-              <Text style={[styles.pdfButtonText, { color: "#1E293B" }]}>Chooza PDF</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Chooza Entry Card */}
-          <View style={styles.entryFormCard}>
-            <View style={styles.formRow}>
-              <View style={{ flex: 1.2, marginRight: 8 }}>
-                <Text style={styles.inputTitle}>Tareekh & Year (Date):</Text>
-                <TextInput
-                  value={choozaDate}
-                  onChangeText={setChoozaDate}
-                  placeholder="e.g. 23-Nov-2026"
-                  style={styles.textInput}
-                />
-              </View>
-
-              <View style={{ flex: 0.8 }}>
-                <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
-                <TextInput
-                  value={choozaDay}
-                  onChangeText={setChoozaDay}
-                  placeholder="28"
-                  keyboardType="number-pad"
-                  style={styles.textInput}
-                />
-              </View>
-            </View>
-
-            <View style={{ marginVertical: 4 }}>
-              <Text style={styles.inputTitle}>Kul Chooza Aaya / Added (Initial Flock):</Text>
-              <TextInput
-                value={choozaTotalPlaced}
-                onChangeText={setChoozaTotalPlaced}
-                placeholder="19888"
-                keyboardType="number-pad"
-                style={[styles.textInput, { fontWeight: "700" }]}
-              />
-            </View>
-
-            {/* Din & Sham Mortality */}
-            <View style={styles.formRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.inputTitle}>Din Ko Kitna Mara (Day Death):</Text>
-                <TextInput
-                  value={choozaMortDay}
-                  onChangeText={setChoozaMortDay}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
-                />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={styles.inputTitle}>Sham Ko Kitna Mara (Night Death):</Text>
-                <TextInput
-                  value={choozaMortNight}
-                  onChangeText={setChoozaMortNight}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
-                />
-              </View>
-            </View>
-
-            {/* Death Reason */}
-            <View style={{ marginVertical: 4 }}>
-              <Text style={styles.inputTitle}>Mout Ki Wajah (Reason of Death):</Text>
-              <TextInput
-                value={choozaDeathReason}
-                onChangeText={setChoozaDeathReason}
-                placeholder="e.g. Garmi Ka Tanav, Kamzori, Dhakka"
-                style={styles.textInput}
-              />
-            </View>
-
-            {/* Live Auto Calculation Box */}
-            <View style={styles.calcSummaryBoxDark}>
-              <View style={styles.calcSummaryRow}>
-                <Text style={styles.calcLabel}>Aaj Ki 24h Amwaat (Day + Sham):</Text>
-                <Text style={[styles.calcValBold, { color: "#DC2626" }]}>
-                  {totalDailyMort} Chooza ({numMortDay} Din + {numMortNight} Sham)
-                </Text>
-              </View>
-              <View style={styles.calcSummaryRow}>
-                <Text style={styles.calcLabel}>Kul Amwaat Ab Tak (Cumulative):</Text>
-                <Text style={[styles.calcValBold, { color: "#B91C1C" }]}>
-                  {cumulativeMort} Chooza
-                </Text>
-              </View>
-              <View style={[styles.calcSummaryRow, styles.calcBorderTop]}>
-                <Text style={[styles.calcLabel, { fontWeight: "800", color: "#0F172A" }]}>
-                  Baqi Zinda Chooza (Remaining Birds):
-                </Text>
-                <Text style={[styles.calcValBold, { color: "#059669", fontSize: 16 }]}>
-                  {remainingLiveBirds.toLocaleString()} Birds
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleSaveChooza}
-              style={[styles.primarySaveBtn, { backgroundColor: "#1E293B" }]}
-            >
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.primarySaveBtnText}>Chooza Record Darj Karein</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Daily Chooza Entries Log Table */}
-          <View style={styles.tableCard}>
-            <View style={styles.tableHeadRowChooza}>
-              <Text style={[styles.tableHeadText, { width: 95 }]}>DATE</Text>
-              <Text style={[styles.tableHeadText, { width: 50 }]}>DAY</Text>
-              <Text style={[styles.tableHeadText, { width: 70 }]}>DIN MOUT</Text>
-              <Text style={[styles.tableHeadText, { width: 75 }]}>SHAM MOUT</Text>
-              <Text style={[styles.tableHeadText, { width: 80 }]}>24H TOTAL</Text>
-              <Text style={[styles.tableHeadText, { flex: 1, textAlign: "left", paddingLeft: 6 }]}>WAJAH (REASON)</Text>
-              <Text style={[styles.tableHeadText, { width: 95 }]}>BAQI CHOOZA</Text>
-            </View>
-
-            {choozaLog.map((c, idx) => (
-              <View
-                key={c.id}
-                style={[
-                  styles.tableRow,
-                  { backgroundColor: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" },
-                ]}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowChoozaModal(true)}
+                style={styles.actionBtnPrimaryDark}
               >
-                <Text style={[styles.tableCellText, { width: 95, fontWeight: "700" }]}>{c.date}</Text>
-                <Text style={[styles.tableCellText, { width: 50 }]}>Day {c.dayNumber}</Text>
-                <Text style={[styles.tableCellText, { width: 70, color: "#DC2626" }]}>{c.mortDay}</Text>
-                <Text style={[styles.tableCellText, { width: 75, color: "#DC2626" }]}>{c.mortNight}</Text>
-                <Text style={[styles.tableCellText, { width: 80, fontWeight: "800", color: "#B91C1C" }]}>
-                  {c.totalMort24h}
-                </Text>
-                <Text style={[styles.tableCellText, { flex: 1, textAlign: "left", paddingLeft: 6, fontSize: 11 }]}>
-                  {c.deathReason}
-                </Text>
-                <Text style={[styles.tableCellText, { width: 95, fontWeight: "800", color: "#059669" }]}>
-                  {c.remainingBirds.toLocaleString()}
-                </Text>
+                <Ionicons name="add-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.actionBtnTextWhite}>+ Nayi Chooza Entry</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleExportPDF("chooza")}
+                style={styles.actionBtnOutlineDark}
+              >
+                <Ionicons name="document-text-outline" size={15} color="#1E293B" style={{ marginRight: 4 }} />
+                <Text style={styles.actionBtnTextDark}>Chooza PDF</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* SPREADSHEET REGISTER TABLE */}
+          <View style={styles.tableContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View style={{ minWidth: 970 }}>
+                {/* Table Header */}
+                <View style={styles.tableHeadChooza}>
+                  <Text style={[styles.thCell, { width: 45 }]}>#</Text>
+                  <Text style={[styles.thCell, { width: 115 }]}>TAREEKH (DATE)</Text>
+                  <Text style={[styles.thCell, { width: 85 }]}>DIN (DAY)</Text>
+                  <Text style={[styles.thCell, { width: 110 }]}>KUL SHAMIL</Text>
+                  <Text style={[styles.thCell, { width: 90 }]}>DIN MOUT</Text>
+                  <Text style={[styles.thCell, { width: 95 }]}>SHAM MOUT</Text>
+                  <Text style={[styles.thCell, { width: 105 }]}>24H TOTAL</Text>
+                  <Text style={[styles.thCell, { width: 180, textAlign: "left", paddingLeft: 8 }]}>WAJAH (REASON)</Text>
+                  <Text style={[styles.thCell, { width: 125 }]}>ZINDA CHOOZA</Text>
+                  <Text style={[styles.thCell, { width: 70 }]}>ACTION</Text>
+                </View>
+
+                {/* Table Rows */}
+                {choozaLog.map((row, index) => (
+                  <View
+                    key={row.id}
+                    style={[
+                      styles.tableRow,
+                      { backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F8FAFC" },
+                    ]}
+                  >
+                    <Text style={[styles.tdCell, { width: 45, color: "#64748B", fontWeight: "600" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[styles.tdCell, { width: 115, fontWeight: "700" }]}>
+                      {row.date}
+                    </Text>
+                    <View style={{ width: 85, alignItems: "center" }}>
+                      <View style={styles.dayPill}>
+                        <Text style={styles.dayPillText}>Day {row.dayNumber}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.tdCell, { width: 110, fontWeight: "600" }]}>
+                      {row.chicksPlaced.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.tdCell, { width: 90, color: "#DC2626", fontWeight: "600" }]}>
+                      {row.mortDay}
+                    </Text>
+                    <Text style={[styles.tdCell, { width: 95, color: "#DC2626", fontWeight: "600" }]}>
+                      {row.mortNight}
+                    </Text>
+                    <View style={{ width: 105, alignItems: "center" }}>
+                      <View style={styles.mortBadge}>
+                        <Text style={styles.mortBadgeText}>{row.totalMort24h}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.tdCell, { width: 180, textAlign: "left", paddingLeft: 8, fontSize: 11 }]}>
+                      {row.deathReason}
+                    </Text>
+                    <View style={{ width: 125, alignItems: "center" }}>
+                      <View style={styles.liveBadge}>
+                        <Text style={styles.liveBadgeText}>{row.remainingBirds.toLocaleString()}</Text>
+                      </View>
+                    </View>
+                    <View style={{ width: 70, alignItems: "center" }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteChoozaRow(row.id)}
+                        style={styles.deleteIconBtn}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Table Footer Totals */}
+                <View style={styles.tableFooter}>
+                  <Text style={[styles.tfCell, { width: 355, textAlign: "right", paddingRight: 16 }]}>
+                    KUL SUMMARY:
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 90 }]}>-</Text>
+                  <Text style={[styles.tfCell, { width: 95 }]}>-</Text>
+                  <Text style={[styles.tfCell, { width: 105, color: "#DC2626" }]}>
+                    {totalMortalityAll} Mort
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 180, textAlign: "left", paddingLeft: 8 }]}>
+                    Total Amwaat
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 125, color: "#065F46" }]}>
+                    {currentLiveBirds.toLocaleString()} Birds
+                  </Text>
+                  <Text style={[styles.tfCell, { width: 70 }]}>-</Text>
+                </View>
               </View>
-            ))}
+            </ScrollView>
           </View>
         </View>
       )}
 
       {/* ========================================================================= */}
-      {/* PORTION 3: DOCTOR & MEDICAL GUIDE (DAWAAI, BIMARI AUR DOCTOR) */}
+      {/* TAB 3: DOCTOR & MEDICAL TABLE VIEW (HERO TABLE) */}
       {/* ========================================================================= */}
       {activeTab === "doctor" && (
         <View style={styles.portionWrapper}>
-          <View style={styles.portionHeaderRow}>
+          {/* Action Header Bar */}
+          <View style={styles.tableToolbar}>
             <View>
-              <Text style={styles.portionTitle}>Doctor & Medical Guide</Text>
-              <Text style={styles.portionSub}>
-                Naye employees ke sikhne ke liye bimari, dawaai aur doctor se direct call
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.tableTitle}>Doctor & Medical Register</Text>
+                <View style={styles.recordBadgePurple}>
+                  <Text style={styles.recordBadgeTextPurple}>{medicalList.length} Guides</Text>
+                </View>
+              </View>
+              <Text style={styles.tableSub}>
+                Bimari, dawaai ka solution aur emergency doctor se direct 1-tap call
               </Text>
             </View>
 
             <TouchableOpacity
-              onPress={() => setShowAddGuideModal(!showAddGuideModal)}
-              style={[styles.pdfButton, { borderColor: "#7C3AED" }]}
+              onPress={() => setShowDoctorModal(true)}
+              style={styles.actionBtnPrimaryPurple}
             >
-              <Ionicons name={showAddGuideModal ? "close" : "add-circle"} size={15} color="#7C3AED" style={{ marginRight: 4 }} />
-              <Text style={[styles.pdfButtonText, { color: "#7C3AED" }]}>
-                {showAddGuideModal ? "Band Karein" : "+ Add Guide"}
-              </Text>
+              <Ionicons name="add-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={styles.actionBtnTextWhite}>+ Add Medical Guide</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Form to Add New Guide */}
-          {showAddGuideModal && (
-            <View style={styles.entryFormCard}>
-              <Text style={[styles.inputTitle, { fontSize: 14, color: "#7C3AED", marginBottom: 8 }]}>
-                Nayi Bimari, Dawaai Solution & Doctor Shamil Karein:
-              </Text>
+          {/* Quick Search */}
+          <View style={styles.searchBarBox}>
+            <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
+            <TextInput
+              value={searchDiseaseQuery}
+              onChangeText={setSearchDiseaseQuery}
+              placeholder="Bimari ya Dawaai talash karein (e.g. CRD, Saans, Colistin)..."
+              style={styles.searchInput}
+            />
+            {searchDiseaseQuery ? (
+              <TouchableOpacity onPress={() => setSearchDiseaseQuery("")}>
+                <Ionicons name="close-circle" size={16} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
+          {/* SPREADSHEET REGISTER TABLE */}
+          <View style={styles.tableContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View style={{ minWidth: 960 }}>
+                {/* Table Header */}
+                <View style={styles.tableHeadPurple}>
+                  <Text style={[styles.thCell, { width: 45 }]}>#</Text>
+                  <Text style={[styles.thCell, { width: 190, textAlign: "left", paddingLeft: 8 }]}>BIMARI KA NAAM (DISEASE)</Text>
+                  <Text style={[styles.thCell, { width: 230, textAlign: "left", paddingLeft: 8 }]}>TAJWEEZ KARDA DAWAAI (SOLUTION)</Text>
+                  <Text style={[styles.thCell, { width: 220, textAlign: "left", paddingLeft: 8 }]}>TEREEQA-E-ISTEMAAL (DOSAGE)</Text>
+                  <Text style={[styles.thCell, { width: 170, textAlign: "left", paddingLeft: 8 }]}>DOCTOR KA NAAM</Text>
+                  <Text style={[styles.thCell, { width: 110 }]}>RABTA (CALL)</Text>
+                  <Text style={[styles.thCell, { width: 60 }]}>DEL</Text>
+                </View>
+
+                {/* Table Rows */}
+                {filteredMedicalList.map((row, index) => (
+                  <View
+                    key={row.id}
+                    style={[
+                      styles.tableRow,
+                      { backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F8FAFC" },
+                    ]}
+                  >
+                    <Text style={[styles.tdCell, { width: 45, color: "#64748B", fontWeight: "600" }]}>
+                      {index + 1}
+                    </Text>
+                    <View style={{ width: 190, paddingLeft: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "800", color: "#0F172A" }}>
+                        {row.diseaseName}
+                      </Text>
+                    </View>
+                    <View style={{ width: 230, paddingLeft: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#7C3AED" }}>
+                        {row.medicineSolution}
+                      </Text>
+                    </View>
+                    <View style={{ width: 220, paddingLeft: 8 }}>
+                      <Text style={{ fontSize: 11, color: "#475569" }}>
+                        {row.instructions}
+                      </Text>
+                    </View>
+                    <View style={{ width: 170, paddingLeft: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "600", color: "#334155" }}>
+                        {row.doctorName}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: "#64748B" }}>
+                        {row.doctorPhone}
+                      </Text>
+                    </View>
+                    <View style={{ width: 110, alignItems: "center" }}>
+                      <TouchableOpacity
+                        onPress={() => handleCallDoctor(row.doctorPhone, row.doctorName)}
+                        style={styles.tableCallBtn}
+                      >
+                        <Ionicons name="call" size={12} color="#FFFFFF" style={{ marginRight: 4 }} />
+                        <Text style={styles.tableCallBtnText}>Call</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ width: 60, alignItems: "center" }}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteDoctorRow(row.id)}
+                        style={styles.deleteIconBtn}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. MASTER DAILY REPORT EXPORT (BOTTOM BAR) */}
+      {/* ========================================================================= */}
+      <View style={styles.bottomMasterCard}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: "800", color: "#0F172A" }}>
+            Mukammal Rozana Working Register Report
+          </Text>
+          <Text style={{ fontSize: 11, color: "#64748B" }}>
+            Feed + Chooza + Dawaai ka aik sath standard print / PDF export
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => handleExportPDF("full")}
+          style={styles.masterPdfBtn}
+        >
+          <Ionicons name="print-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+          <Text style={styles.masterPdfBtnText}>Daily Combined PDF</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: ADD NEW FEED ENTRY */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={showFeedModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFeedModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { backgroundColor: "#065F46" }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MaterialCommunityIcons name="barley" size={20} color="#FFFFFF" />
+                <Text style={styles.modalTitle}>Nayi Feed Entry Darj Karein</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowFeedModal(false)}>
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 14 }}>
+              {/* Row 1: Date & Day */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1.2, marginRight: 8 }}>
+                  <Text style={styles.inputTitle}>Tareekh (Date):</Text>
+                  <TextInput
+                    value={feedDate}
+                    onChangeText={setFeedDate}
+                    placeholder="23-Nov-2026"
+                    style={styles.textInput}
+                  />
+                </View>
+                <View style={{ flex: 0.8 }}>
+                  <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
+                  <TextInput
+                    value={feedDay}
+                    onChangeText={setFeedDay}
+                    placeholder="28"
+                    keyboardType="number-pad"
+                    style={styles.textInput}
+                  />
+                </View>
+              </View>
+
+              {/* Row 2: Minute-by-Minute Time Slot */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.inputTitle}>Shuru Waqt (Start Time):</Text>
+                  <TextInput
+                    value={feedTimeStart}
+                    onChangeText={setFeedTimeStart}
+                    placeholder="08:00 AM"
+                    style={styles.textInput}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputTitle}>Khatam Waqt (End Time):</Text>
+                  <TextInput
+                    value={feedTimeEnd}
+                    onChangeText={setFeedTimeEnd}
+                    placeholder="02:00 PM"
+                    style={styles.textInput}
+                  />
+                </View>
+              </View>
+
+              {/* Row 3: Target & In Stock */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1.2, marginRight: 8 }}>
+                  <Text style={styles.inputTitle}>Kin Ke Liye (Flock/Shed):</Text>
+                  <TextInput
+                    value={feedTarget}
+                    onChangeText={setFeedTarget}
+                    placeholder="Shed 1 (Cobb 500)"
+                    style={styles.textInput}
+                  />
+                </View>
+                <View style={{ flex: 0.8 }}>
+                  <Text style={styles.inputTitle}>Feed Aayi (Stock In Bags):</Text>
+                  <TextInput
+                    value={feedReceived}
+                    onChangeText={setFeedReceived}
+                    placeholder="200"
+                    keyboardType="numeric"
+                    style={styles.textInput}
+                  />
+                </View>
+              </View>
+
+              {/* Row 4: Used Bags */}
+              <View style={{ marginVertical: 4 }}>
+                <Text style={styles.inputTitle}>Aaj Kitni Bori Istemaal Hui (Used Bags):</Text>
+                <TextInput
+                  value={feedUsed}
+                  onChangeText={setFeedUsed}
+                  placeholder="25"
+                  keyboardType="numeric"
+                  style={[styles.textInput, { fontSize: 16, fontWeight: "700" }]}
+                />
+              </View>
+
+              {/* Live Auto Calculation Box */}
+              <View style={styles.calcSummaryBoxGreen}>
+                <View style={styles.calcSummaryRow}>
+                  <Text style={styles.calcLabel}>Kul Stock (Received):</Text>
+                  <Text style={styles.calcVal}>{numReceivedFeed} Bags ({numReceivedFeed * 50} kg)</Text>
+                </View>
+                <View style={styles.calcSummaryRow}>
+                  <Text style={styles.calcLabel}>Istemaal (Used Feed):</Text>
+                  <Text style={[styles.calcVal, { color: "#DC2626" }]}>
+                    -{numUsedFeed} Bags ({numUsedFeed * 50} kg)
+                  </Text>
+                </View>
+                <View style={[styles.calcSummaryRow, styles.calcBorderTop]}>
+                  <Text style={[styles.calcLabel, { fontWeight: "800", color: "#065F46" }]}>
+                    Baqi Bachi Hui Feed (Balance):
+                  </Text>
+                  <Text style={[styles.calcValBold, { color: "#065F46", fontSize: 16 }]}>
+                    {numRemainingFeed} Bags ({numRemainingFeed * 50} kg)
+                  </Text>
+                </View>
+              </View>
+
+              {/* Modal Buttons */}
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  onPress={() => setShowFeedModal(false)}
+                  style={styles.modalCancelBtn}
+                >
+                  <Text style={styles.modalCancelText}>Radd Karein</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveFeed}
+                  style={styles.modalSaveBtnGreen}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.modalSaveText}>Table Mein Save Karein</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: ADD NEW CHOOZA ENTRY */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={showChoozaModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowChoozaModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { backgroundColor: "#0F172A" }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MaterialCommunityIcons name="bird" size={20} color="#FFFFFF" />
+                <Text style={styles.modalTitle}>Nayi Chooza Entry Darj Karein</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowChoozaModal(false)}>
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 14 }}>
+              {/* Row 1: Date & Day */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1.2, marginRight: 8 }}>
+                  <Text style={styles.inputTitle}>Tareekh (Date):</Text>
+                  <TextInput
+                    value={choozaDate}
+                    onChangeText={setChoozaDate}
+                    placeholder="23-Nov-2026"
+                    style={styles.textInput}
+                  />
+                </View>
+                <View style={{ flex: 0.8 }}>
+                  <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
+                  <TextInput
+                    value={choozaDay}
+                    onChangeText={setChoozaDay}
+                    placeholder="28"
+                    keyboardType="number-pad"
+                    style={styles.textInput}
+                  />
+                </View>
+              </View>
+
+              {/* Row 2: Total Added Chicks */}
+              <View style={{ marginVertical: 4 }}>
+                <Text style={styles.inputTitle}>Kul Shamil Chooza (Total Flock Placed):</Text>
+                <TextInput
+                  value={choozaTotalPlaced}
+                  onChangeText={setChoozaTotalPlaced}
+                  placeholder="19888"
+                  keyboardType="number-pad"
+                  style={[styles.textInput, { fontWeight: "700" }]}
+                />
+              </View>
+
+              {/* Row 3: Day and Night Mortality */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.inputTitle}>Din Ko Kitna Mara (Day Death):</Text>
+                  <TextInput
+                    value={choozaMortDay}
+                    onChangeText={setChoozaMortDay}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputTitle}>Sham Ko Kitna Mara (Night Death):</Text>
+                  <TextInput
+                    value={choozaMortNight}
+                    onChangeText={setChoozaMortNight}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                    style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
+                  />
+                </View>
+              </View>
+
+              {/* Row 4: Reason of Death */}
+              <View style={{ marginVertical: 4 }}>
+                <Text style={styles.inputTitle}>Mout Ki Wajah (Death Reason):</Text>
+                <TextInput
+                  value={choozaDeathReason}
+                  onChangeText={setChoozaDeathReason}
+                  placeholder="e.g. Garmi Ka Tanav, Kamzori, Saans Ka Masla"
+                  style={styles.textInput}
+                />
+              </View>
+
+              {/* Live Auto Calculation Box */}
+              <View style={styles.calcSummaryBoxDark}>
+                <View style={styles.calcSummaryRow}>
+                  <Text style={styles.calcLabel}>Aaj Ki 24h Amwaat (Day + Sham):</Text>
+                  <Text style={[styles.calcValBold, { color: "#DC2626" }]}>
+                    {totalDailyMort} Chooza ({numMortDay} Din + {numMortNight} Sham)
+                  </Text>
+                </View>
+                <View style={[styles.calcSummaryRow, styles.calcBorderTop]}>
+                  <Text style={[styles.calcLabel, { fontWeight: "800", color: "#0F172A" }]}>
+                    Baqi Zinda Chooza (Remaining):
+                  </Text>
+                  <Text style={[styles.calcValBold, { color: "#059669", fontSize: 16 }]}>
+                    {modalRemainingBirds.toLocaleString()} Birds
+                  </Text>
+                </View>
+              </View>
+
+              {/* Modal Buttons */}
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  onPress={() => setShowChoozaModal(false)}
+                  style={styles.modalCancelBtn}
+                >
+                  <Text style={styles.modalCancelText}>Radd Karein</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveChooza}
+                  style={styles.modalSaveBtnDark}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.modalSaveText}>Table Mein Save Karein</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: ADD NEW MEDICAL GUIDE */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={showDoctorModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDoctorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { backgroundColor: "#7C3AED" }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MaterialCommunityIcons name="stethoscope" size={20} color="#FFFFFF" />
+                <Text style={styles.modalTitle}>Nayi Bimari & Dawaai Guide Shamil Karein</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowDoctorModal(false)}>
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 14 }}>
+              {/* Doctor Details */}
               <View style={styles.formRow}>
                 <View style={{ flex: 1.2, marginRight: 8 }}>
                   <Text style={styles.inputTitle}>Doctor Ka Naam:</Text>
                   <TextInput
                     value={guideDoctorName}
                     onChangeText={setGuideDoctorName}
-                    placeholder="e.g. Dr. Ahsan Veterinary Consultant"
+                    placeholder="Dr. Ahsan (Poultry Specialist)"
                     style={styles.textInput}
                   />
                 </View>
-
                 <View style={{ flex: 0.8 }}>
-                  <Text style={styles.inputTitle}>Doctor Ka Phone Number:</Text>
+                  <Text style={styles.inputTitle}>Doctor Phone Number:</Text>
                   <TextInput
                     value={guideDoctorPhone}
                     onChangeText={setGuideDoctorPhone}
-                    placeholder="0300-1234567"
+                    placeholder="0300-5551234"
                     keyboardType="phone-pad"
                     style={styles.textInput}
                   />
@@ -1020,13 +1472,13 @@ export default function UserDashboardScreen() {
                 <TextInput
                   value={guideDiseaseName}
                   onChangeText={setGuideDiseaseName}
-                  placeholder="e.g. CRD / Saans Ka Masla, E.Coli, Gumboro"
+                  placeholder="e.g. CRD / Saans Ka Masla, E.Coli"
                   style={styles.textInput}
                 />
               </View>
 
               <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Tajweez Karda Dawaai / Solution:</Text>
+                <Text style={styles.inputTitle}>Tajweez Karda Dawaai (Medicine Solution):</Text>
                 <TextInput
                   value={guideSolution}
                   onChangeText={setGuideSolution}
@@ -1040,108 +1492,47 @@ export default function UserDashboardScreen() {
                 <TextInput
                   value={guideInstructions}
                   onChangeText={setGuideInstructions}
-                  placeholder="e.g. Subah 200L paani mein 3 din musalsal chalayein"
+                  placeholder="Subah ke 200L paani mein 3 din musalsal"
                   style={styles.textInput}
                 />
               </View>
 
-              <TouchableOpacity
-                onPress={handleSaveMedicalGuide}
-                style={[styles.primarySaveBtn, { backgroundColor: "#7C3AED" }]}
-              >
-                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.primarySaveBtnText}>Guide Save Karein</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+              {/* Modal Buttons */}
+              <View style={styles.modalActionRow}>
+                <TouchableOpacity
+                  onPress={() => setShowDoctorModal(false)}
+                  style={styles.modalCancelBtn}
+                >
+                  <Text style={styles.modalCancelText}>Radd Karein</Text>
+                </TouchableOpacity>
 
-          {/* Search Bar for Diseases */}
-          <View style={styles.searchBarBox}>
-            <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
-            <TextInput
-              value={searchDiseaseQuery}
-              onChangeText={setSearchDiseaseQuery}
-              placeholder="Bimari ya Dawaai talash karein (e.g. Saans, E.Coli, Garmi)..."
-              style={styles.searchInput}
-            />
-            {searchDiseaseQuery ? (
-              <TouchableOpacity onPress={() => setSearchDiseaseQuery("")}>
-                <Ionicons name="close-circle" size={16} color="#94A3B8" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* List of Disease Guides with 1-Tap Direct Call */}
-          <View style={{ gap: 10 }}>
-            {filteredMedicalList.map((item) => (
-              <View key={item.id} style={styles.medicalGuideCard}>
-                <View style={styles.medicalCardHeader}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.diseaseNameText}>
-                      {item.diseaseName}
-                    </Text>
-                    <Text style={styles.doctorInfoText}>
-                      Mashwara: {item.doctorName}
-                    </Text>
-                  </View>
-
-                  {/* DIRECT 1-TAP CALL BUTTON */}
-                  <TouchableOpacity
-                    onPress={() => handleCallDoctor(item.doctorPhone, item.doctorName)}
-                    style={styles.callDoctorBtn}
-                  >
-                    <Ionicons name="call" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.callDoctorBtnText}>Call Doctor</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Solution Box */}
-                <View style={styles.solutionBox}>
-                  <Text style={styles.solutionLabel}>Dawaai / Solution:</Text>
-                  <Text style={styles.solutionText}>{item.medicineSolution}</Text>
-                  <Text style={styles.instructionsText}>
-                    Tareeqa: {item.instructions}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  onPress={handleSaveMedicalGuide}
+                  style={styles.modalSaveBtnPurple}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.modalSaveText}>Guide Save Karein</Text>
+                </TouchableOpacity>
               </View>
-            ))}
+            </ScrollView>
           </View>
         </View>
-      )}
-
-      {/* ========================================================================= */}
-      {/* BOTTOM COMBINED DAILY WORKING PDF OPTION */}
-      {/* ========================================================================= */}
-      <View style={styles.bottomMasterCard}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: "800", color: "#0F172A" }}>
-            Mukammal Rozana Working Report
-          </Text>
-          <Text style={{ fontSize: 11, color: "#64748B" }}>
-            Feed + Chooza + Dawaai ka combined print / PDF
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => handleExportPDF("full")}
-          style={styles.masterPdfBtn}
-        >
-          <Ionicons name="print-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-          <Text style={styles.masterPdfBtnText}>Daily PDF Print</Text>
-        </TouchableOpacity>
-      </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 // =========================================================================
-// STYLES
+// HIGH-END ENTERPRISE TABLE & SCREEN STYLES
 // =========================================================================
 const styles = StyleSheet.create({
   container: {
     paddingBottom: 90,
   },
   topHeaderCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: "#065F46",
     borderRadius: 10,
     padding: 14,
@@ -1164,10 +1555,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 2,
   },
-  flockInfoText: {
-    color: "#A7F3D0",
+  batchBadge: {
+    backgroundColor: "#047857",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+  batchBadgeText: {
+    color: "#FFFFFF",
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: "700",
   },
   kpiRow: {
     flexDirection: "row",
@@ -1181,7 +1580,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderLeftWidth: 4,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
   },
   kpiLabel: {
     fontSize: 10,
@@ -1204,8 +1603,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#059669",
     borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 2,
+    paddingVertical: 3,
+    marginTop: 3,
   },
   quickCallText: {
     color: "#FFFFFF",
@@ -1218,7 +1617,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 4,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
     marginBottom: 12,
     gap: 4,
   },
@@ -1227,7 +1626,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 6,
   },
   segmentBtnActiveFeed: {
@@ -1240,7 +1639,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#7C3AED",
   },
   segmentBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: "#475569",
   },
@@ -1250,57 +1649,358 @@ const styles = StyleSheet.create({
   portionWrapper: {
     marginTop: 2,
   },
-  portionHeaderRow: {
+  tableToolbar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
     marginBottom: 10,
+    flexWrap: "wrap",
+    gap: 8,
   },
-  portionTitle: {
+  tableTitle: {
     fontSize: 15,
     fontWeight: "800",
     color: "#0F172A",
   },
-  portionSub: {
+  tableSub: {
     fontSize: 11,
     color: "#64748B",
     marginTop: 1,
   },
-  pdfButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  recordBadgeGreen: {
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#065F46",
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "#FFFFFF",
+    borderColor: "#A7F3D0",
   },
-  pdfButtonText: {
+  recordBadgeTextGreen: {
     fontSize: 11,
     fontWeight: "700",
     color: "#065F46",
   },
-  entryFormCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: 12,
+  recordBadgeDark: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
-    marginBottom: 12,
+  },
+  recordBadgeTextDark: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  recordBadgePurple: {
+    backgroundColor: "#F5F3FF",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DDD6FE",
+  },
+  recordBadgeTextPurple: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#7C3AED",
+  },
+  actionBtnPrimaryGreen: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#059669",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  actionBtnPrimaryDark: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  actionBtnPrimaryPurple: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  actionBtnOutline: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#065F46",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  actionBtnOutlineDark: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  actionBtnTextWhite: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  actionBtnTextGreen: {
+    color: "#065F46",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  actionBtnTextDark: {
+    color: "#1E293B",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  tableContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
   },
+  tableHeadFeed: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#065F46",
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+  },
+  tableHeadChooza: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+  },
+  tableHeadPurple: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#6D28D9",
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+  },
+  thCell: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    textAlign: "center",
+    letterSpacing: 0.4,
+  },
+  tableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  tdCell: {
+    fontSize: 11,
+    color: "#1E293B",
+    textAlign: "center",
+  },
+  dayPill: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+  },
+  dayPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  usedBadge: {
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  usedBadgeText: {
+    color: "#DC2626",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  balanceBadge: {
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  balanceBadgeText: {
+    color: "#059669",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  mortBadge: {
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  mortBadgeText: {
+    color: "#B91C1C",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  liveBadge: {
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  liveBadgeText: {
+    color: "#1E40AF",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  deleteIconBtn: {
+    padding: 6,
+    borderRadius: 4,
+  },
+  tableCallBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#059669",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  tableCallBtnText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  tableFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderTopWidth: 2,
+    borderTopColor: "#CBD5E1",
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+  },
+  tfCell: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+  },
+  searchBarBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 12,
+    color: "#0F172A",
+  },
+  bottomMasterCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    padding: 12,
+    marginTop: 14,
+  },
+  masterPdfBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0F172A",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  masterPdfBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    width: "100%",
+    maxWidth: 540,
+    maxHeight: "90%",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
   formRow: {
     flexDirection: "row",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   inputTitle: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#334155",
     marginBottom: 3,
   },
@@ -1309,7 +2009,7 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
     borderRadius: 6,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     fontSize: 13,
     color: "#0F172A",
     backgroundColor: "#F8FAFC",
@@ -1320,7 +2020,7 @@ const styles = StyleSheet.create({
     borderColor: "#A7F3D0",
     borderRadius: 8,
     padding: 10,
-    marginVertical: 8,
+    marginVertical: 10,
   },
   calcSummaryBoxDark: {
     backgroundColor: "#F1F5F9",
@@ -1328,7 +2028,7 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
     borderRadius: 8,
     padding: 10,
-    marginVertical: 8,
+    marginVertical: 10,
   },
   calcSummaryRow: {
     flexDirection: "row",
@@ -1356,162 +2056,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
-  primarySaveBtn: {
+  modalActionRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#059669",
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginTop: 4,
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 10,
+    paddingBottom: 8,
   },
-  primarySaveBtnText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  tableCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
+  modalCancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#CBD5E1",
-    overflow: "hidden",
-  },
-  tableHeadRowFeed: {
-    flexDirection: "row",
-    backgroundColor: "#065F46",
-    paddingVertical: 7,
-    paddingHorizontal: 4,
-  },
-  tableHeadRowChooza: {
-    flexDirection: "row",
-    backgroundColor: "#1E293B",
-    paddingVertical: 7,
-    paddingHorizontal: 4,
-  },
-  tableHeadText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  tableRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-    minHeight: 34,
-    paddingHorizontal: 4,
-  },
-  tableCellText: {
-    fontSize: 11,
-    color: "#334155",
-    textAlign: "center",
-  },
-  searchBarBox: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 10,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 12,
-    color: "#0F172A",
-  },
-  medicalGuideCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  medicalCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  diseaseNameText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  doctorInfoText: {
-    fontSize: 11,
-    color: "#7C3AED",
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  callDoctorBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#059669",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  callDoctorBtnText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  solutionBox: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 6,
-    padding: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: "#7C3AED",
-  },
-  solutionLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#64748B",
-  },
-  solutionText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginTop: 1,
-  },
-  instructionsText: {
-    fontSize: 11,
+  modalCancelText: {
     color: "#475569",
-    marginTop: 2,
-    fontStyle: "italic",
+    fontSize: 12,
+    fontWeight: "700",
   },
-  bottomMasterCard: {
+  modalSaveBtnGreen: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    padding: 12,
-    marginTop: 14,
+    backgroundColor: "#059669",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  masterPdfBtn: {
+  modalSaveBtnDark: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#0F172A",
-    borderRadius: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: 6,
   },
-  masterPdfBtnText: {
+  modalSaveBtnPurple: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  modalSaveText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 });
