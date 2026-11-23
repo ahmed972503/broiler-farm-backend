@@ -180,6 +180,41 @@ const INITIAL_MEDICAL_GUIDE: MedicalGuideItem[] = [
   },
 ];
 
+// FormField with 100% Guaranteed 2px Solid Black Border Box & Distinct Header Label
+function FormField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType = "default",
+  containerStyle,
+  textColor = "#000000",
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  keyboardType?: "default" | "number-pad" | "numeric" | "phone-pad";
+  containerStyle?: any;
+  textColor?: string;
+}) {
+  return (
+    <View style={[{ marginBottom: 14 }, containerStyle]}>
+      <Text style={styles.fieldLabelText}>{label}</Text>
+      <View style={styles.blackInputBox}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#64748B"
+          keyboardType={keyboardType}
+          style={[styles.innerTextInput, { color: textColor }]}
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function UserDashboardScreen() {
   const { colors, spacing } = useTheme();
   const { user, token } = useAuthStore();
@@ -1030,16 +1065,17 @@ export default function UserDashboardScreen() {
 
           {/* Quick Search */}
           <View style={styles.searchBarBox}>
-            <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
+            <Ionicons name="search" size={18} color="#000000" style={{ marginRight: 8 }} />
             <TextInput
               value={searchDiseaseQuery}
               onChangeText={setSearchDiseaseQuery}
               placeholder="Bimari ya Dawaai talash karein (e.g. CRD, Saans, Colistin)..."
-              style={styles.searchInput}
+              placeholderTextColor="#64748B"
+              style={styles.innerTextInput}
             />
             {searchDiseaseQuery ? (
               <TouchableOpacity onPress={() => setSearchDiseaseQuery("")}>
-                <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                <Ionicons name="close-circle" size={18} color="#000000" />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1166,90 +1202,69 @@ export default function UserDashboardScreen() {
             <ScrollView style={{ padding: 14 }}>
               {/* Row 1: Date & Day */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1.2, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Tareekh (Date):</Text>
-                  <TextInput
-                    value={feedDate}
-                    onChangeText={setFeedDate}
-                    placeholder="23-Nov-2026"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={{ flex: 0.8 }}>
-                  <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
-                  <TextInput
-                    value={feedDay}
-                    onChangeText={setFeedDay}
-                    placeholder="28"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="number-pad"
-                    style={styles.textInput}
-                  />
-                </View>
+                <FormField
+                  label="Tareekh (Date)"
+                  value={feedDate}
+                  onChangeText={setFeedDate}
+                  placeholder="23-Nov-2026"
+                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Choozay Ka Din (Day)"
+                  value={feedDay}
+                  onChangeText={setFeedDay}
+                  placeholder="28"
+                  keyboardType="number-pad"
+                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
+                />
               </View>
 
               {/* Row 2: Minute-by-Minute Time Slot */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Shuru Waqt (Start Time):</Text>
-                  <TextInput
-                    value={feedTimeStart}
-                    onChangeText={setFeedTimeStart}
-                    placeholder="08:00 AM"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputTitle}>Khatam Waqt (End Time):</Text>
-                  <TextInput
-                    value={feedTimeEnd}
-                    onChangeText={setFeedTimeEnd}
-                    placeholder="02:00 PM"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
+                <FormField
+                  label="Shuru Waqt (Start Time)"
+                  value={feedTimeStart}
+                  onChangeText={setFeedTimeStart}
+                  placeholder="08:00 AM"
+                  containerStyle={{ flex: 1, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Khatam Waqt (End Time)"
+                  value={feedTimeEnd}
+                  onChangeText={setFeedTimeEnd}
+                  placeholder="02:00 PM"
+                  containerStyle={{ flex: 1, marginBottom: 0 }}
+                />
               </View>
 
               {/* Row 3: Target & In Stock */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1.2, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Kin Ke Liye (Flock/Shed):</Text>
-                  <TextInput
-                    value={feedTarget}
-                    onChangeText={setFeedTarget}
-                    placeholder="Shed 1 (Cobb 500)"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={{ flex: 0.8 }}>
-                  <Text style={styles.inputTitle}>Feed Aayi (Stock In Bags):</Text>
-                  <TextInput
-                    value={feedReceived}
-                    onChangeText={setFeedReceived}
-                    placeholder="200"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
-                    style={styles.textInput}
-                  />
-                </View>
+                <FormField
+                  label="Kin Ke Liye (Flock/Shed)"
+                  value={feedTarget}
+                  onChangeText={setFeedTarget}
+                  placeholder="Shed 1 (Cobb 500)"
+                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Feed Aayi (Stock In Bags)"
+                  value={feedReceived}
+                  onChangeText={setFeedReceived}
+                  placeholder="200"
+                  keyboardType="numeric"
+                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
+                />
               </View>
 
               {/* Row 4: Used Bags */}
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Aaj Kitni Bori Istemaal Hui (Used Bags):</Text>
-                <TextInput
-                  value={feedUsed}
-                  onChangeText={setFeedUsed}
-                  placeholder="25"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="numeric"
-                  style={[styles.textInput, { fontSize: 16, fontWeight: "700" }]}
-                />
-              </View>
+              <FormField
+                label="Aaj Kitni Bori Istemaal Hui (Used Bags)"
+                value={feedUsed}
+                onChangeText={setFeedUsed}
+                placeholder="25"
+                keyboardType="numeric"
+                textColor="#DC2626"
+              />
 
               {/* Live Auto Calculation Box */}
               <View style={styles.calcSummaryBoxGreen}>
@@ -1320,79 +1335,61 @@ export default function UserDashboardScreen() {
             <ScrollView style={{ padding: 14 }}>
               {/* Row 1: Date & Day */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1.2, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Tareekh (Date):</Text>
-                  <TextInput
-                    value={choozaDate}
-                    onChangeText={setChoozaDate}
-                    placeholder="23-Nov-2026"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={{ flex: 0.8 }}>
-                  <Text style={styles.inputTitle}>Choozay Ka Din (Day):</Text>
-                  <TextInput
-                    value={choozaDay}
-                    onChangeText={setChoozaDay}
-                    placeholder="28"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="number-pad"
-                    style={styles.textInput}
-                  />
-                </View>
+                <FormField
+                  label="Tareekh (Date)"
+                  value={choozaDate}
+                  onChangeText={setChoozaDate}
+                  placeholder="23-Nov-2026"
+                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Choozay Ka Din (Day)"
+                  value={choozaDay}
+                  onChangeText={setChoozaDay}
+                  placeholder="28"
+                  keyboardType="number-pad"
+                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
+                />
               </View>
 
               {/* Row 2: Total Added Chicks */}
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Kul Shamil Chooza (Total Flock Placed):</Text>
-                <TextInput
-                  value={choozaTotalPlaced}
-                  onChangeText={setChoozaTotalPlaced}
-                  placeholder="19888"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="number-pad"
-                  style={[styles.textInput, { fontWeight: "700" }]}
-                />
-              </View>
+              <FormField
+                label="Kul Shamil Chooza (Total Flock Placed)"
+                value={choozaTotalPlaced}
+                onChangeText={setChoozaTotalPlaced}
+                placeholder="19888"
+                keyboardType="number-pad"
+              />
 
               {/* Row 3: Day and Night Mortality */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Din Ko Kitna Mara (Day Death):</Text>
-                  <TextInput
-                    value={choozaMortDay}
-                    onChangeText={setChoozaMortDay}
-                    placeholder="0"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="number-pad"
-                    style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputTitle}>Sham Ko Kitna Mara (Night Death):</Text>
-                  <TextInput
-                    value={choozaMortNight}
-                    onChangeText={setChoozaMortNight}
-                    placeholder="0"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="number-pad"
-                    style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
-                  />
-                </View>
+                <FormField
+                  label="Din Ko Kitna Mara (Day Death)"
+                  value={choozaMortDay}
+                  onChangeText={setChoozaMortDay}
+                  placeholder="0"
+                  keyboardType="number-pad"
+                  textColor="#DC2626"
+                  containerStyle={{ flex: 1, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Sham Ko Kitna Mara (Night Death)"
+                  value={choozaMortNight}
+                  onChangeText={setChoozaMortNight}
+                  placeholder="0"
+                  keyboardType="number-pad"
+                  textColor="#DC2626"
+                  containerStyle={{ flex: 1, marginBottom: 0 }}
+                />
               </View>
 
               {/* Row 4: Reason of Death */}
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Mout Ki Wajah (Death Reason):</Text>
-                <TextInput
-                  value={choozaDeathReason}
-                  onChangeText={setChoozaDeathReason}
-                  placeholder="e.g. Garmi Ka Tanav, Kamzori, Saans Ka Masla"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.textInput}
-                />
-              </View>
+              <FormField
+                label="Mout Ki Wajah (Death Reason)"
+                value={choozaDeathReason}
+                onChangeText={setChoozaDeathReason}
+                placeholder="e.g. Garmi Ka Tanav, Kamzori, Saans Ka Masla"
+              />
 
               {/* Live Auto Calculation Box */}
               <View style={styles.calcSummaryBoxDark}>
@@ -1459,61 +1456,44 @@ export default function UserDashboardScreen() {
             <ScrollView style={{ padding: 14 }}>
               {/* Doctor Details */}
               <View style={styles.formRow}>
-                <View style={{ flex: 1.2, marginRight: 8 }}>
-                  <Text style={styles.inputTitle}>Doctor Ka Naam:</Text>
-                  <TextInput
-                    value={guideDoctorName}
-                    onChangeText={setGuideDoctorName}
-                    placeholder="Dr. Ahsan (Poultry Specialist)"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={{ flex: 0.8 }}>
-                  <Text style={styles.inputTitle}>Doctor Phone Number:</Text>
-                  <TextInput
-                    value={guideDoctorPhone}
-                    onChangeText={setGuideDoctorPhone}
-                    placeholder="0300-5551234"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="phone-pad"
-                    style={styles.textInput}
-                  />
-                </View>
-              </View>
-
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Bimari Ka Naam (Disease Name):</Text>
-                <TextInput
-                  value={guideDiseaseName}
-                  onChangeText={setGuideDiseaseName}
-                  placeholder="e.g. CRD / Saans Ka Masla, E.Coli"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.textInput}
+                <FormField
+                  label="Doctor Ka Naam"
+                  value={guideDoctorName}
+                  onChangeText={setGuideDoctorName}
+                  placeholder="Dr. Ahsan (Poultry Specialist)"
+                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
+                />
+                <FormField
+                  label="Doctor Phone Number"
+                  value={guideDoctorPhone}
+                  onChangeText={setGuideDoctorPhone}
+                  placeholder="0300-5551234"
+                  keyboardType="phone-pad"
+                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
                 />
               </View>
 
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Tajweez Karda Dawaai (Medicine Solution):</Text>
-                <TextInput
-                  value={guideSolution}
-                  onChangeText={setGuideSolution}
-                  placeholder="e.g. Ventilin + Mucolator + Respifine"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.textInput}
-                />
-              </View>
+              <FormField
+                label="Bimari Ka Naam (Disease Name)"
+                value={guideDiseaseName}
+                onChangeText={setGuideDiseaseName}
+                placeholder="e.g. CRD / Saans Ka Masla, E.Coli"
+              />
 
-              <View style={{ marginVertical: 4 }}>
-                <Text style={styles.inputTitle}>Dene Ka Tareeqa / Miqdar (Dosage Instructions):</Text>
-                <TextInput
-                  value={guideInstructions}
-                  onChangeText={setGuideInstructions}
-                  placeholder="Subah ke 200L paani mein 3 din musalsal"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.textInput}
-                />
-              </View>
+              <FormField
+                label="Tajweez Karda Dawaai (Medicine Solution)"
+                value={guideSolution}
+                onChangeText={setGuideSolution}
+                placeholder="e.g. Ventilin + Mucolator + Respifine"
+                textColor="#7C3AED"
+              />
+
+              <FormField
+                label="Dene Ka Tareeqa / Miqdar (Dosage Instructions)"
+                value={guideInstructions}
+                onChangeText={setGuideInstructions}
+                placeholder="Subah ke 200L paani mein 3 din musalsal"
+              />
 
               {/* Modal Buttons */}
               <View style={styles.modalActionRow}>
@@ -1943,18 +1923,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderStyle: "solid",
-    borderColor: "#475569",
+    borderColor: "#000000",
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     marginBottom: 12,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
+  fieldLabelText: {
+    fontSize: 11,
+    fontWeight: "900",
     color: "#0F172A",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  blackInputBox: {
+    borderWidth: 2,
+    borderStyle: "solid",
+    borderColor: "#000000", // SOLID 2PX JET BLACK BORDER!
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  innerTextInput: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#000000",
+    backgroundColor: "transparent",
+    padding: 0,
+    margin: 0,
+    width: "100%",
+    ...(Platform.OS === "web"
+      ? ({
+          outlineStyle: "none",
+        } as any)
+      : {}),
   },
   bottomMasterCard: {
     flexDirection: "row",
