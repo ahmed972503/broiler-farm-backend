@@ -180,6 +180,246 @@ const INITIAL_MEDICAL_GUIDE: MedicalGuideItem[] = [
   },
 ];
 
+// -------------------------------------------------------------------------
+// DATE & TIME FORMATTING HELPERS
+// -------------------------------------------------------------------------
+function isoToFormattedDate(iso: string): string {
+  if (!iso) return "23-Nov-2026";
+  const parts = iso.split("-");
+  if (parts.length !== 3) return iso;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mIndex = parseInt(parts[1], 10) - 1;
+  const month = months[mIndex] || parts[1];
+  return `${parts[2]}-${month}-${parts[0]}`;
+}
+
+function time24To12(time24: string): string {
+  if (!time24) return "08:00 AM";
+  const parts = time24.split(":");
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || "00";
+  if (isNaN(h)) return time24;
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  h = h ? h : 12;
+  const hStr = h < 10 ? `0${h}` : `${h}`;
+  return `${hStr}:${m} ${ampm}`;
+}
+
+// -------------------------------------------------------------------------
+// DATE SELECTOR COMPONENT (SELECTION INSTEAD OF MANUAL TYPING)
+// -------------------------------------------------------------------------
+function DateSelector({
+  label,
+  isoValue,
+  onSelectDate,
+  containerStyle,
+}: {
+  label: string;
+  isoValue: string;
+  onSelectDate: (iso: string, formatted: string) => void;
+  containerStyle?: any;
+}) {
+  const quickDates = [
+    { label: "Aaj (Today)", iso: "2026-11-23", formatted: "23-Nov-2026" },
+    { label: "Kal (Yesterday)", iso: "2026-11-22", formatted: "22-Nov-2026" },
+    { label: "21-Nov", iso: "2026-11-21", formatted: "21-Nov-2026" },
+  ];
+
+  return (
+    <View style={[{ marginBottom: 14 }, containerStyle]}>
+      <Text style={styles.fieldLabelText}>{label}</Text>
+      <View style={styles.blackInputBox}>
+        <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+          <Ionicons name="calendar" size={18} color="#059669" style={{ marginRight: 8 }} />
+          <TextInput
+            value={isoValue}
+            onChangeText={(val) => {
+              const formatted = isoToFormattedDate(val);
+              onSelectDate(val, formatted);
+            }}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#64748B"
+            style={styles.pickerInputText}
+            {...(Platform.OS === "web"
+              ? ({
+                type: "date",
+              } as any)
+              : {})}
+          />
+        </View>
+      </View>
+      <View style={styles.chipRow}>
+        {quickDates.map((q) => {
+          const isSelected = isoValue === q.iso;
+          return (
+            <TouchableOpacity
+              key={q.iso}
+              onPress={() => onSelectDate(q.iso, q.formatted)}
+              style={[
+                styles.quickChip,
+                isSelected && styles.quickChipActiveGreen,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.quickChipText,
+                  isSelected && styles.quickChipTextActive,
+                ]}
+              >
+                {q.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// -------------------------------------------------------------------------
+// TIME RANGE SELECTOR (SELECTION INSTEAD OF MANUAL TYPING)
+// -------------------------------------------------------------------------
+function TimeRangeSelector({
+  start24,
+  end24,
+  start12,
+  end12,
+  onSelectTimes,
+}: {
+  start24: string;
+  end24: string;
+  start12: string;
+  end12: string;
+  onSelectTimes: (s24: string, e24: string, s12: string, e12: string) => void;
+}) {
+  const shifts = [
+    {
+      title: "Subah Shift",
+      desc: "08:00 AM - 02:00 PM",
+      s24: "08:00",
+      e24: "14:00",
+      s12: "08:00 AM",
+      e12: "02:00 PM",
+    },
+    {
+      title: "Dopehar Shift",
+      desc: "02:00 PM - 09:00 PM",
+      s24: "14:00",
+      e24: "21:00",
+      s12: "02:00 PM",
+      e12: "09:00 PM",
+    },
+    {
+      title: "Raat Shift",
+      desc: "09:00 PM - 08:00 AM",
+      s24: "21:00",
+      e24: "08:00",
+      s12: "09:00 PM",
+      e12: "08:00 AM",
+    },
+    {
+      title: "Full 24h",
+      desc: "Poora Din",
+      s24: "08:00",
+      e24: "08:00",
+      s12: "08:00 AM",
+      e12: "08:00 AM",
+    },
+  ];
+
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.fieldLabelText}>Waqt Selection (Time Window - Minute-to-Minute):</Text>
+
+      {/* 1-Tap Shift Presets */}
+      <View style={[styles.chipRow, { marginBottom: 10 }]}>
+        {shifts.map((s) => {
+          const isSelected = start12 === s.s12 && end12 === s.e12;
+          return (
+            <TouchableOpacity
+              key={s.title}
+              onPress={() => onSelectTimes(s.s24, s.e24, s.s12, s.e12)}
+              style={[
+                styles.shiftPresetChip,
+                isSelected && styles.shiftPresetChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.shiftPresetTitle,
+                  isSelected && styles.shiftPresetTitleActive,
+                ]}
+              >
+                {s.title}
+              </Text>
+              <Text
+                style={[
+                  styles.shiftPresetDesc,
+                  isSelected && styles.shiftPresetDescActive,
+                ]}
+              >
+                {s.desc}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Start Time & End Time Pickers */}
+      <View style={styles.formRow}>
+        <View style={{ flex: 1, marginRight: 10 }}>
+          <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>SHURU WAQT (START TIME)</Text>
+          <View style={styles.blackInputBox}>
+            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+              <Ionicons name="time" size={18} color="#2563EB" style={{ marginRight: 8 }} />
+              <TextInput
+                value={start24}
+                onChangeText={(val) => {
+                  const s12 = time24To12(val);
+                  onSelectTimes(val, end24, s12, end12);
+                }}
+                placeholder="08:00"
+                placeholderTextColor="#64748B"
+                style={styles.pickerInputText}
+                {...(Platform.OS === "web"
+                  ? ({
+                    type: "time",
+                  } as any)
+                  : {})}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.fieldLabelText, { fontSize: 10 }]}>KHATAM WAQT (END TIME)</Text>
+          <View style={styles.blackInputBox}>
+            <View style={{ flexDirection: "row", alignItems: "center", width: "100%" }}>
+              <Ionicons name="time" size={18} color="#2563EB" style={{ marginRight: 8 }} />
+              <TextInput
+                value={end24}
+                onChangeText={(val) => {
+                  const e12 = time24To12(val);
+                  onSelectTimes(start24, val, start12, e12);
+                }}
+                placeholder="14:00"
+                placeholderTextColor="#64748B"
+                style={styles.pickerInputText}
+                {...(Platform.OS === "web"
+                  ? ({
+                    type: "time",
+                  } as any)
+                  : {})}
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // FormField with 100% Guaranteed 2px Solid Black Border Box & Distinct Header Label
 function FormField({
   label,
@@ -239,8 +479,11 @@ export default function UserDashboardScreen() {
   const [showDoctorModal, setShowDoctorModal] = useState(false);
 
   // Feed Modal Form Inputs
+  const [feedDateISO, setFeedDateISO] = useState("2026-11-23");
   const [feedDate, setFeedDate] = useState("23-Nov-2026");
   const [feedDay, setFeedDay] = useState("28");
+  const [feedTimeStartISO, setFeedTimeStartISO] = useState("08:00");
+  const [feedTimeEndISO, setFeedTimeEndISO] = useState("14:00");
   const [feedTimeStart, setFeedTimeStart] = useState("08:00 AM");
   const [feedTimeEnd, setFeedTimeEnd] = useState("02:00 PM");
   const [feedTarget, setFeedTarget] = useState("Shed 1 (Cobb 500)");
@@ -248,6 +491,7 @@ export default function UserDashboardScreen() {
   const [feedUsed, setFeedUsed] = useState("25");
 
   // Chooza Modal Form Inputs
+  const [choozaDateISO, setChoozaDateISO] = useState("2026-11-23");
   const [choozaDate, setChoozaDate] = useState("23-Nov-2026");
   const [choozaDay, setChoozaDay] = useState("28");
   const [choozaTotalPlaced, setChoozaTotalPlaced] = useState("19888");
@@ -480,8 +724,8 @@ export default function UserDashboardScreen() {
           </thead>
           <tbody>
             ${feedLog
-              .map(
-                (f, idx) => `
+          .map(
+            (f, idx) => `
               <tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">
                 <td>${idx + 1}</td>
                 <td><strong>${f.date}</strong></td>
@@ -492,8 +736,8 @@ export default function UserDashboardScreen() {
                 <td style="color:#dc2626; font-weight:bold;">${f.usedBags} Bags</td>
                 <td style="color:#059669; font-weight:bold;">${f.remainingBags} Bags</td>
               </tr>`,
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
           <tfoot>
             <tr style="background-color:#e2e8f0; font-weight:bold;">
@@ -524,8 +768,8 @@ export default function UserDashboardScreen() {
           </thead>
           <tbody>
             ${choozaLog
-              .map(
-                (c, idx) => `
+          .map(
+            (c, idx) => `
               <tr style="background-color:${idx % 2 === 0 ? "#ffffff" : "#f8fafc"};">
                 <td>${idx + 1}</td>
                 <td><strong>${c.date}</strong></td>
@@ -537,8 +781,8 @@ export default function UserDashboardScreen() {
                 <td>${c.deathReason}</td>
                 <td style="color:#059669; font-weight:bold;">${c.remainingBirds.toLocaleString()}</td>
               </tr>`,
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
           <tfoot>
             <tr style="background-color:#e2e8f0; font-weight:bold;">
@@ -1200,42 +1444,41 @@ export default function UserDashboardScreen() {
             </View>
 
             <ScrollView style={{ padding: 14 }}>
-              {/* Row 1: Date & Day */}
-              <View style={styles.formRow}>
-                <FormField
-                  label="Tareekh (Date)"
-                  value={feedDate}
-                  onChangeText={setFeedDate}
-                  placeholder="23-Nov-2026"
-                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
-                />
-                <FormField
-                  label="Choozay Ka Din (Day)"
-                  value={feedDay}
-                  onChangeText={setFeedDay}
-                  placeholder="28"
-                  keyboardType="number-pad"
-                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
-                />
-              </View>
+              {/* Date Selection (Calendar Picker + Quick Chips) */}
+              <DateSelector
+                label="Tareekh Selection (Date)"
+                isoValue={feedDateISO}
+                onSelectDate={(iso, formatted) => {
+                  setFeedDateISO(iso);
+                  setFeedDate(formatted);
+                  const diffDays = Math.round((new Date("2026-11-23").getTime() - new Date(iso).getTime()) / (1000 * 3600 * 24));
+                  const calculatedDay = Math.max(1, 28 - diffDays);
+                  setFeedDay(`${calculatedDay}`);
+                }}
+              />
 
-              {/* Row 2: Minute-by-Minute Time Slot */}
-              <View style={styles.formRow}>
-                <FormField
-                  label="Shuru Waqt (Start Time)"
-                  value={feedTimeStart}
-                  onChangeText={setFeedTimeStart}
-                  placeholder="08:00 AM"
-                  containerStyle={{ flex: 1, marginRight: 10, marginBottom: 0 }}
-                />
-                <FormField
-                  label="Khatam Waqt (End Time)"
-                  value={feedTimeEnd}
-                  onChangeText={setFeedTimeEnd}
-                  placeholder="02:00 PM"
-                  containerStyle={{ flex: 1, marginBottom: 0 }}
-                />
-              </View>
+              {/* Day Number */}
+              <FormField
+                label="Choozay Ka Din (Day)"
+                value={feedDay}
+                onChangeText={setFeedDay}
+                placeholder="28"
+                keyboardType="number-pad"
+              />
+
+              {/* Time Selection (Shift Chips + Time Pickers) */}
+              <TimeRangeSelector
+                start24={feedTimeStartISO}
+                end24={feedTimeEndISO}
+                start12={feedTimeStart}
+                end12={feedTimeEnd}
+                onSelectTimes={(s24, e24, s12, e12) => {
+                  setFeedTimeStartISO(s24);
+                  setFeedTimeEndISO(e24);
+                  setFeedTimeStart(s12);
+                  setFeedTimeEnd(e12);
+                }}
+              />
 
               {/* Row 3: Target & In Stock */}
               <View style={styles.formRow}>
@@ -1333,24 +1576,27 @@ export default function UserDashboardScreen() {
             </View>
 
             <ScrollView style={{ padding: 14 }}>
-              {/* Row 1: Date & Day */}
-              <View style={styles.formRow}>
-                <FormField
-                  label="Tareekh (Date)"
-                  value={choozaDate}
-                  onChangeText={setChoozaDate}
-                  placeholder="23-Nov-2026"
-                  containerStyle={{ flex: 1.2, marginRight: 10, marginBottom: 0 }}
-                />
-                <FormField
-                  label="Choozay Ka Din (Day)"
-                  value={choozaDay}
-                  onChangeText={setChoozaDay}
-                  placeholder="28"
-                  keyboardType="number-pad"
-                  containerStyle={{ flex: 0.8, marginBottom: 0 }}
-                />
-              </View>
+              {/* Date Selection (Calendar Picker + Quick Chips) */}
+              <DateSelector
+                label="Tareekh Selection (Date)"
+                isoValue={choozaDateISO}
+                onSelectDate={(iso, formatted) => {
+                  setChoozaDateISO(iso);
+                  setChoozaDate(formatted);
+                  const diffDays = Math.round((new Date("2026-11-23").getTime() - new Date(iso).getTime()) / (1000 * 3600 * 24));
+                  const calculatedDay = Math.max(1, 28 - diffDays);
+                  setChoozaDay(`${calculatedDay}`);
+                }}
+              />
+
+              {/* Day Number */}
+              <FormField
+                label="Choozay Ka Din (Day)"
+                value={choozaDay}
+                onChangeText={setChoozaDay}
+                placeholder="28"
+                keyboardType="number-pad"
+              />
 
               {/* Row 2: Total Added Chicks */}
               <FormField
@@ -1960,9 +2206,83 @@ const styles = StyleSheet.create({
     width: "100%",
     ...(Platform.OS === "web"
       ? ({
-          outlineStyle: "none",
-        } as any)
+        outlineStyle: "none",
+      } as any)
       : {}),
+  },
+  pickerInputText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#000000",
+    backgroundColor: "transparent",
+    padding: 0,
+    margin: 0,
+    width: "100%",
+    ...(Platform.OS === "web"
+      ? ({
+        cursor: "pointer",
+        outlineStyle: "none",
+        border: "none",
+      } as any)
+      : {}),
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  quickChip: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#000000",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  quickChipActiveGreen: {
+    backgroundColor: "#059669",
+    borderColor: "#000000",
+  },
+  quickChipText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  quickChipTextActive: {
+    color: "#FFFFFF",
+  },
+  shiftPresetChip: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#000000",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  shiftPresetChipActive: {
+    backgroundColor: "#1E293B",
+    borderColor: "#000000",
+  },
+  shiftPresetTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  shiftPresetTitleActive: {
+    color: "#FFFFFF",
+  },
+  shiftPresetDesc: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  shiftPresetDescActive: {
+    color: "#CBD5E1",
   },
   bottomMasterCard: {
     flexDirection: "row",
