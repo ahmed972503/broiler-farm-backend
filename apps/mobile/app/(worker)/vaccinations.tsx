@@ -12,11 +12,10 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/theme";
 import { useAuthStore } from "../../src/store/useAuthStore";
-import { Button, Card, Badge, Input } from "../../src/components/ui";
+import { Button, Card, Badge } from "../../src/components/ui";
 import { apiFetch, API_BASE_URL } from "../../src/api/client";
 import { OfflineStore } from "../../src/db/offlineStore";
 import { useSyncStore } from "../../src/store/useSyncStore";
-import { useTranslation } from "react-i18next";
 
 // Real historical medicine log directly from farm notebook (Photo 2)
 const SAMPLE_MEDICINE_LOG: {
@@ -255,12 +254,8 @@ const COMMON_MEDICINE_CHIPS = [
   "Ventilin",
   "Neovit-Fort",
   "Vitamin C",
-  "ND-Killed",
   "Acidifier",
   "Colistin",
-  "Neomycin",
-  "Tylosin",
-  "Enrofloxacin",
   "Liver Tonic",
 ];
 
@@ -268,7 +263,6 @@ export default function WorkerVaccinationsScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const { user, token } = useAuthStore();
   const { syncWithServer } = useSyncStore();
-  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<"register" | "tasks">("register");
   const [tasks, setTasks] = useState<any[]>([]);
@@ -313,7 +307,6 @@ export default function WorkerVaccinationsScreen() {
 
   // " " " " (Pichle Din Jaisi / Ditto) Button Handler
   const handleDittoCopy = () => {
-    // Find yesterday's entry
     const yesterdayDay = selectedDay > 1 ? selectedDay - 1 : 1;
     const yesterdayEntry = entries.find((e) => e.day === yesterdayDay);
 
@@ -333,7 +326,6 @@ export default function WorkerVaccinationsScreen() {
     if (!medicineInput.trim()) {
       setMedicineInput(chipName);
     } else if (medicineInput.includes(chipName)) {
-      // already present, don't duplicate
       return;
     } else {
       setMedicineInput(`${medicineInput} + ${chipName}`);
@@ -349,7 +341,6 @@ export default function WorkerVaccinationsScreen() {
 
     setSubmitting(true);
     try {
-      // Update local state
       setEntries((prev) =>
         prev.map((e) =>
           e.day === selectedDay
@@ -358,7 +349,6 @@ export default function WorkerVaccinationsScreen() {
         ),
       );
 
-      // Save via offline store
       const payload = {
         shedId,
         batchId: batchId || "active-batch",
@@ -411,7 +401,7 @@ export default function WorkerVaccinationsScreen() {
       }
 
       Alert.alert(
-        "Teeka Lag Gaya! (Success)",
+        "Teeka Lag Gaya!",
         `${task.vaccineName} marked as completed.`,
       );
     } catch (err: any) {
@@ -421,7 +411,7 @@ export default function WorkerVaccinationsScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: "#F8FAFC" }}
       contentContainerStyle={[
         styles.container,
         {
@@ -442,460 +432,199 @@ export default function WorkerVaccinationsScreen() {
         />
       }
     >
-      {/* Screen Title */}
-      <View style={styles.headerRow}>
+      {/* 1. Clean Simple Header */}
+      <View style={styles.cleanHeader}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <MaterialCommunityIcons
               name="pill"
-              size={24}
+              size={22}
               color={colors.primary}
               style={{ marginRight: 6 }}
             />
             <Text
-              style={[
-                styles.title,
-                {
-                  color: colors.text,
-                  fontSize: typography.sizes.lg,
-                  fontWeight: typography.weights.bold,
-                },
-              ]}
+              style={{
+                color: colors.text,
+                fontSize: 18,
+                fontWeight: "800",
+              }}
             >
-              Dawaai Register (Medicine Log)
+              Dawaai Register
             </Text>
           </View>
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: typography.sizes.xs,
-              marginTop: 2,
-            }}
-          >
-            Notebook Register (Photo 2) • Tareekh, Din aur Dawaai ka Khata
+          <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>
+            Shed 1 • Choozay Ki Umar: Day {selectedDay}
           </Text>
         </View>
 
-        {/* Tab switch between Register and Task alerts */}
-        <View style={styles.topTabs}>
+        {/* Day Navigator */}
+        <View style={styles.dayPickerPill}>
           <TouchableOpacity
-            onPress={() => setActiveTab("register")}
-            style={[
-              styles.tabBtn,
-              {
-                backgroundColor:
-                  activeTab === "register" ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
+            onPress={() => setSelectedDay(Math.max(1, selectedDay - 1))}
+            style={styles.dayNavArrow}
           >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="book-open-outline"
-                size={13}
-                color={activeTab === "register" ? "#fff" : colors.text}
-                style={{ marginRight: 4 }}
-              />
-              <Text
-                style={{
-                  color: activeTab === "register" ? "#fff" : colors.text,
-                  fontSize: 11,
-                  fontWeight: "700",
-                }}
-              >
-                Dawaai Khata
-              </Text>
-            </View>
+            <Ionicons name="chevron-back" size={16} color="#0F172A" />
           </TouchableOpacity>
+          <Text style={styles.dayNavText}>Day {selectedDay}</Text>
           <TouchableOpacity
-            onPress={() => setActiveTab("tasks")}
-            style={[
-              styles.tabBtn,
-              {
-                backgroundColor:
-                  activeTab === "tasks" ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
+            onPress={() => setSelectedDay(Math.min(45, selectedDay + 1))}
+            style={styles.dayNavArrow}
           >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <MaterialCommunityIcons
-                name="needle"
-                size={13}
-                color={activeTab === "tasks" ? "#fff" : colors.text}
-                style={{ marginRight: 4 }}
-              />
-              <Text
-                style={{
-                  color: activeTab === "tasks" ? "#fff" : colors.text,
-                  fontSize: 11,
-                  fontWeight: "700",
-                }}
-              >
-                Teekay Tasks ({tasks.length})
-              </Text>
-            </View>
+            <Ionicons name="chevron-forward" size={16} color="#0F172A" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {activeTab === "register" ? (
-        <>
-          {/* ========================================================================= */}
-          {/* FAST MEDICINE ENTRY CARD WITH "DITTO" COPY BUTTON AND ONE-TAP CHIPS */}
-          {/* ========================================================================= */}
-          <View
-            style={[
-              styles.entryBox,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.primary,
-                borderRadius: borderRadius.md,
-              },
-            ]}
-          >
-            <View style={styles.entryHeaderRow}>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name="pencil-outline"
-                    size={16}
-                    color={colors.primary}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.base,
-                      fontWeight: typography.weights.bold,
-                      color: colors.primary,
-                    }}
-                  >
-                    Aaj Ki Dawaai Likhein (Day {selectedDay})
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
-                  Chip daba kar dawaai shamil karein ya Pichle Din Jaisi button dabayein
-                </Text>
-              </View>
+      {/* 2. Compact, Super-Easy Entry Box */}
+      <View style={styles.simpleEntryBox}>
+        <Text style={styles.boxLabel}>
+          Aaj Ki Dawaai (Day {selectedDay}):
+        </Text>
 
-              {/* Day Selector Pill */}
-              <View style={styles.dayPickerPill}>
-                <TouchableOpacity
-                  onPress={() => setSelectedDay(Math.max(1, selectedDay - 1))}
-                  style={styles.dayStepperBtn}
-                >
-                  <Ionicons name="chevron-back" size={16} color="#0F172A" />
-                </TouchableOpacity>
-                <Text style={styles.dayPickerText}>Day {selectedDay}</Text>
-                <TouchableOpacity
-                  onPress={() => setSelectedDay(Math.min(45, selectedDay + 1))}
-                  style={styles.dayStepperBtn}
-                >
-                  <Ionicons name="chevron-forward" size={16} color="#0F172A" />
-                </TouchableOpacity>
-              </View>
-            </View>
+        <TextInput
+          value={medicineInput}
+          onChangeText={setMedicineInput}
+          placeholder="Dawaai ka naam likhein (e.g. Biozyme + Growvite)..."
+          multiline
+          numberOfLines={2}
+          style={styles.simpleTextInput}
+        />
 
-            {/* DITTO COPY BUTTON (THE GOLDEN PAPER-LIKE SHORTCUT) */}
+        {/* Fast Chips: Single horizontal scroll row (neat, zero screen clutter) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.horizontalChipsRow}
+          contentContainerStyle={{ gap: 6, paddingVertical: 4 }}
+        >
+          {COMMON_MEDICINE_CHIPS.map((chip) => (
             <TouchableOpacity
-              onPress={handleDittoCopy}
+              key={chip}
+              onPress={() => handleAddChip(chip)}
               style={[
-                styles.dittoButton,
-                { backgroundColor: "#FEF3C7", borderColor: "#F59E0B" },
+                styles.minimalChip,
+                medicineInput.includes(chip) && styles.minimalChipActive,
               ]}
             >
-              <MaterialCommunityIcons
-                name="content-copy"
-                size={20}
-                color="#B45309"
-                style={{ marginRight: 8 }}
-              />
-              <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  styles.minimalChipText,
+                  medicineInput.includes(chip) && styles.minimalChipTextActive,
+                ]}
+              >
+                + {chip}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Action Buttons: Ditto & Save side-by-side */}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            onPress={handleDittoCopy}
+            style={styles.dittoButton}
+          >
+            <MaterialCommunityIcons
+              name="content-copy"
+              size={16}
+              color="#047857"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.dittoButtonText}>
+              Kal Jaisi (Ditto)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSaveMedicine}
+            style={styles.saveButton}
+          >
+            <MaterialCommunityIcons
+              name="check"
+              size={16}
+              color="#FFFFFF"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.saveButtonText}>
+              {submitting ? "Saving..." : "Mehfooz Karein"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 3. The Digital Ruled Notebook Register Table (Clean & Paper-like) */}
+      <View style={styles.notebookCard}>
+        <View style={styles.notebookHeaderRow}>
+          <Text style={[styles.colHead, { width: 75 }]}>DATE</Text>
+          <Text style={[styles.colHead, { width: 45 }]}>DAY</Text>
+          <Text style={[styles.colHead, { flex: 1, textAlign: "left", paddingLeft: 8 }]}>
+            DAWAAI KI TAFSEEL
+          </Text>
+        </View>
+
+        {entries.map((item, idx) => {
+          const isSelected = item.day === selectedDay;
+          return (
+            <TouchableOpacity
+              key={item.day}
+              onPress={() => {
+                setSelectedDay(item.day);
+                setMedicineInput(item.detail);
+              }}
+              style={[
+                styles.notebookRow,
+                {
+                  backgroundColor: isSelected
+                    ? "#ECFDF5"
+                    : idx % 2 === 0
+                      ? "#FFFFFF"
+                      : "#F8FAFC",
+                  borderLeftColor: isSelected ? "#059669" : "transparent",
+                  borderLeftWidth: isSelected ? 4 : 0,
+                },
+              ]}
+            >
+              <View style={[styles.colCell, { width: isSelected ? 71 : 75 }]}>
                 <Text
-                  style={{
-                    color: "#92400E",
-                    fontWeight: "800",
-                    fontSize: 13,
-                  }}
+                  style={[
+                    styles.dateText,
+                    isSelected && { color: "#059669", fontWeight: "800" },
+                  ]}
                 >
-                  " " " " (Pichle Din Jaisi / Ditto)
+                  {item.date}
                 </Text>
-                <Text style={{ color: "#B45309", fontSize: 11 }}>
-                  1-Click: Kal wali dawaai aaj ke liye copy karein
+              </View>
+
+              <View style={[styles.colCell, { width: 45 }]}>
+                <Text
+                  style={[
+                    styles.dayText,
+                    isSelected && { color: "#059669", fontWeight: "800" },
+                  ]}
+                >
+                  {item.day}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.colCell,
+                  { flex: 1, alignItems: "flex-start", paddingLeft: 8 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.medText,
+                    item.isDitto && { color: "#B45309", fontStyle: "italic", fontWeight: "700" },
+                  ]}
+                >
+                  {item.detail}
                 </Text>
               </View>
             </TouchableOpacity>
-
-            {/* Quick Add Medicine Chips */}
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10, marginBottom: 6 }}>
-              <MaterialCommunityIcons
-                name="lightning-bolt"
-                size={14}
-                color={colors.textSecondary}
-                style={{ marginRight: 4 }}
-              />
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "700",
-                  color: colors.textSecondary,
-                }}
-              >
-                Fast Chips (Dawaai Ka Naam Shamil Karein):
-              </Text>
-            </View>
-            <View style={styles.chipsContainer}>
-              {COMMON_MEDICINE_CHIPS.map((chip) => (
-                <TouchableOpacity
-                  key={chip}
-                  onPress={() => handleAddChip(chip)}
-                  style={[
-                    styles.medicineChip,
-                    {
-                      backgroundColor: medicineInput.includes(chip)
-                        ? colors.primaryBg
-                        : colors.surface,
-                      borderColor: medicineInput.includes(chip)
-                        ? colors.primary
-                        : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "700",
-                      color: medicineInput.includes(chip)
-                        ? colors.primary
-                        : colors.text,
-                    }}
-                  >
-                    + {chip}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Free-Text Input */}
-            <View style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 11, fontWeight: "600", color: colors.text }}>
-                Dawaai Ki Tafseel (Medicine Used Detail):
-              </Text>
-              <TextInput
-                value={medicineInput}
-                onChangeText={setMedicineInput}
-                placeholder="e.g. Captent + I.B + Biozyme + Growvite"
-                multiline
-                numberOfLines={2}
-                style={[
-                  styles.medicineTextInput,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-              />
-            </View>
-
-            {/* Save Button */}
-            <View style={{ marginTop: 10 }}>
-              <Button
-                title={
-                  submitting
-                    ? "Mehfooz Ho Raha Hai..."
-                    : "Dawaai Register Mein Darj Karein"
-                }
-                onPress={handleSaveMedicine}
-                loading={submitting}
-                size="md"
-              />
-            </View>
-          </View>
-
-          {/* ========================================================================= */}
-          {/* DIGITAL DAWAAI REGISTER TABLE (MATCHING PHOTO 2 HANDWRITTEN NOTEBOOK) */}
-          {/* ========================================================================= */}
-          <View style={styles.sheetContainer}>
-            <View style={styles.sheetHeaderBanner}>
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name="book-open-page-variant"
-                    size={16}
-                    color={colors.text}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text
-                    style={[
-                      styles.sheetTitle,
-                      { color: colors.text, fontSize: typography.sizes.md },
-                    ]}
-                  >
-                    Dawaai Register (Notebook View)
-                  </Text>
-                </View>
-                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
-                  Photo 2 jesa 2-column paper register • Days 1 to 45
-                </Text>
-              </View>
-              <Badge label="Days 1 - 45" variant="neutral" size="sm" />
-            </View>
-
-            <View
-              style={[
-                styles.tableBorderWrapper,
-                { borderColor: colors.border, backgroundColor: "#FFFFFF" },
-              ]}
-            >
-              {/* Header */}
-              <View
-                style={[
-                  styles.tableHeaderRow,
-                  { backgroundColor: "#1E293B" },
-                ]}
-              >
-                <View style={[styles.cellHeader, { width: 75 }]}>
-                  <Text style={styles.headerTextLight}>DATE</Text>
-                </View>
-                <View style={[styles.cellHeader, { width: 50 }]}>
-                  <Text style={styles.headerTextLight}>DAY</Text>
-                </View>
-                <View style={[styles.cellHeader, { flex: 1 }]}>
-                  <Text style={[styles.headerTextLight, { textAlign: "left" }]}>
-                    MEDICINE USED (DETAIL)
-                  </Text>
-                </View>
-              </View>
-
-              {/* Rows */}
-              {entries.map((item, idx) => {
-                const isSelected = item.day === selectedDay;
-                const rowBg = isSelected
-                  ? "#ECFDF5"
-                  : idx % 2 === 0
-                    ? "#FFFFFF"
-                    : "#F8FAFC";
-
-                return (
-                  <TouchableOpacity
-                    key={item.day}
-                    onPress={() => {
-                      setSelectedDay(item.day);
-                      setMedicineInput(item.detail);
-                    }}
-                    style={[
-                      styles.tableRow,
-                      {
-                        backgroundColor: rowBg,
-                        borderBottomColor: "#E2E8F0",
-                      },
-                    ]}
-                  >
-                    <View style={[styles.cell, { width: 75 }]}>
-                      <Text
-                        style={[
-                          styles.cellTextBold,
-                          { color: isSelected ? "#059669" : "#334155" },
-                        ]}
-                      >
-                        {item.date}
-                      </Text>
-                    </View>
-                    <View style={[styles.cell, { width: 50 }]}>
-                      <Text
-                        style={[
-                          styles.cellTextBold,
-                          { color: isSelected ? "#059669" : "#0F172A" },
-                        ]}
-                      >
-                        {item.day}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.cell,
-                        {
-                          flex: 1,
-                          alignItems: "flex-start",
-                          paddingHorizontal: 8,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.cellMedicineText,
-                          {
-                            color: item.isDitto ? "#B45309" : "#0F172A",
-                            fontStyle: item.isDitto ? "italic" : "normal",
-                            fontWeight: item.isDitto ? "700" : "500",
-                          },
-                        ]}
-                      >
-                        {item.detail}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </>
-      ) : (
-        /* Tasks Tab (Vaccination tasks fallback) */
-        <View style={{ marginTop: 10 }}>
-          {tasks.length === 0 ? (
-            <Card style={{ padding: 20, alignItems: "center" }}>
-              <Text style={{ color: colors.textSecondary }}>
-                Koi pending teeka task nahi hai.
-              </Text>
-            </Card>
-          ) : (
-            tasks.map((task) => (
-              <Card
-                key={task._id}
-                style={{
-                  marginBottom: 10,
-                  borderColor:
-                    task.status === "completed" ? colors.success : colors.border,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: "700",
-                        color: colors.text,
-                      }}
-                    >
-                      {task.vaccineName} ({task.route})
-                    </Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                      Due Date: {task.dueDate} • Shed {task.shedNumber || 1}
-                    </Text>
-                  </View>
-                  {task.status === "completed" ? (
-                    <Badge label="COMPLETED" variant="success" size="sm" />
-                  ) : (
-                    <Button
-                      title="Teeka Lag Gaya"
-                      size="sm"
-                      onPress={() => handleMarkComplete(task)}
-                    />
-                  )}
-                </View>
-              </Card>
-            ))
-          )}
-        </View>
-      )}
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
@@ -904,143 +633,166 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: 90,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  title: {},
-  topTabs: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  tabBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  entryBox: {
-    borderWidth: 1.5,
-    padding: 12,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  entryHeaderRow: {
+  cleanHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   dayPickerPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 16,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "#CBD5E1",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
-  dayStepperBtn: {
+  dayNavArrow: {
     padding: 4,
   },
-  dayPickerText: {
+  dayNavText: {
+    fontSize: 13,
     fontWeight: "800",
-    fontSize: 12,
-    paddingHorizontal: 6,
     color: "#0F172A",
+    paddingHorizontal: 8,
   },
-  dittoButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
+  simpleEntryBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  boxLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 6,
+  },
+  simpleTextInput: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
     borderRadius: 8,
     padding: 10,
-    marginVertical: 4,
-  },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  medicineChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  medicineTextInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 4,
     fontSize: 13,
-    minHeight: 48,
+    color: "#0F172A",
+    backgroundColor: "#F8FAFC",
+    minHeight: 46,
   },
-  sheetContainer: {
-    marginTop: 6,
+  horizontalChipsRow: {
+    marginVertical: 8,
   },
-  sheetHeaderBanner: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sheetTitle: {
-    fontWeight: "800",
-  },
-  tableBorderWrapper: {
+  minimalChip: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 14,
     borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  minimalChipActive: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#10B981",
+  },
+  minimalChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  minimalChipTextActive: {
+    color: "#059669",
+    fontWeight: "700",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+  },
+  dittoButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#10B981",
     borderRadius: 8,
+    paddingVertical: 10,
+  },
+  dittoButtonText: {
+    color: "#047857",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  saveButton: {
+    flex: 1.2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#059669",
+    borderRadius: 8,
+    paddingVertical: 10,
+  },
+  saveButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  notebookCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
     overflow: "hidden",
   },
-  tableHeaderRow: {
+  notebookHeaderRow: {
     flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: "#1E293B",
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
-  cellHeader: {
-    padding: 8,
-    borderRightWidth: 1,
-    borderColor: "#334155",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTextLight: {
+  colHead: {
     color: "#FFFFFF",
     fontSize: 11,
     fontWeight: "800",
     textAlign: "center",
   },
-  tableRow: {
+  notebookRow: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
     minHeight: 36,
-  },
-  cell: {
-    paddingVertical: 6,
     paddingHorizontal: 4,
-    borderRightWidth: 1,
-    borderColor: "#E2E8F0",
+  },
+  colCell: {
+    paddingVertical: 6,
     justifyContent: "center",
     alignItems: "center",
   },
-  cellTextBold: {
+  dateText: {
     fontSize: 11,
-    fontWeight: "700",
+    color: "#64748B",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  dayText: {
+    fontSize: 11,
     color: "#0F172A",
     textAlign: "center",
+    fontWeight: "700",
   },
-  cellMedicineText: {
+  medText: {
     fontSize: 12,
+    color: "#1E293B",
     lineHeight: 16,
   },
 });
