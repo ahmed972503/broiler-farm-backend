@@ -188,34 +188,34 @@ export default function WorkerLayout() {
           options={{
             title: t("tabs.dailyEntry", "Rozana"),
             tabBarIcon: ({ color }: { color: string }) => (
-              <Ionicons name="create-outline" size={20} color={color} />
+              <Ionicons name="book-outline" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="vaccinations"
           options={{
-            title: t("tabs.vaccinations", "Teekay"),
+            title: t("tabs.vaccinations", "Dawaai"),
             tabBarIcon: ({ color }: { color: string }) => (
-              <MaterialCommunityIcons name="needle" size={20} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="weight"
-          options={{
-            title: t("tabs.weights", "Wazan"),
-            tabBarIcon: ({ color }: { color: string }) => (
-              <MaterialCommunityIcons name="scale" size={20} color={color} />
+              <MaterialCommunityIcons name="pill" size={20} color={color} />
             ),
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
-            title: t("tabs.history", "Khata"),
+            title: t("tabs.history", "Khuraak"),
             tabBarIcon: ({ color }: { color: string }) => (
-              <Ionicons name="reader-outline" size={20} color={color} />
+              <Ionicons name="clipboard-outline" size={20} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="weight"
+          options={{
+            title: t("tabs.weights", "Haftawar"),
+            tabBarIcon: ({ color }: { color: string }) => (
+              <MaterialCommunityIcons name="calendar-month-outline" size={20} color={color} />
             ),
           }}
         />

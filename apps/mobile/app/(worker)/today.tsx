@@ -30,7 +30,6 @@ export default function WorkerTodayScreen() {
 
   const loadData = async () => {
     try {
-      // 1. Fetch Shed & Active Batch details
       const shedId = user?.assignedShedId || user?.shed?.id;
       if (shedId) {
         const shedRes = await apiFetch(`/api/sheds/${shedId}`);
@@ -38,19 +37,16 @@ export default function WorkerTodayScreen() {
           setShedDetails(shedRes.data);
         }
 
-        // 2. Fetch today's daily record
         const recordRes = await apiFetch(`/api/daily-records/today/${shedId}`);
         if (recordRes.success && recordRes.data) {
           setTodayRecord(recordRes.data);
         } else {
-          // Check local offline cache
           const localRecords = await OfflineStore.getLocalCache("DAILY_RECORD");
           const todayStr = new Date().toISOString().split("T")[0];
           const localToday = localRecords.find((r: any) => r.date === todayStr);
           setTodayRecord(localToday || null);
         }
 
-        // 3. Fetch vaccination tasks
         const vacRes = await apiFetch(
           `/api/vaccinations/tasks?shedId=${shedId}&status=pending`,
         );
@@ -87,7 +83,7 @@ export default function WorkerTodayScreen() {
           (today.getTime() - placementDate.getTime()) / (1000 * 60 * 60 * 24),
         ),
       )
-    : 1;
+    : 28;
 
   return (
     <ScrollView
@@ -96,7 +92,7 @@ export default function WorkerTodayScreen() {
         styles.container,
         {
           padding: spacing.base,
-          maxWidth: 640,
+          maxWidth: 900,
           alignSelf: "center",
           width: "100%",
         },
@@ -109,101 +105,57 @@ export default function WorkerTodayScreen() {
         />
       }
     >
-      {/* Entry Status Card */}
-      {todayRecord ? (
-        <Card
+      {/* Top Welcome & Today Status Banner */}
+      <View
+        style={[
+          styles.dayBanner,
+          {
+            backgroundColor: "#065F46",
+            borderRadius: borderRadius.lg,
+          },
+        ]}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "#A7F3D0", fontSize: 12, fontWeight: "700" }}>
+            {shedDetails?.name || `SHED ${user?.assignedShedId || "1"}`} • ACTIVE FLOCK
+          </Text>
+          <Text style={{ color: "#FFFFFF", fontSize: 24, fontWeight: "900" }}>
+            DAY {ageInDays} (Umar: {ageInDays} Din)
+          </Text>
+          <Text style={{ color: "#D1FAE5", fontSize: 12, marginTop: 2 }}>
+            Total Placed: {activeBatch?.chicksPlaced || "19,888"} • Breed: Cobb 500
+          </Text>
+        </View>
+
+        <View
           style={[
-            styles.statusCard,
-            { backgroundColor: colors.successBg, borderColor: colors.success },
+            styles.dayBadgeBox,
+            {
+              backgroundColor: todayRecord ? "#10B981" : "#F59E0B",
+            },
           ]}
         >
-          <View style={styles.statusRow}>
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={26}
-              color={colors.success}
-              style={{ marginRight: 10 }}
-            />
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.statusTitle,
-                  {
-                    color: colors.success,
-                    fontSize: typography.sizes.base,
-                    fontWeight: typography.weights.bold,
-                  },
-                ]}
-              >
-                {t("worker.entryCompleted")}
-              </Text>
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: typography.sizes.xs,
-                }}
-              >
-                Mortality: {todayRecord.mortalityCount} birds • Feed:{" "}
-                {todayRecord.feedUsedBags} bags ({todayRecord.feedType})
-              </Text>
-            </View>
-          </View>
-        </Card>
-      ) : (
-        <Card
-          style={[
-            styles.statusCard,
-            { backgroundColor: colors.warningBg, borderColor: colors.warning },
-          ]}
-        >
-          <View style={styles.statusRow}>
-            <Ionicons
-              name="alert-circle-outline"
-              size={26}
-              color={colors.warning}
-              style={{ marginRight: 10 }}
-            />
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.statusTitle,
-                  {
-                    color: colors.warning,
-                    fontSize: typography.sizes.base,
-                    fontWeight: typography.weights.bold,
-                  },
-                ]}
-              >
-                {t("worker.missingEntry")}
-              </Text>
-              <Text
-                style={{
-                  color: colors.textSecondary,
-                  fontSize: typography.sizes.xs,
-                }}
-              >
-                Please submit today's mortality, feed, and temperature reading.
-              </Text>
-            </View>
-          </View>
-        </Card>
-      )}
+          <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "800" }}>
+            {todayRecord ? "AAJ KI ENTRY COMPLETE" : "ENTRY PENDING"}
+          </Text>
+        </View>
+      </View>
 
       {/* Main Big Button: Add / Edit Daily Entry */}
       <TouchableOpacity
-        activeOpacity={0.85}
+        activeOpacity={0.88}
         onPress={() => router.push("/(worker)/daily-entry")}
         style={[
           styles.bigEntryButton,
           {
             backgroundColor: todayRecord ? colors.secondary : colors.primary,
-            borderRadius: borderRadius.lg,
+            borderRadius: borderRadius.md,
           },
         ]}
       >
-        <Ionicons
-          name="create-outline"
-          size={32}
+        <MaterialCommunityIcons
+          name="notebook-edit-outline"
+          size={30}
           color="#FFFFFF"
           style={{ marginBottom: 4 }}
         />
@@ -216,45 +168,126 @@ export default function WorkerTodayScreen() {
             },
           ]}
         >
-          {todayRecord ? "Edit Today's Entry" : t("worker.addDailyEntry")}
+          {todayRecord
+            ? "📋 Aaj Ki Entry Dekhein ya Tabdeel Karein"
+            : "➕ Aaj Ki Rozana Entry Likhein"}
         </Text>
         <Text style={styles.bigButtonSubtitle}>
-          {t("worker.quickEntrySubtitle")}
+          {todayRecord
+            ? `Feed: ${todayRecord.feedUsedBags || 0} Bags • Mout: ${todayRecord.mortalityCount || 0} Birds`
+            : "Din/Raat Khuraak aur Amwaat darj karein (5 Seconds Entry)"}
         </Text>
       </TouchableOpacity>
 
-      {/* Shed & Flock Overview */}
+      {/* ========================================================================= */}
+      {/* 4 DIGITAL REGISTERS (EXACTLY CORRESPONDING TO THE 4 REAL PAPER REGISTERS) */}
+      {/* ========================================================================= */}
       <Text
         style={[
           styles.sectionTitle,
           {
             color: colors.text,
-            fontSize: typography.sizes.md,
+            fontSize: typography.sizes.base,
             fontWeight: typography.weights.bold,
-            marginTop: spacing.lg,
+            marginTop: spacing.md,
+            marginBottom: spacing.xs,
           },
         ]}
       >
-        {shedDetails?.name || "Assigned Shed"} • Flock Status
+        📖 Farm Paper Registers (Khatay)
+      </Text>
+      <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>
+        Client ke notebook registers ke mutabiq 4 digital khatay:
       </Text>
 
-      <View style={styles.statsGrid}>
-        <StatCard
-          title={t("dashboard.age")}
-          value={`${ageInDays} ${t("common.days")}`}
-          subtitle={`Placed: ${activeBatch?.chicksPlaced || 5000}`}
-          style={styles.gridCard}
-        />
-        <StatCard
-          title="Flock Number"
-          value={activeBatch?.batchNumber || "FLOCK-ACTIVE"}
-          subtitle={activeBatch?.breed || "Cobb 500"}
-          style={styles.gridCard}
-        />
+      <View style={styles.fourRegistersGrid}>
+        {/* Register 1: Rozana Register */}
+        <TouchableOpacity
+          onPress={() => router.push("/(worker)/daily-entry")}
+          style={[
+            styles.registerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.registerIconCircle, { backgroundColor: "#ECFDF5" }]}>
+            <MaterialCommunityIcons
+              name="book-open-page-variant"
+              size={24}
+              color="#059669"
+            />
+          </View>
+          <Text style={styles.registerCardTitle}>📋 Rozana Register</Text>
+          <Text style={styles.registerCardSub}>
+            Photos 1 & 5 • 16-Column Daily Sheet, Closing SF, Birds & Catching
+          </Text>
+        </TouchableOpacity>
+
+        {/* Register 2: Dawaai Register */}
+        <TouchableOpacity
+          onPress={() => router.push("/(worker)/vaccinations")}
+          style={[
+            styles.registerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.registerIconCircle, { backgroundColor: "#FEF3C7" }]}>
+            <MaterialCommunityIcons
+              name="pill"
+              size={24}
+              color="#D97706"
+            />
+          </View>
+          <Text style={styles.registerCardTitle}>💊 Dawaai Register</Text>
+          <Text style={styles.registerCardSub}>
+            Photo 2 • Dawaai Detail, " " " " (Ditto) Copy aur Fast Chips
+          </Text>
+        </TouchableOpacity>
+
+        {/* Register 3: Khuraak Ledger */}
+        <TouchableOpacity
+          onPress={() => router.push("/(worker)/history")}
+          style={[
+            styles.registerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.registerIconCircle, { backgroundColor: "#EFF6FF" }]}>
+            <MaterialCommunityIcons
+              name="clipboard-list-outline"
+              size={24}
+              color="#2563EB"
+            />
+          </View>
+          <Text style={styles.registerCardTitle}>📦 Khuraak Ledger</Text>
+          <Text style={styles.registerCardSub}>
+            Photo 4 • Feed Aayi (In) & Feed Gayi (Out), Party Ledger & Stock
+          </Text>
+        </TouchableOpacity>
+
+        {/* Register 4: Haftawar Summary */}
+        <TouchableOpacity
+          onPress={() => router.push("/(worker)/weight")}
+          style={[
+            styles.registerCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.registerIconCircle, { backgroundColor: "#F3E8FF" }]}>
+            <MaterialCommunityIcons
+              name="calendar-month-outline"
+              size={24}
+              color="#7C3AED"
+            />
+          </View>
+          <Text style={styles.registerCardTitle}>📊 Haftawar Summary</Text>
+          <Text style={styles.registerCardSub}>
+            Photo 3 • Weeks 1-6 Cards, Farm Method FCR (62.67), Live Weight
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Urgent Vaccine Tasks Banner */}
-      {pendingVaccines.length > 0 ? (
+      {/* Urgent Vaccine Tasks Banner if any */}
+      {pendingVaccines.length > 0 && (
         <Card
           style={{ borderColor: colors.danger, marginTop: spacing.md }}
           elevated
@@ -306,138 +339,83 @@ export default function WorkerTodayScreen() {
             onPress={() => router.push("/(worker)/vaccinations")}
           />
         </Card>
-      ) : null}
-
-      {/* Quick Links */}
-      <View style={styles.quickLinksRow}>
-        <TouchableOpacity
-          onPress={() => router.push("/(worker)/weight")}
-          style={[
-            styles.quickCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: borderRadius.md,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name="scale"
-            size={24}
-            color={colors.primary}
-            style={{ marginBottom: 4 }}
-          />
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: typography.sizes.sm,
-              fontWeight: typography.weights.bold,
-            }}
-          >
-            {t("worker.sampleWeight")}
-          </Text>
-          <Text
-            style={{ color: colors.textMuted, fontSize: typography.sizes.xs }}
-          >
-            Sample weighing
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(worker)/history")}
-          style={[
-            styles.quickCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: borderRadius.md,
-            },
-          ]}
-        >
-          <Ionicons
-            name="reader-outline"
-            size={24}
-            color={colors.primary}
-            style={{ marginBottom: 4 }}
-          />
-          <Text
-            style={{
-              color: colors.text,
-              fontSize: typography.sizes.sm,
-              fontWeight: typography.weights.bold,
-            }}
-          >
-            Past Records
-          </Text>
-          <Text
-            style={{ color: colors.textMuted, fontSize: typography.sizes.xs }}
-          >
-            30 days log
-          </Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 80,
+    paddingBottom: 90,
   },
-  statusCard: {
-    padding: 12,
-    marginBottom: 16,
-  },
-  statusRow: {
+  dayBanner: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  statusTitle: {
-    marginBottom: 2,
+  dayBadgeBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
   bigEntryButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: 18,
     paddingHorizontal: 16,
-    minHeight: 110,
+    minHeight: 100,
     shadowColor: "#059669",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
-  },
-  bigButtonIcon: {
-    fontSize: 32,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   bigButtonTitle: {
     color: "#FFFFFF",
   },
   bigButtonSubtitle: {
     color: "#E2E8F0",
-    fontSize: 13,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 3,
   },
-  sectionTitle: {
-    marginBottom: 10,
-  },
-  statsGrid: {
+  sectionTitle: {},
+  fourRegistersGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
-  gridCard: {
+  registerCard: {
     flex: 1,
+    minWidth: 160,
+    borderWidth: 1.5,
+    borderRadius: 8,
+    padding: 12,
   },
-  quickLinksRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 16,
-  },
-  quickCard: {
-    flex: 1,
-    padding: 14,
-    borderWidth: 1,
+  registerIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  registerCardTitle: {
+    fontWeight: "800",
+    fontSize: 14,
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+  registerCardSub: {
+    fontSize: 11,
+    color: "#64748B",
+    lineHeight: 15,
   },
 });
