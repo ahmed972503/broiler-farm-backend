@@ -552,9 +552,17 @@ export default function UsersManagementScreen() {
                       borderColor: colors.border,
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
-                      🔄 Reload Sheds
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Ionicons
+                        name="reload-outline"
+                        size={14}
+                        color={colors.primary}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
+                        Reload Sheds
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               ) : (

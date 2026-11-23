@@ -234,7 +234,7 @@ export default function WorkerWeightScreen() {
                 },
               ]}
             >
-              📊 Haftawar Summary (Weekly Flock Detail)
+              Haftawar Summary (Weekly Flock Detail)
             </Text>
           </View>
           <Text
@@ -271,7 +271,7 @@ export default function WorkerWeightScreen() {
               fontSize: 12,
             }}
           >
-            {showSampleForm ? "Band Karein" : "➕ Wazan Likhein"}
+            {showSampleForm ? "Band Karein" : "Wazan Likhein"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -279,16 +279,23 @@ export default function WorkerWeightScreen() {
       {/* Sample Weight Entry Form (Expandable) */}
       {showSampleForm && (
         <Card elevated style={{ marginBottom: 14 }}>
-          <Text
-            style={{
-              fontSize: typography.sizes.base,
-              fontWeight: typography.weights.bold,
-              color: colors.primary,
-              marginBottom: 8,
-            }}
-          >
-            ⚖️ Choozay Ka Sample Wazan Darj Karein
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <MaterialCommunityIcons
+              name="scale-balance"
+              size={18}
+              color={colors.primary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={{
+                fontSize: typography.sizes.base,
+                fontWeight: typography.weights.bold,
+                color: colors.primary,
+              }}
+            >
+              Choozay Ka Sample Wazan Darj Karein
+            </Text>
+          </View>
 
           <View style={styles.formRow}>
             <View style={{ flex: 1, marginRight: 6 }}>
@@ -377,7 +384,7 @@ export default function WorkerWeightScreen() {
               title={
                 submitting
                   ? "Mehfooz Ho Raha Hai..."
-                  : "📋 Sample Wazan Mehfooz Karein"
+                  : "Sample Wazan Mehfooz Karein"
               }
               onPress={handleSaveWeight}
               loading={submitting}
@@ -413,9 +420,17 @@ export default function WorkerWeightScreen() {
                 },
               ]}
             >
-              <Text style={styles.weekHeaderText}>
-                📖 {week.weekTitle} (Day {week.day})
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="calendar-check"
+                  size={14}
+                  color="#FFFFFF"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.weekHeaderText}>
+                  {week.weekTitle} (Day {week.day})
+                </Text>
+              </View>
               {week.day === 28 && (
                 <Badge label="Current Week" variant="success" size="sm" />
               )}

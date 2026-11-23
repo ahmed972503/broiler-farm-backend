@@ -447,18 +447,25 @@ export default function DailyEntryScreen() {
                 : "Daily Flock Record"}
             </Text>
           </View>
-          <Text
-            style={[
-              styles.screenSubtitle,
-              {
-                color: colors.textSecondary,
-                fontSize: typography.sizes.xs,
-                marginTop: 2,
-              },
-            ]}
-          >
-            📋 16-Column Rozana Paper Register • {date}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+            <Ionicons
+              name="document-text-outline"
+              size={13}
+              color={colors.textSecondary}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.screenSubtitle,
+                {
+                  color: colors.textSecondary,
+                  fontSize: typography.sizes.xs,
+                },
+              ]}
+            >
+              16-Column Rozana Paper Register • {date}
+            </Text>
+          </View>
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -511,7 +518,7 @@ export default function DailyEntryScreen() {
                 fontSize: 12,
               }}
             >
-              {showEntryCard ? "Entry Chhupayein" : "➕ Aaj Ki Entry Likhein"}
+              {showEntryCard ? "Entry Chhupayein" : "Aaj Ki Entry Likhein"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -565,16 +572,24 @@ export default function DailyEntryScreen() {
         >
           <View style={styles.entryHeaderRow}>
             <View>
-              <Text
-                style={{
-                  fontSize: typography.sizes.base,
-                  fontWeight: typography.weights.bold,
-                  color: colors.primary,
-                }}
-              >
-                ✏️ Aaj Ki Rozana Entry (Fast Form)
-              </Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <MaterialCommunityIcons
+                  name="pencil-outline"
+                  size={18}
+                  color={colors.primary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={{
+                    fontSize: typography.sizes.base,
+                    fontWeight: typography.weights.bold,
+                    color: colors.primary,
+                  }}
+                >
+                  Aaj Ki Rozana Entry (Fast Form)
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                 Sirf Khuraak aur Amwaat darj karein, hisab khud ho jaye ga!
               </Text>
             </View>
@@ -915,16 +930,23 @@ export default function DailyEntryScreen() {
               { backgroundColor: colors.surface, borderColor: colors.border },
             ]}
           >
-            <Text
-              style={{
-                fontWeight: "700",
-                color: colors.text,
-                fontSize: 13,
-                marginBottom: 6,
-              }}
-            >
-              📦 Stock Feed & Remarks (Register Columns)
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+              <MaterialCommunityIcons
+                name="package-variant-closed"
+                size={16}
+                color={colors.text}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={{
+                  fontWeight: "700",
+                  color: colors.text,
+                  fontSize: 13,
+                }}
+              >
+                Stock Feed & Remarks (Register Columns)
+              </Text>
+            </View>
 
             <View style={styles.stockRow}>
               <View style={{ flex: 1, marginRight: 6 }}>
@@ -1048,7 +1070,7 @@ export default function DailyEntryScreen() {
               title={
                 loading
                   ? t("common.loading")
-                  : "📋 Register Mein Darj Karein (Save Entry)"
+                  : "Register Mein Darj Karein (Save Entry)"
               }
               onPress={handleSubmit}
               loading={loading}
@@ -1064,15 +1086,23 @@ export default function DailyEntryScreen() {
       <View style={styles.registerSheetContainer}>
         <View style={styles.sheetHeaderBanner}>
           <View>
-            <Text
-              style={[
-                styles.sheetTitle,
-                { color: colors.text, fontSize: typography.sizes.md },
-              ]}
-            >
-              📖 Rozana Register (16 Columns Sheet)
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <MaterialCommunityIcons
+                name="book-open-page-variant"
+                size={18}
+                color={colors.text}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.sheetTitle,
+                  { color: colors.text, fontSize: typography.sizes.md },
+                ]}
+              >
+                Rozana Register (16 Columns Sheet)
+              </Text>
+            </View>
+            <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
               Paper notebook jesa ledger • Choozay ki rozana ki aamad o kharch
             </Text>
           </View>
@@ -1278,7 +1308,7 @@ export default function DailyEntryScreen() {
                 fontSize: 14,
               }}
             >
-              ⚖️ CATCHING / LIFTING HISAB (Gari Ka Hisab)
+              CATCHING / LIFTING HISAB (Gari Ka Hisab)
             </Text>
           </View>
           <Text style={{ fontSize: 11, color: "#78350F", marginTop: 2 }}>

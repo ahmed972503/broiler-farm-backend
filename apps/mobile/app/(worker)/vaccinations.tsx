@@ -462,7 +462,7 @@ export default function WorkerVaccinationsScreen() {
                 },
               ]}
             >
-              💊 Dawaai Register (Medicine Log)
+              Dawaai Register (Medicine Log)
             </Text>
           </View>
           <Text
@@ -489,15 +489,23 @@ export default function WorkerVaccinationsScreen() {
               },
             ]}
           >
-            <Text
-              style={{
-                color: activeTab === "register" ? "#fff" : colors.text,
-                fontSize: 11,
-                fontWeight: "700",
-              }}
-            >
-              📖 Dawaai Khata
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <MaterialCommunityIcons
+                name="book-open-outline"
+                size={13}
+                color={activeTab === "register" ? "#fff" : colors.text}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={{
+                  color: activeTab === "register" ? "#fff" : colors.text,
+                  fontSize: 11,
+                  fontWeight: "700",
+                }}
+              >
+                Dawaai Khata
+              </Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setActiveTab("tasks")}
@@ -510,15 +518,23 @@ export default function WorkerVaccinationsScreen() {
               },
             ]}
           >
-            <Text
-              style={{
-                color: activeTab === "tasks" ? "#fff" : colors.text,
-                fontSize: 11,
-                fontWeight: "700",
-              }}
-            >
-              💉 Teekay Tasks ({tasks.length})
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <MaterialCommunityIcons
+                name="needle"
+                size={13}
+                color={activeTab === "tasks" ? "#fff" : colors.text}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={{
+                  color: activeTab === "tasks" ? "#fff" : colors.text,
+                  fontSize: 11,
+                  fontWeight: "700",
+                }}
+              >
+                Teekay Tasks ({tasks.length})
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -540,16 +556,24 @@ export default function WorkerVaccinationsScreen() {
           >
             <View style={styles.entryHeaderRow}>
               <View>
-                <Text
-                  style={{
-                    fontSize: typography.sizes.base,
-                    fontWeight: typography.weights.bold,
-                    color: colors.primary,
-                  }}
-                >
-                  ✏️ Aaj Ki Dawaai Likhein (Day {selectedDay})
-                </Text>
-                <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={16}
+                    color={colors.primary}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.base,
+                      fontWeight: typography.weights.bold,
+                      color: colors.primary,
+                    }}
+                  >
+                    Aaj Ki Dawaai Likhein (Day {selectedDay})
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
                   Chip daba kar dawaai shamil karein ya Pichle Din Jaisi button dabayein
                 </Text>
               </View>
@@ -603,17 +627,23 @@ export default function WorkerVaccinationsScreen() {
             </TouchableOpacity>
 
             {/* Quick Add Medicine Chips */}
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "700",
-                color: colors.textSecondary,
-                marginTop: 10,
-                marginBottom: 6,
-              }}
-            >
-              ⚡ Fast Chips (Dawaai Ka Naam Shamil Karein):
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10, marginBottom: 6 }}>
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={14}
+                color={colors.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: colors.textSecondary,
+                }}
+              >
+                Fast Chips (Dawaai Ka Naam Shamil Karein):
+              </Text>
+            </View>
             <View style={styles.chipsContainer}>
               {COMMON_MEDICINE_CHIPS.map((chip) => (
                 <TouchableOpacity
@@ -674,7 +704,7 @@ export default function WorkerVaccinationsScreen() {
                 title={
                   submitting
                     ? "Mehfooz Ho Raha Hai..."
-                    : "📋 Dawaai Register Mein Darj Karein"
+                    : "Dawaai Register Mein Darj Karein"
                 }
                 onPress={handleSaveMedicine}
                 loading={submitting}
@@ -689,15 +719,23 @@ export default function WorkerVaccinationsScreen() {
           <View style={styles.sheetContainer}>
             <View style={styles.sheetHeaderBanner}>
               <View>
-                <Text
-                  style={[
-                    styles.sheetTitle,
-                    { color: colors.text, fontSize: typography.sizes.md },
-                  ]}
-                >
-                  📖 Dawaai Register (Notebook View)
-                </Text>
-                <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <MaterialCommunityIcons
+                    name="book-open-page-variant"
+                    size={16}
+                    color={colors.text}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.sheetTitle,
+                      { color: colors.text, fontSize: typography.sizes.md },
+                    ]}
+                  >
+                    Dawaai Register (Notebook View)
+                  </Text>
+                </View>
+                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>
                   Photo 2 jesa 2-column paper register • Days 1 to 45
                 </Text>
               </View>

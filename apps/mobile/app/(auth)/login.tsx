@@ -431,8 +431,8 @@ export default function LoginScreen() {
                     }}
                   >
                     {i18n.language === "ur"
-                      ? "📲 Mobile App Install Karein"
-                      : "📲 Install Mobile App"}
+                      ? "Mobile App Install Karein"
+                      : "Install Mobile App"}
                   </Text>
                   <Text
                     style={{
@@ -451,8 +451,8 @@ export default function LoginScreen() {
               <Button
                 title={
                   i18n.language === "ur"
-                    ? "📲 Phone par Install Karein"
-                    : "📲 Install on Phone"
+                    ? "Phone par Install Karein"
+                    : "Install on Phone"
                 }
                 variant="primary"
                 size="sm"
@@ -586,15 +586,23 @@ export default function LoginScreen() {
                   },
                 ]}
               >
-                <Text
-                  style={{
-                    color: colors.primary,
-                    fontSize: 11,
-                    fontWeight: "700",
-                  }}
-                >
-                  ☁️ Vercel Cloud (Live)
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Ionicons
+                    name="cloud-outline"
+                    size={12}
+                    color={colors.primary}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 11,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Vercel Cloud (Live)
+                  </Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() =>
@@ -610,9 +618,17 @@ export default function LoginScreen() {
                   },
                 ]}
               >
-                <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
-                  ☁️ Vercel (Seven)
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Ionicons
+                    name="cloud-outline"
+                    size={12}
+                    color={colors.textSecondary}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                    Vercel (Seven)
+                  </Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setServerUrlInput("http://192.168.100.19:5000")}

@@ -253,7 +253,7 @@ export default function WorkerHistoryScreen() {
                 },
               ]}
             >
-              📦 Khuraak Ledger (Feed In / Out)
+              Khuraak Ledger (Feed In / Out)
             </Text>
           </View>
           <Text
@@ -290,7 +290,7 @@ export default function WorkerHistoryScreen() {
               fontSize: 12,
             }}
           >
-            {showAddModal ? "Band Karein" : "➕ Feed Entry"}
+            {showAddModal ? "Band Karein" : "Feed Entry"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -355,16 +355,23 @@ export default function WorkerHistoryScreen() {
             },
           ]}
         >
-          <Text
-            style={{
-              fontSize: typography.sizes.base,
-              fontWeight: typography.weights.bold,
-              color: colors.primary,
-              marginBottom: 8,
-            }}
-          >
-            ➕ Nayi Feed Entry Darj Karein
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <Ionicons
+              name="add-circle"
+              size={18}
+              color={colors.primary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={{
+                fontSize: typography.sizes.base,
+                fontWeight: typography.weights.bold,
+                color: colors.primary,
+              }}
+            >
+              Nayi Feed Entry Darj Karein
+            </Text>
+          </View>
 
           {/* In vs Out Toggle */}
           <View style={styles.transTypeRow}>
@@ -380,15 +387,23 @@ export default function WorkerHistoryScreen() {
                 },
               ]}
             >
-              <Text
-                style={{
-                  color: transType === "in" ? "#fff" : colors.text,
-                  fontWeight: "700",
-                  fontSize: 12,
-                }}
-              >
-                📥 Feed Aayi (In)
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="arrow-down-circle-outline"
+                  size={16}
+                  color={transType === "in" ? "#fff" : colors.text}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    color: transType === "in" ? "#fff" : colors.text,
+                    fontWeight: "700",
+                    fontSize: 12,
+                  }}
+                >
+                  Feed Aayi (In)
+                </Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -403,15 +418,23 @@ export default function WorkerHistoryScreen() {
                 },
               ]}
             >
-              <Text
-                style={{
-                  color: transType === "out" ? "#fff" : colors.text,
-                  fontWeight: "700",
-                  fontSize: 12,
-                }}
-              >
-                📤 Feed Gayi (Out)
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="arrow-up-circle-outline"
+                  size={16}
+                  color={transType === "out" ? "#fff" : colors.text}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    color: transType === "out" ? "#fff" : colors.text,
+                    fontWeight: "700",
+                    fontSize: 12,
+                  }}
+                >
+                  Feed Gayi (Out)
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -455,7 +478,7 @@ export default function WorkerHistoryScreen() {
               title={
                 submitting
                   ? "Mehfooz Ho Raha Hai..."
-                  : "📋 Ledger Mein Darj Karein"
+                  : "Ledger Mein Darj Karein"
               }
               onPress={handleSaveTransaction}
               loading={submitting}
@@ -477,17 +500,25 @@ export default function WorkerHistoryScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color: activeTab === "in" ? colors.primary : colors.textMuted,
-                fontWeight: activeTab === "in" ? "800" : "600",
-              },
-            ]}
-          >
-            📥 Feed Aayi (In) ({feedInList.length})
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="arrow-down-outline"
+              size={14}
+              color={activeTab === "in" ? colors.primary : colors.textMuted}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: activeTab === "in" ? colors.primary : colors.textMuted,
+                  fontWeight: activeTab === "in" ? "800" : "600",
+                },
+              ]}
+            >
+              Feed Aayi (In) ({feedInList.length})
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -500,17 +531,25 @@ export default function WorkerHistoryScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color: activeTab === "out" ? colors.danger : colors.textMuted,
-                fontWeight: activeTab === "out" ? "800" : "600",
-              },
-            ]}
-          >
-            📤 Feed Gayi (Out) ({feedOutList.length})
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="arrow-up-outline"
+              size={14}
+              color={activeTab === "out" ? colors.danger : colors.textMuted}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: activeTab === "out" ? colors.danger : colors.textMuted,
+                  fontWeight: activeTab === "out" ? "800" : "600",
+                },
+              ]}
+            >
+              Feed Gayi (Out) ({feedOutList.length})
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -523,17 +562,25 @@ export default function WorkerHistoryScreen() {
             },
           ]}
         >
-          <Text
-            style={[
-              styles.tabText,
-              {
-                color: activeTab === "daily" ? colors.text : colors.textMuted,
-                fontWeight: activeTab === "daily" ? "800" : "600",
-              },
-            ]}
-          >
-            📜 Rozana Khata ({dailyRecords.length})
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons
+              name="document-text-outline"
+              size={14}
+              color={activeTab === "daily" ? colors.text : colors.textMuted}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {
+                  color: activeTab === "daily" ? colors.text : colors.textMuted,
+                  fontWeight: activeTab === "daily" ? "800" : "600",
+                },
+              ]}
+            >
+              Rozana Khata ({dailyRecords.length})
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 

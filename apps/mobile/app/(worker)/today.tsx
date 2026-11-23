@@ -169,8 +169,8 @@ export default function WorkerTodayScreen() {
           ]}
         >
           {todayRecord
-            ? "📋 Aaj Ki Entry Dekhein ya Tabdeel Karein"
-            : "➕ Aaj Ki Rozana Entry Likhein"}
+            ? "Aaj Ki Entry Dekhein ya Tabdeel Karein"
+            : "Aaj Ki Rozana Entry Likhein"}
         </Text>
         <Text style={styles.bigButtonSubtitle}>
           {todayRecord
@@ -182,20 +182,26 @@ export default function WorkerTodayScreen() {
       {/* ========================================================================= */}
       {/* 4 DIGITAL REGISTERS (EXACTLY CORRESPONDING TO THE 4 REAL PAPER REGISTERS) */}
       {/* ========================================================================= */}
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: colors.text,
-            fontSize: typography.sizes.base,
-            fontWeight: typography.weights.bold,
-            marginTop: spacing.md,
-            marginBottom: spacing.xs,
-          },
-        ]}
-      >
-        📖 Farm Paper Registers (Khatay)
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: spacing.md, marginBottom: spacing.xs }}>
+        <MaterialCommunityIcons
+          name="book-open-page-variant"
+          size={18}
+          color={colors.primary}
+          style={{ marginRight: 6 }}
+        />
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: colors.text,
+              fontSize: typography.sizes.base,
+              fontWeight: typography.weights.bold,
+            },
+          ]}
+        >
+          Farm Paper Registers (Khatay)
+        </Text>
+      </View>
       <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 12 }}>
         Client ke notebook registers ke mutabiq 4 digital khatay:
       </Text>
@@ -216,7 +222,7 @@ export default function WorkerTodayScreen() {
               color="#059669"
             />
           </View>
-          <Text style={styles.registerCardTitle}>📋 Rozana Register</Text>
+          <Text style={styles.registerCardTitle}>Rozana Register</Text>
           <Text style={styles.registerCardSub}>
             Photos 1 & 5 • 16-Column Daily Sheet, Closing SF, Birds & Catching
           </Text>
@@ -237,7 +243,7 @@ export default function WorkerTodayScreen() {
               color="#D97706"
             />
           </View>
-          <Text style={styles.registerCardTitle}>💊 Dawaai Register</Text>
+          <Text style={styles.registerCardTitle}>Dawaai Register</Text>
           <Text style={styles.registerCardSub}>
             Photo 2 • Dawaai Detail, " " " " (Ditto) Copy aur Fast Chips
           </Text>
@@ -258,7 +264,7 @@ export default function WorkerTodayScreen() {
               color="#2563EB"
             />
           </View>
-          <Text style={styles.registerCardTitle}>📦 Khuraak Ledger</Text>
+          <Text style={styles.registerCardTitle}>Khuraak Ledger</Text>
           <Text style={styles.registerCardSub}>
             Photo 4 • Feed Aayi (In) & Feed Gayi (Out), Party Ledger & Stock
           </Text>
@@ -279,7 +285,7 @@ export default function WorkerTodayScreen() {
               color="#7C3AED"
             />
           </View>
-          <Text style={styles.registerCardTitle}>📊 Haftawar Summary</Text>
+          <Text style={styles.registerCardTitle}>Haftawar Summary</Text>
           <Text style={styles.registerCardSub}>
             Photo 3 • Weeks 1-6 Cards, Farm Method FCR (62.67), Live Weight
           </Text>
