@@ -1172,6 +1172,7 @@ export default function UserDashboardScreen() {
                     value={feedDate}
                     onChangeText={setFeedDate}
                     placeholder="23-Nov-2026"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1181,6 +1182,7 @@ export default function UserDashboardScreen() {
                     value={feedDay}
                     onChangeText={setFeedDay}
                     placeholder="28"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="number-pad"
                     style={styles.textInput}
                   />
@@ -1195,6 +1197,7 @@ export default function UserDashboardScreen() {
                     value={feedTimeStart}
                     onChangeText={setFeedTimeStart}
                     placeholder="08:00 AM"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1204,6 +1207,7 @@ export default function UserDashboardScreen() {
                     value={feedTimeEnd}
                     onChangeText={setFeedTimeEnd}
                     placeholder="02:00 PM"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1217,6 +1221,7 @@ export default function UserDashboardScreen() {
                     value={feedTarget}
                     onChangeText={setFeedTarget}
                     placeholder="Shed 1 (Cobb 500)"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1226,6 +1231,7 @@ export default function UserDashboardScreen() {
                     value={feedReceived}
                     onChangeText={setFeedReceived}
                     placeholder="200"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="numeric"
                     style={styles.textInput}
                   />
@@ -1239,6 +1245,7 @@ export default function UserDashboardScreen() {
                   value={feedUsed}
                   onChangeText={setFeedUsed}
                   placeholder="25"
+                  placeholderTextColor="#94A3B8"
                   keyboardType="numeric"
                   style={[styles.textInput, { fontSize: 16, fontWeight: "700" }]}
                 />
@@ -1319,6 +1326,7 @@ export default function UserDashboardScreen() {
                     value={choozaDate}
                     onChangeText={setChoozaDate}
                     placeholder="23-Nov-2026"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1328,6 +1336,7 @@ export default function UserDashboardScreen() {
                     value={choozaDay}
                     onChangeText={setChoozaDay}
                     placeholder="28"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="number-pad"
                     style={styles.textInput}
                   />
@@ -1341,6 +1350,7 @@ export default function UserDashboardScreen() {
                   value={choozaTotalPlaced}
                   onChangeText={setChoozaTotalPlaced}
                   placeholder="19888"
+                  placeholderTextColor="#94A3B8"
                   keyboardType="number-pad"
                   style={[styles.textInput, { fontWeight: "700" }]}
                 />
@@ -1354,6 +1364,7 @@ export default function UserDashboardScreen() {
                     value={choozaMortDay}
                     onChangeText={setChoozaMortDay}
                     placeholder="0"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="number-pad"
                     style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
                   />
@@ -1364,6 +1375,7 @@ export default function UserDashboardScreen() {
                     value={choozaMortNight}
                     onChangeText={setChoozaMortNight}
                     placeholder="0"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="number-pad"
                     style={[styles.textInput, { color: "#DC2626", fontWeight: "700" }]}
                   />
@@ -1377,6 +1389,7 @@ export default function UserDashboardScreen() {
                   value={choozaDeathReason}
                   onChangeText={setChoozaDeathReason}
                   placeholder="e.g. Garmi Ka Tanav, Kamzori, Saans Ka Masla"
+                  placeholderTextColor="#94A3B8"
                   style={styles.textInput}
                 />
               </View>
@@ -1452,6 +1465,7 @@ export default function UserDashboardScreen() {
                     value={guideDoctorName}
                     onChangeText={setGuideDoctorName}
                     placeholder="Dr. Ahsan (Poultry Specialist)"
+                    placeholderTextColor="#94A3B8"
                     style={styles.textInput}
                   />
                 </View>
@@ -1461,6 +1475,7 @@ export default function UserDashboardScreen() {
                     value={guideDoctorPhone}
                     onChangeText={setGuideDoctorPhone}
                     placeholder="0300-5551234"
+                    placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
                     style={styles.textInput}
                   />
@@ -1473,6 +1488,7 @@ export default function UserDashboardScreen() {
                   value={guideDiseaseName}
                   onChangeText={setGuideDiseaseName}
                   placeholder="e.g. CRD / Saans Ka Masla, E.Coli"
+                  placeholderTextColor="#94A3B8"
                   style={styles.textInput}
                 />
               </View>
@@ -1483,6 +1499,7 @@ export default function UserDashboardScreen() {
                   value={guideSolution}
                   onChangeText={setGuideSolution}
                   placeholder="e.g. Ventilin + Mucolator + Respifine"
+                  placeholderTextColor="#94A3B8"
                   style={styles.textInput}
                 />
               </View>
@@ -1493,6 +1510,7 @@ export default function UserDashboardScreen() {
                   value={guideInstructions}
                   onChangeText={setGuideInstructions}
                   placeholder="Subah ke 200L paani mein 3 din musalsal"
+                  placeholderTextColor="#94A3B8"
                   style={styles.textInput}
                 />
               </View>
@@ -1925,16 +1943,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#475569",
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
     color: "#0F172A",
   },
   bottomMasterCard: {
@@ -1996,39 +2015,43 @@ const styles = StyleSheet.create({
   },
   formRow: {
     flexDirection: "row",
-    marginBottom: 6,
+    marginBottom: 12,
   },
   inputTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#334155",
-    marginBottom: 3,
+    color: "#1E293B",
+    marginBottom: 6,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    fontSize: 13,
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#475569",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
     color: "#0F172A",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FFFFFF",
+    minHeight: 46,
   },
   calcSummaryBoxGreen: {
     backgroundColor: "#ECFDF5",
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#059669",
     borderRadius: 8,
-    padding: 10,
-    marginVertical: 10,
+    padding: 12,
+    marginVertical: 12,
   },
   calcSummaryBoxDark: {
     backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderWidth: 1.5,
+    borderStyle: "solid",
+    borderColor: "#334155",
     borderRadius: 8,
-    padding: 10,
-    marginVertical: 10,
+    padding: 12,
+    marginVertical: 12,
   },
   calcSummaryRow: {
     flexDirection: "row",

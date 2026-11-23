@@ -175,6 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
+    borderStyle: "solid",
     minHeight: 48, // Large easy touch target
   },
   input: {

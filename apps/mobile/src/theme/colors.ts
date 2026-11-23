@@ -35,7 +35,7 @@ export const lightColors: ThemeColors = {
   card: "#FFFFFF",
   cardElevated: "#FFFFFF",
   surface: "#F1F5F9", // Slate 100
-  border: "#E2E8F0", // Slate 200
+  border: "#94A3B8", // Slate 400 - clean visible border
   borderLight: "#CBD5E1",
   text: "#0F172A", // Slate 900
   textSecondary: "#475569", // Slate 600
